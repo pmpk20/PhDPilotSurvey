@@ -1,4 +1,5 @@
 # Script to analyse pilot survey data
+# Helpful links: https://cran.r-project.org/web/packages/support.CEs/support.CEs.pdf
 
 
 #Section One. Import Data
