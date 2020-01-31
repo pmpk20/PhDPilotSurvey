@@ -1,12 +1,12 @@
 # Script to analyse pilot survey data
 
 
-#Section One: Import Data
+#Section One. Import Data
 ## Import from CSV and convert to data frame with relevant columns
 Pilot <- data.frame(read.csv("PhD Survey_ Sample A.csv"))
-Pilot <- Pilot[ -c(1:2,8,27)]
-#Section Two: Pre-processing.
-## To do: Convert to factors
+Pilot <- Pilot[ -c(1.2,8,27)]
+#Section Two. Pre-processing.
+## To do. Convert to factors
 ##        Change column names
 colnames(Pilot) <- c("Q1Gender", "Q2Age", "Q3Distance", "Q4Trips","Q5CVM1","Q6QOV","Q7CE1", "Q8CE2","Q9CE3","Q10Action", "Q11Self","Q12Others", "Q13Marine", "Q14BP","Q15Responsibility","Q16Charity", "Q17Understanding", "Q18Consequentiality", "Q19Experts", "Q20Education","Q21Employment", "Q22Income","Q23Survey")
 Pilot2 <- Pilot
@@ -49,8 +49,91 @@ Pilot2$Q22Income[Pilot2$Q22Income == 1] <-2
 Pilot2$Q22Income[Pilot2$Q22Income == 0.5] <-1
 
 
+Choices <- data.frame("Effectiveness.SQ" =c(0,0,0,0,0,0,0,0,0,0), 
+                      "Effectiveness.ALT" =c(100,0,0,0,10,10,10,50,50,50), 
+                      "Env.SQ" =c(0,0,0,0,0,0,0,0,0,0),
+                      "Env.ALT" =c(100,90,40,90,0,40,90,0,40,90),
+                      "Price.SQ" =c(0,0,0,0,0,0,0,0,0,0),
+                      "Price.ALT" =c(0,0,1,5,1,5,0,5,0,1),
+                      "Health.SQ" =c(0,0,0,0,0,0,0,0,0,0),
+                      "Health.ALT" =c(0,0.1, 0.1,0.6,0.6,1,0.1,0.1,0.6,1))
 
+SpecificChoices <- data.frame("Effectiveness.SQ" =c(0,0,0), 
+                      "Effectiveness.ALT" =c(100,0,0), 
+                      "Env.SQ" =c(0,0,0),
+                      "Env.ALT" =c(100,90,40),
+                      "Price.SQ" =c(0,0,0),
+                      "Price.ALT" =c(0,0,1),
+                      "Health.SQ" =c(0,0,0),
+                      "Health.ALT" =c(0,0.1, 0.1))
 
+Chosen <- data.frame(Pilot2$Q7CE1,Pilot2$Q8CE2,Pilot2$Q9CE3)
+Chosen$Block <- rep(1,nrow(Chosen))
+Chosen$ID <- seq.int(nrow(Chosen))
+Chosen <- data.frame(Chosen$ID, Chosen$Block, Chosen$Pilot2.Q7CE1,Chosen$Pilot2.Q8CE2, Chosen$Pilot2.Q9CE3)
+colnames(Chosen) <- c("ID","Block","Q7","Q8","Q9")
 
+# Works up until here
+# I've tried copying the rest with some success
+# Before S3 works
 
+design <- Lma.design(
+  attribute.names = list(
+    Effectiveness = c("100","0","0"),
+    Accumulation = c("100","90","40"),
+    Price =c("0","0","1"),
+    Health = c("0","0.1","0.1")  ),
+  nalternatives = 3,
+  nblocks = 1,
+  row.renames = FALSE,
+  seed = 987)
+desmat3 <- make.design.matrix(
+  choice.experiment.design = design,
+  optout = TRUE,
+  continuous.attributes = c("Price","Effectiveness","Accumulation","Health"),
+  unlabeled = FALSE)
 
+# Section Thress: CL Estimation
+
+install.packages("survival")
+install.packages("support.CEs")
+library(survival)
+library(stats)
+library(support.CEs)
+# Case 1
+# Choice experiments using the function rotaion.design.
+# See "Details" for the data set syn.res1.
+
+des2 <- Lma.design(
+  attribute.names = list(
+    Eco = c("Conv.", "More", "Most"),
+    Price = c("1", "1.1", "1.2")),
+  nalternatives = 3,
+  nblocks = 2,
+  row.renames = FALSE,
+  seed = 987)
+des2
+questionnaire(choice.experiment.design = des2, quote = FALSE)
+desmat2 <- make.design.matrix(
+  choice.experiment.design = des2,
+  optout = TRUE,
+  categorical.attributes = c("Eco"),
+  continuous.attributes = c("Price"),
+  unlabeled = FALSE)
+data(syn.res2)
+dataset2 <- make.dataset(
+  respondent.dataset = syn.res2,
+  choice.indicators =
+    c("q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9"),
+  design.matrix = desmat2)
+clogout2 <- clogit(RES ~ ASC1 + More1 + Most1 + Price1 +
+                     ASC2 + More2 + Most2 + Price2 + ASC3 + More3 + Most3 + Price3 +
+                     strata(STR), data = dataset2)
+clogout2
+gofm(clogout2)
+mwtp(
+  output = clogout2,
+  monetary.variables = c("Price1", "Price2", "Price3"),
+  nonmonetary.variables = list(
+    c("More1", "Most1"), c("More2", "Most2"), c("More3", "Most3")),
+  seed = 987)
