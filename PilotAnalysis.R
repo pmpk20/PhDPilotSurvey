@@ -4,6 +4,8 @@
 
 #Section One. Import Data
 ## Import from CSV and convert to data frame with relevant columns
+setwd("H:/PhDPilotSurvey")
+
 Pilot <- data.frame(read.csv("PhD Survey_ Sample A.csv"))
 Pilot <- Pilot[ -c(1.2,8,27)]
 #Section Two. Pre-processing.
@@ -72,30 +74,62 @@ Chosen <- data.frame(Pilot2$Q7CE1,Pilot2$Q8CE2,Pilot2$Q9CE3)
 Chosen$Block <- rep(1,nrow(Chosen))
 Chosen$ID <- seq.int(nrow(Chosen))
 Chosen <- data.frame(Chosen$ID, Chosen$Block, Chosen$Pilot2.Q7CE1,Chosen$Pilot2.Q8CE2, Chosen$Pilot2.Q9CE3)
-colnames(Chosen) <- c("ID","Block","Q7","Q8","Q9")
+colnames(Chosen) <- c("ID","BLOCK","Q7","Q8","Q9")
 
 # Works up until here
 # I've tried copying the rest with some success
 # Before S3 works
+install.packages("survival")
+install.packages("support.CEs")
+library(survival)
+library(stats)
+library(support.CEs)
+
 
 design <- Lma.design(
   attribute.names = list(
     Effectiveness = c("100","0","0"),
     Accumulation = c("100","90","40"),
-    Price =c("0","0","1"),
-    Health = c("0","0.1","0.1")  ),
+    Health = c("0","0.1","0.1"),
+    Price =c("1.0","1.1","1.2")),
   nalternatives = 3,
-  nblocks = 1,
+  nblocks = 2,
   row.renames = FALSE,
   seed = 987)
+# Price should be 0,0,1
+design
+questionnaire(choice.experiment.design = design, quote = FALSE)
 desmat3 <- make.design.matrix(
   choice.experiment.design = design,
   optout = TRUE,
-  continuous.attributes = c("Price","Effectiveness","Accumulation","Health"),
-  unlabeled = FALSE)
+  continuous.attributes = c("Effectiveness","Accumulation","Health","Price"),
+    unlabeled = FALSE)
+data(Chosen)
+
+Chosen[Chosen == 1] <- 2
+Chosen[Chosen == 0] <- 1
+
+
+dataset3 <- make.dataset(
+  respondent.dataset = Chosen,
+  choice.indicators =
+    c("Q7", "Q8", "Q9"),
+  design.matrix = desmat3)
+clogout3 <- clogit(RES ~ ASC1 + Effectiveness1 + Accumulation1 + Health1  +
+                     ASC2 + Effectiveness2 + Accumulation2 + Health2 + ASC3+ Effectiveness3 + Accumulation3 + Health3 +
+                     strata(STR), data = dataset3)
+clogout3
+gofm(clogout3)
+mwtp(
+  output = clogout3,
+  monetary.variables = c("Price1", "Price2", "Price3"),
+  nonmonetary.variables = list(
+    c("Effectiveness1", "Accumulation1", "Health1"), c("Effectiveness2","Accumulation2", "Health2"), c("Effectiveness3","Accumulation3", "Health3")),
+  seed = 987)
+
 
 # Section Thress: CL Estimation
-
+# Section Thress: CL Estimation
 install.packages("survival")
 install.packages("support.CEs")
 library(survival)
