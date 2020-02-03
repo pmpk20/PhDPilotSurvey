@@ -20,74 +20,76 @@ from cycler import cycler
 mpl.rcParams['axes.prop_cycle'] = cycler(color='bgcrmyk')
 
 #Step 2: Import data
-Survey = pd.read_csv("\\\\myfiles\pmpk20\dos\PhD\Data Collection\Pilot\PhD Survey_ Sample A.csv")
+Pilot = pd.read_csv("\\\\myfiles\pmpk20\dos\PhD\Data Collection\Pilot\PhD Survey_ Sample A.csv")
 
-### To translate to R
-#Pilot <- Pilot[ -c(1.2,8,27)]
-##Section Two. Pre-processing.
-### To do. Convert to factors
-###        Change column names
-#colnames(Pilot) <- c("Q1Gender", "Q2Age", "Q3Distance", "Q4Trips","Q5CVM1","Q6QOV","Q7CE1", "Q8CE2","Q9CE3","Q10Action", "Q11Self","Q12Others", "Q13Marine", "Q14BP","Q15Responsibility","Q16Charity", "Q17Understanding", "Q18Consequentiality", "Q19Experts", "Q20Education","Q21Employment", "Q22Income","Q23Survey")
-#Pilot2 <- Pilot
-#Pilot2 <- data.frame(Pilot2)
+
 #
-#for (i in colnames(Pilot)){
+#####################################################################################
+################ Section 2: Data pre-processing  ##########################
+#####################################################################################
+#
+#
+#Pilot <- Pilot[ -c(1,2,8,27)] #Drop rows of no importance to the quantitative analysis, namely text responses.
+#
+#colnames(Pilot) <- c("Q1Gender", "Q2Age", "Q3Distance", "Q4Trips","Q5CVM1","Q6QOV","Q7CE1", "Q8CE2","Q9CE3","Q10Action", "Q11Self","Q12Others", "Q13Marine", "Q14BP","Q15Responsibility","Q16Charity", "Q17Understanding", "Q18Consequentiality", "Q19Experts", "Q20Education","Q21Employment", "Q22Income","Q23Survey") #Renames columns for ease of analysis
+#
+#Pilot2 <- Pilot # Create a backup of the Pilot data
+#
+#Pilot2 <- data.frame(Pilot2) # Force to the data.frame format
+#
+#SpecificChoices <- data.frame("Effectiveness.ALT" =c(100,0,0), 
+#                              "Env.ALT" =c(100,90,40),
+#                              "Price.ALT" =c(0,0,1),
+#                              "Health.ALT" =c(0,0.1, 0.1))
+### Aim here is to make a dataframe with the choice set data. Extremely important for later.
+#
+#Effectiveness <- factor(SpecificChoices$Effectiveness.ALT) #Forces an attribute of the DCE to be a factor for ease of analysis
+#
+#Accumulation <- factor(SpecificChoices$Env.ALT) #Forces an attribute of the DCE to be a factor for ease of analysis
+#
+#Price <- factor(SpecificChoices$Price.ALT) #Forces an attribute of the DCE to be a factor for ease of analysis
+#
+#Health <- factor(SpecificChoices$Health.ALT) #Forces an attribute of the DCE to be a factor for ease of analysis
+#
+#contrasts(Effectiveness) <- contr.sum(unique(SpecificChoices$Effectiveness.ALT)) # Ensures a DCE attribute is appropriately stored as a factor
+#
+#contrasts(Accumulation) <- contr.sum(unique(SpecificChoices$Env.ALT))# Ensures a DCE attribute is appropriately stored as a factor
+#
+#contrasts(Price) <- contr.sum(unique(SpecificChoices$Price.ALT))# Ensures a DCE attribute is appropriately stored as a factor
+#
+#contrasts(Health) <- contr.sum(unique(SpecificChoices$Health.ALT))# Ensures a DCE attribute is appropriately stored as a factor
+#
+#SpecificChoices <- data.frame(Effectiveness, Accumulation, Price, Health) # Creates a dataframe with all the DCE attributes in levels
+#
+#Pilot2$ID <- seq.int(nrow(Pilot2)) # Adds an ID column to the Pilot survey. This is anonymous and bears no relation to actual respondents.
+#
+#for (i in colnames(Pilot2)){
 #  if (is.factor(Pilot[[i]]) == TRUE){
-#    Pilot2[[i]] <- as.numeric(Pilot[[i]])-1
+#    contrasts(Pilot2[,i]) <- contr.sum(unique(Pilot2[,i]))
 #  }
 #}
+### Aim of the function is to express all variables in the Pilot data as factors
+#
+#library(dplyr) # Important for data manipulation
+#
+#Test <- cbind(slice(.data = Pilot2,rep(1:n(), each = nrow(SpecificChoices))),slice(.data = SpecificChoices,rep(1:n(), times = nrow(Pilot2))))
+## So TEST is a dataframe that transforms the PILOT data into an appropriate format for the estimation.
+## The code repeats each row of the PILOT data for each choice the respondent made. Therefore, each respondent now has three rows one for Q7, Q8, Q9.
+#
+#Choices <- data.frame(a = c(t(data.frame(rep(Pilot2[,7:9], times=1)))[,]))
+## Forces the responses to Q7, Q8, Q9 from PILOT to be in one long column. Each respondent has three rows.
+#
+#Test <- data.frame(Test$ID,Test[1:6],Choices,Test[10:23],Test[25:28])
+## Combines and reorders the TEST dataframe. Use View(Test) to see that this dataframe combines the choice sets, responses, and respondent data.
+#
+#colnames(Test) <- c("ID","Q1Gender", "Q2Age", "Q3Distance", "Q4Trips","Q5CVM1","Q6QOV","Choice","Q10Action", "Q11Self","Q12Others", "Q13Marine", "Q14BP","Q15Responsibility","Q16Charity", "Q17Understanding", "Q18Consequentiality", "Q19Experts", "Q20Education","Q21Employment", "Q22Income","Q23Survey","Effectiveness","Accumulation","Price","Health")
+## Adds and updates column names.
 #
 #
-#Pilot2$Q3Distance[Pilot2$Q3Distance == 1] <- 4
-#Pilot2$Q3Distance[Pilot2$Q3Distance == 0] <- 1
-#Pilot2$Q7CE1[Pilot2$Q7CE1 == 0] <-2 #The CE sets Status Quo as 1 and Alternative to 0 so this switches it around
-#Pilot2$Q7CE1[Pilot2$Q7CE1 == 1] <-0
-#Pilot2$Q7CE1[Pilot2$Q7CE1 == 2] <-1 
-#Pilot2$Q8CE2[Pilot2$Q8CE2 == 0] <-2 
-#Pilot2$Q8CE2[Pilot2$Q8CE2 == 1] <-0
-#Pilot2$Q8CE2[Pilot2$Q8CE2 == 2] <-1 
-#Pilot2$Q9CE3[Pilot2$Q9CE3 == 0] <-2 
-#Pilot2$Q9CE3[Pilot2$Q9CE3 == 1] <-0
-#Pilot2$Q9CE3[Pilot2$Q9CE3 == 2] <-1 
-#Pilot2$Q17Understanding[Pilot2$Q17Understanding == 0] <-3 # Understanding question should be weak, average, strong not 1,2,0
-#Pilot2$Q20Education[Pilot2$Q20Education == 2] <-3 #Just shifting every value up one for education
-#Pilot2$Q20Education[Pilot2$Q20Education == 1] <-2
-#Pilot2$Q20Education[Pilot2$Q20Education == 0] <-1
-#Pilot2$Q21Employment[Pilot2$Q21Employment == 0] <-5 #Switch full to 5 for now
-#Pilot2$Q21Employment[Pilot2$Q21Employment == 1] <-0 #Change NEET to zero
-#Pilot2$Q21Employment[Pilot2$Q21Employment == 2] <-1 #Change Part to 1 
-#Pilot2$Q21Employment[Pilot2$Q21Employment == 4] <-2 #Self stays same so student changes to 2
-#Pilot2$Q21Employment[Pilot2$Q21Employment == 5] <-4 #Put full back as highest value
-#Pilot2$Q22Income[Pilot2$Q22Income == 7] <-0.5 #The only wrong assignment of Employment was the 500-1000 level which it put last?
-#Pilot2$Q22Income[Pilot2$Q22Income == 6] <-7
-#Pilot2$Q22Income[Pilot2$Q22Income == 5] <-6
-#Pilot2$Q22Income[Pilot2$Q22Income == 4] <-5
-#Pilot2$Q22Income[Pilot2$Q22Income == 3] <-4
-#Pilot2$Q22Income[Pilot2$Q22Income == 2] <-3
-#Pilot2$Q22Income[Pilot2$Q22Income == 1] <-2
-#Pilot2$Q22Income[Pilot2$Q22Income == 0.5] <-1
+###########################################################################
+################ Section 3: Estimation of models ##########################
+###########################################################################
 #
 #
-#Choices <- data.frame("Effectiveness.SQ" =c(0,0,0,0,0,0,0,0,0,0), 
-#                      "Effectiveness.ALT" =c(100,0,0,0,10,10,10,50,50,50), 
-#                      "Env.SQ" =c(0,0,0,0,0,0,0,0,0,0),
-#                      "Env.ALT" =c(100,90,40,90,0,40,90,0,40,90),
-#                      "Price.SQ" =c(0,0,0,0,0,0,0,0,0,0),
-#                      "Price.ALT" =c(0,0,1,5,1,5,0,5,0,1),
-#                      "Health.SQ" =c(0,0,0,0,0,0,0,0,0,0),
-#                      "Health.ALT" =c(0,0.1, 0.1,0.6,0.6,1,0.1,0.1,0.6,1))
-#
-#SpecificChoices <- data.frame("Effectiveness.SQ" =c(0,0,0), 
-#                      "Effectiveness.ALT" =c(100,0,0), 
-#                      "Env.SQ" =c(0,0,0),
-#                      "Env.ALT" =c(100,90,40),
-#                      "Price.SQ" =c(0,0,0),
-#                      "Price.ALT" =c(0,0,1),
-#                      "Health.SQ" =c(0,0,0),
-#                      "Health.ALT" =c(0,0.1, 0.1))
-#
-#Chosen <- data.frame(Pilot2$Q7CE1,Pilot2$Q8CE2,Pilot2$Q9CE3)
-#Chosen$Block <- rep(1,nrow(Chosen))
-#Chosen$ID <- seq.int(nrow(Chosen))
-#Chosen <- data.frame(Chosen$ID, Chosen$Block, Chosen$Pilot2.Q7CE1,Chosen$Pilot2.Q8CE2, Chosen$Pilot2.Q9CE3)
-#colnames(Chosen) <- c("ID","BLOCK","Q7","Q8","Q9")
+#library(nnet)
+#summary(multinom(Test$Choice ~ Test$Q1Gender +Test$Q2Age +Test$Q3Distance+Test$Q4Trips+Test$Q10Action+Test$Q11Self + Test$Q12Others + Test$Q13Marine + Test$Q14BP + Test$Q15Responsibility + Test$Q16Charity + Test$Q17Understanding + Test$Q18Consequentiality + Test$Q19Experts + Test$Q20Education + Test$Q21Employment + Test$Q22Income + Test$Q23Survey, data=Test))
