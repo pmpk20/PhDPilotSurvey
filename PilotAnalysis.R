@@ -7,7 +7,7 @@
 setwd("H:/PhDPilotSurvey")
 
 Pilot <- data.frame(read.csv("PhD Survey_ Sample A.csv"))
-Pilot <- Pilot[ -c(1.2,8,27)]
+Pilot <- Pilot[ -c(1,2,8,27)]
 #Section Two. Pre-processing.
 ## To do. Convert to factors
 ##        Change column names
@@ -15,6 +15,32 @@ colnames(Pilot) <- c("Q1Gender", "Q2Age", "Q3Distance", "Q4Trips","Q5CVM1","Q6QO
 Pilot2 <- Pilot
 Pilot2 <- data.frame(Pilot2)
 
+SpecificChoices <- data.frame("Effectiveness.ALT" =c(100,0,0), 
+                              "Env.ALT" =c(100,90,40),
+                              "Price.ALT" =c(0,0,1),
+                              "Health.ALT" =c(0,0.1, 0.1))
+
+Effectiveness <- factor(SpecificChoices$Effectiveness.ALT)
+Accumulation <- factor(SpecificChoices$Env.ALT)
+Price <- factor(SpecificChoices$Price.ALT)
+Health <- factor(SpecificChoices$Health.ALT)
+contrasts(Effectiveness) <- contr.sum(unique(SpecificChoices$Effectiveness.ALT))
+contrasts(Accumulation) <- contr.sum(unique(SpecificChoices$Env.ALT))
+contrasts(Price) <- contr.sum(unique(SpecificChoices$Price.ALT))
+contrasts(Health) <- contr.sum(unique(SpecificChoices$Health.ALT))
+SpecificChoices <- data.frame(Effectiveness, Accumulation, Price, Health)
+
+
+for (i in colnames(Pilot2)){
+  if (is.factor(Pilot[[i]]) == TRUE){
+    contrasts(Pilot2[,i]) <- contr.sum(unique(Pilot2[,i]))
+  }
+}
+
+
+##Old ideas onwards and don't work well
+#########################################################################
+#########################################################################
 for (i in colnames(Pilot)){
   if (is.factor(Pilot[[i]]) == TRUE){
     Pilot2[[i]] <- as.numeric(Pilot[[i]])-1
@@ -104,6 +130,10 @@ desmat3 <- make.design.matrix(
   optout = TRUE,
   continuous.attributes = c("Effectiveness","Accumulation","Health","Price"),
     unlabeled = FALSE)
+
+data<- function(a){
+  d<-a
+  return(d)}
 data(Chosen)
 
 Chosen[Chosen == 1] <- 2
