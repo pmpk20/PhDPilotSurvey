@@ -6,17 +6,18 @@ Created on Fri Jan 31 18:19:06 2020
 """
 
 #Script to replicate Pilot Data Analysis in Python
-#Step 1: Import necessary packages
+#####################################################################################
+################ Section 1: Importing necessary packages ##########################
+#####################################################################################
 import os
 os.chdir('H:\PhDPilotSurvey')   
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as mp
-import statsmodels.formula.api as smf
-import matplotlib.patches as mpatches
-import matplotlib.pyplot as plt
 import matplotlib as mpl
 import itertools
+import statsmodels
+from statsmodels.formula.api import ols
+from patsy.contrasts import Sum
 from cycler import cycler
 mpl.rcParams['axes.prop_cycle'] = cycler(color='bgcrmyk')
 
@@ -58,9 +59,18 @@ Task = pd.DataFrame(itertools.chain.from_iterable(itertools.repeat(range(3), Pil
 
 Test.columns = ["ID","Task","Q1Gender", "Q2Age", "Q3Distance", "Q4Trips","Q5CVM1","Q6QOV","Choice","Q10Action", "Q11Self","Q12Others", "Q13Marine", "Q14BP","Q15Responsibility","Q16Charity", "Q17Understanding", "Q18Consequentiality", "Q19Experts", "Q20Education","Q21Employment", "Q22Income","Q23Survey","Effectiveness.ALT","Env.ALT","Price.ALT","Health.ALT","Effectiveness.SQ","Env.SQ","Price.SQ","Health.SQ"]
 
-#Tests <- data.frame(Test[,1:2],Test$Choice,Test[,24:31])
-## Takes the core elements of the TEST data frame
-#
-#
-#levels(Tests$Test.Choice)[1] <- "ALT"
-#levels(Tests$Test.Choice)[2] <- "SQ"
+Test.Choice[Test.Choice != "Alternative"] = 0
+Test.Choice[Test.Choice == "Alternative"] = 1
+
+#####################################################################################
+################ Section 2B: Effects coding ##########################
+#####################################################################################
+
+
+contrast = Sum().code_without_intercept([np.count_nonzero(Test.Q1Gender.unique())])
+print(contrast.matrix)
+mod = ols("Q23Survey ~ C(Q1Gender)+ Q2Age", data=Test)
+res = mod.fit()
+print(res.summary())
+
+Model1 = statsmodels.discrete.discrete_model.Logit(np.asfarray(Test.Choice),np.asfarray(Test.Q10Action))
