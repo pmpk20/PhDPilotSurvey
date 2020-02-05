@@ -63,7 +63,7 @@ Test.Choice[Test.Choice != "Alternative"] = 0
 Test.Choice[Test.Choice == "Alternative"] = 1
 
 #####################################################################################
-################ Section 2B: Effects coding ##########################
+################ Section 2B: Effects coding #########################################
 #####################################################################################
 
 
@@ -74,3 +74,58 @@ res = mod.fit()
 print(res.summary())
 
 Model1 = statsmodels.discrete.discrete_model.Logit(np.asfarray(Test.Choice),np.asfarray(Test.Q10Action))
+# https://www.statsmodels.org/dev/generated/statsmodels.discrete.discrete_model.Logit.html
+
+
+#####################################################################################
+################ R Translation ######################################################
+#####################################################################################
+
+
+#for (i in colnames(Pilot)){
+#  if (is.factor(Pilot[[i]]) == TRUE){
+#    Pilot2[[i]] <- as.numeric(Pilot[[i]])-1
+#  }
+#}
+#
+#Pilot2$Q3Distance[Pilot2$Q3Distance == 1] <- 4
+#Pilot2$Q3Distance[Pilot2$Q3Distance == 0] <- 1
+#Pilot2$Q6QOV <- t(t(1-Pilot2$Q6QOV)) # Change the QOV coding so 1 is precaution
+#Pilot2$Q7CE1[Pilot2$Q7CE1 == 0] <-2 #The CE sets Status Quo as 1 and Alternative to 0 so this switches it around
+#Pilot2$Q7CE1[Pilot2$Q7CE1 == 1] <-0
+#Pilot2$Q7CE1[Pilot2$Q7CE1 == 2] <-1
+#Pilot2$Q8CE2[Pilot2$Q8CE2 == 0] <-2
+#Pilot2$Q8CE2[Pilot2$Q8CE2 == 1] <-0
+#Pilot2$Q8CE2[Pilot2$Q8CE2 == 2] <-1
+#Pilot2$Q9CE3[Pilot2$Q9CE3 == 0] <-2
+#Pilot2$Q9CE3[Pilot2$Q9CE3 == 1] <-0
+#Pilot2$Q9CE3[Pilot2$Q9CE3 == 2] <-1
+#Pilot2$Q17Understanding[Pilot2$Q17Understanding == 0] <-3 # Understanding question should be weak, average, strong not 1,2,0
+#Pilot2$Q20Education[Pilot2$Q20Education == 2] <-3 #Just shifting every value up one for education
+#Pilot2$Q20Education[Pilot2$Q20Education == 1] <-2
+#Pilot2$Q20Education[Pilot2$Q20Education == 0] <-1
+#Pilot2$Q21Employment[Pilot2$Q21Employment == 0] <-5 #Switch full to 5 for now
+#Pilot2$Q21Employment[Pilot2$Q21Employment == 1] <-0 #Change NEET to zero
+#Pilot2$Q21Employment[Pilot2$Q21Employment == 2] <-1 #Change Part to 1
+#Pilot2$Q21Employment[Pilot2$Q21Employment == 4] <-2 #Self stays same so student changes to 2
+#Pilot2$Q21Employment[Pilot2$Q21Employment == 5] <-4 #Put full back as highest value
+#Pilot2$Q22Income[Pilot2$Q22Income == 7] <-0.5 #The only wrong assignment of Employment was the 500-1000 level which it put last?
+#Pilot2$Q22Income[Pilot2$Q22Income == 6] <-7
+#Pilot2$Q22Income[Pilot2$Q22Income == 5] <-6
+#Pilot2$Q22Income[Pilot2$Q22Income == 4] <-5
+#Pilot2$Q22Income[Pilot2$Q22Income == 3] <-4
+#Pilot2$Q22Income[Pilot2$Q22Income == 2] <-3
+#Pilot2$Q22Income[Pilot2$Q22Income == 1] <-2
+#Pilot2$Q22Income[Pilot2$Q22Income == 0.5] <-1
+
+#summary(glm(Test$Q5CVM1 ~ Test$Q1Gender + Test$Q2Age + Test$Q3Distance + Test$Q4Trips + Test$Q10Action + Test$Q22Income + Test$Q21Employment + Test$Q20Education + Test$Q11Self + Test$Q12Others + Test$Q13Marine + Test$Q14BP + Test$Q15Responsibility + Test$Q16Charity + Test$Q17Understanding, data=Test))
+#
+## Here I've made a function that plots which variables are the most significant
+#Significance <- function(Model) {
+#  PV <- data.frame(summary(Model)$coefficients[,4],summary(Model)$coefficients[,1] )
+#  colnames(PV) <- c("PV","Effect")
+#  PV <- subset(PV,PV <=0.05)
+#  PV <- data.frame(row.names(PV), PV$PV, PV$Effect)
+#  colnames(PV) <- c("Variables","PV","Effect")
+#  return(barplot(PV$Effect, names.arg = PV$Variables,xlab = "Variables",ylab = "Effect",ylim = c(-2,5),axes = TRUE))
+#}
