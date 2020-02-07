@@ -86,9 +86,6 @@ SQChoices <- data.frame("Effectiveness.SQ" =c(0,0,0),
                               "Price.SQ" =c(0,0,0),
                               "Health.SQ" =c(1,1, 1))
 
-SpecificChoices <- data.frame(Effectiveness, Accumulation, Price, Health) # Creates a dataframe with all the DCE attributes in levels
-
-
 Pilot2$ID <- seq.int(nrow(Pilot2)) # Adds an ID column to the Pilot survey. This is anonymous and bears no relation to actual respondents.
 
 for (i in colnames(Pilot2)){
@@ -194,7 +191,6 @@ predictions_base = apollo_prediction(model,
                                      apollo_probabilities, 
                                      apollo_inputs)
 
-database$cost_rail = 1.1*database$cost_rail
 predictions_new = apollo_prediction(model, 
                                     apollo_probabilities, 
                                     apollo_inputs)
