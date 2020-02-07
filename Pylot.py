@@ -6,9 +6,17 @@ Created on Fri Jan 31 18:19:06 2020
 """
 
 #Script to replicate Pilot Data Analysis in Python
-#####################################################################################
-################ Section 1: Importing necessary packages ##########################
-#####################################################################################
+##########################################################################
+##########################################################################
+###############                                             ##############
+###############     Section 1: Setup                        ############## 
+###############                                             ##############
+##########################################################################
+##########################################################################
+
+
+
+
 import os
 os.chdir('H:\PhDPilotSurvey')   
 import pandas as pd
@@ -26,10 +34,18 @@ from sklearn.preprocessing import LabelEncoder
 Pilot = pd.read_csv("\\\\myfiles\pmpk20\dos\PhD\Data Collection\Pilot\PhD Survey_ Sample A.csv")
 
 
-#
-#####################################################################################
-################ Section 2: Data pre-processing  ##########################
-#####################################################################################
+
+
+##########################################################################
+##########################################################################
+###############                                             ##############
+###############     Section 2: Data pre-processing          ############## 
+###############                                             ##############
+##########################################################################
+##########################################################################
+
+
+
 
 Pilot = Pilot.drop([Pilot.columns[0],Pilot.columns[1],Pilot.columns[7],Pilot.columns[26]],axis='columns')
 Pilot = Pilot.reset_index()
@@ -104,13 +120,29 @@ Dependents = pd.DataFrame(pd.concat([Test.const, Test.Q1Gender , Test.Q2Age , Te
 Test = statsmodels.tools.tools.add_constant(Test, prepend=True, has_constant='add')
 
 ##########################################################################
-############### Section 3: Estimation of DCE models #####################
+##########################################################################
+###############                                             ##############
+###############     Section 3: Estimation of DCE models     ############## 
+###############                                             ##############
+##########################################################################
 ##########################################################################
 
 
-# SKLEARN MNL approach: works but no summary, great.
 
-# PYLOGIT approach: https://github.com/timothyb0912/pylogit/tree/master/examples/.ipynb_checkpoints
+
+##########################################################################
+############### DCE method: SKLEARN
+############### Link: https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html#sklearn.linear_model.LogisticRegression
+############### Comment: No summary provided so worthless.
+##########################################################################
+
+
+
+##########################################################################
+############### DCE method: PYLOGIT
+############### Link: https://github.com/timothyb0912/pylogit/tree/master/examples/.ipynb_checkpoint 
+############### Comment: Will learn but the package hasn't been updated since 2017 so maybe avoid
+##########################################################################
 
 from collections import OrderedDict    # For recording the model specification 
 import pandas as pd                    # For file input/output
@@ -119,17 +151,30 @@ import scipy.linalg                    # For matrix inversion
 import pylogit as pl                   # For choice model estimation
 from pylogit import nested_logit as nl # For nested logit convenience funcs
 
-
-
-# CHOICEMODELS approach: https://readthedocs.org/projects/choicemodels/downloads/pdf/stable/
+##########################################################################
+############### DCE method: CHOICEMODELS
+############### Link: https://readthedocs.org/projects/choicemodels/downloads/pdf/stable/
+############### Comment: Seems to combine other packages and doesn't have other logit specifications available.
+##########################################################################
+ 
 import choicemodels
 
+##########################################################################
+############### DCE method: BIOGEME
+############### Link: https://transp-or.epfl.ch/documents/technicalReports/Bier18.pdf
+############### Comment: Seems thorough with a lot of options - worthwhile learning.
+##########################################################################
 
-# BIOGEME approach: https://transp-or.epfl.ch/documents/technicalReports/Bier18.pdf
 import biogeme
 
+##########################################################################
+############### DCE method: STATSMODELS
+############### Link: https://www.statsmodels.org/stable/generated/statsmodels.discrete.discrete_model.MultinomialResults.html
+############### Comment: Not sure on other logits but widely used.
+##########################################################################
 
-# STATSMODELS approach: hates 13 (never works),14, 16
+# This formula throws a fit when using questions 13 (never works),14, 16
+# Aim here is to estimate a fully general MNL model of Choice ~ Dependents and report the significant variables
 Dependents = pd.DataFrame(pd.concat([Test.const, Test.Q1Gender , Test.Q2Age , Test.Q3Distance , Test.Q4Trips , Test.Q6QOV, Test.Q10Action ,Test.Q11Self , Test.Q12Others,Test.Q15Responsibility,Test.Q17Understanding, Test.Q18Consequentiality, Test.Q19Experts  , Test.Q20Education, Test.Q21Employment ,  Test.Q22Income, Test.Q23Survey ],axis=1))
 Model1 = statsmodels.discrete.discrete_model.MNLogit(np.asfarray(Test.Choice),Dependents.to_numpy()).fit()
 Model1.summary(alpha=0.05,yname='DCE Choice',xname=Dependents.columns.to_list())
@@ -144,6 +189,7 @@ PV['PValue'] = PV['PValue'].astype('float')
 PV = PV.PValue[PV.PValue < 0.05]
 print(PV)
 
+## Aim of this block below is to estimate above with only the significant variables
 Dependents = pd.DataFrame(pd.concat([Test.const, Test.Q10Action ,Test.Q11Self , Test.Q12Others,Test.Q15Responsibility,Test.Q17Understanding, Test.Q20Education ,  Test.Q22Income ],axis=1))
 Model1 = statsmodels.discrete.discrete_model.MNLogit(np.asfarray(Test.Choice),Dependents.to_numpy()).fit()
 Model1.summary(alpha=0.05,yname='DCE Choice',xname=Dependents.columns.to_list())
@@ -159,24 +205,41 @@ PV = PV.PValue[PV.PValue < 0.05]
 print(PV)
 
 
+
+
+
 ##########################################################################
-############### Section 3B: Estimation of CVM models #####################
+###############                                             ##############
+###############     Section 3B: Estimation of CVM models    ############## 
+###############                                             ##############
 ##########################################################################
+
 #
 # Q5CVM ~ Dependents using probit
 
+##########################################################################
+###############                                             ##############
+###############     Section 3C: Estimation of QOV models    ############## 
+###############                                             ##############
+##########################################################################
 
-##########################################################################
-############### Section 3C: Estimation of QOV models #####################
-##########################################################################
 #
 # Q6QOV ~ Dependents using probit
 
+##########################################################################
+###############                                             ##############
+###############     Section 4: Estimation of other models   ############## 
+###############                                             ##############
+##########################################################################
 
-##########################################################################
-############### Section 4: Estimation of other models #####################
-##########################################################################
 #
 # Experts ~ Dependents using OLS
 
+##########################################################################
+###############                                             ##############
+###############     Section 5: Hybrid Choice models?        ############## 
+###############                                             ##############
+##########################################################################
 
+#
+# Read this first: https://transp-or.epfl.ch/documents/talks/IVT10.pdf
