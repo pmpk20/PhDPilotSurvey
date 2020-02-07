@@ -110,21 +110,23 @@ Test = statsmodels.tools.tools.add_constant(Test, prepend=True, has_constant='ad
 
 # SKLEARN MNL approach: works but no summary, great.
 
-# PYLOGIT approach:
+# PYLOGIT approach: https://github.com/timothyb0912/pylogit/tree/master/examples/.ipynb_checkpoints
 
 from collections import OrderedDict    # For recording the model specification 
-
 import pandas as pd                    # For file input/output
-import numpy as np                     # For vectorized math operations
 import statsmodels.tools.numdiff as numdiff       # For numeric hessian
 import scipy.linalg                    # For matrix inversion
-
 import pylogit as pl                   # For choice model estimation
 from pylogit import nested_logit as nl # For nested logit convenience funcs
 
 
 
+# CHOICEMODELS approach: https://readthedocs.org/projects/choicemodels/downloads/pdf/stable/
+import choicemodels
 
+
+# BIOGEME approach: https://transp-or.epfl.ch/documents/technicalReports/Bier18.pdf
+import biogeme
 
 
 # STATSMODELS approach: hates 13 (never works),14, 16
@@ -157,56 +159,24 @@ PV = PV.PValue[PV.PValue < 0.05]
 print(PV)
 
 
-
-
-
-#Significance <- function(Model) {
-#  PV <- data.frame(summary(Model).coefficients[,4],summary(Model).coefficients[,1] )
-#  colnames(PV) <- c("PV","Effect")
-#  PV <- subset(PV,PV <=0.05)
-#  PV <- data.frame(row.names(PV), PV.PV, PV.Effect)
-#  colnames(PV) <- c("Variables","PV","Effect")
-#  return(barplot(PV.Effect, names.arg = PV.Variables,xlab = "Variables",ylab = "Effect",ylim = c(-2,5),axes = TRUE))
-#}
-
-
-# https://www.statsmodels.org/dev/generated/statsmodels.discrete.discrete_model.Logit.html
-
-
-
 ##########################################################################
 ############### Section 3B: Estimation of CVM models #####################
 ##########################################################################
 #
-#
-#summary(glm(Test.Q5CVM1 ~ Test.Q1Gender + Test.Q2Age + Test.Q3Distance + Test.Q4Trips + Test.Q10Action + Test.Q22Income + Test.Q21Employment + Test.Q20Education + Test.Q11Self + Test.Q12Others + Test.Q13Marine + Test.Q14BP + Test.Q15Responsibility + Test.Q16Charity + Test.Q17Understanding, data=Test))
-#
-## Here I've made a function that plots which variables are the most significant
-#Significance <- function(Model) {
-#  PV <- data.frame(summary(Model).coefficients[,4],summary(Model).coefficients[,1] )
-#  colnames(PV) <- c("PV","Effect")
-#  PV <- subset(PV,PV <=0.05)
-#  PV <- data.frame(row.names(PV), PV.PV, PV.Effect)
-#  colnames(PV) <- c("Variables","PV","Effect")
-#  return(barplot(PV.Effect, names.arg = PV.Variables,xlab = "Variables",ylab = "Effect",ylim = c(-2,5),axes = TRUE))
-#}
+# Q5CVM ~ Dependents using probit
+
 
 ##########################################################################
 ############### Section 3C: Estimation of QOV models #####################
 ##########################################################################
-
-
-#require(ggplot2)
-#ModelQOV <- (glm(Test.Q6QOV ~ Test.Q1Gender + Test.Q2Age + Test.Q3Distance + Test.Q4Trips + Test.Q10Action + Test.Q22Income + Test.Q21Employment + Test.Q20Education + Test.Q11Self + Test.Q12Others + Test.Q13Marine + Test.Q14BP + Test.Q15Responsibility + Test.Q16Charity + Test.Q17Understanding, data=Test))
-#Significance(ModelQOV)
-#ggplot(Test, aes(x = Q6QOV, y = Q3Distance, colour = Health_SQ)) + geom_point() + facet_wrap(~Q1Gender)
+#
+# Q6QOV ~ Dependents using probit
 
 
 ##########################################################################
 ############### Section 4: Estimation of other models #####################
 ##########################################################################
-
 #
-## Testing determinants of belief in experts
-#Model1 <- lm(Test.Q19Experts ~ Test.Q1Gender + Test.Q2Age + Test.Q3Distance + Test.Q4Trips + Test.Q10Action + Test.Q22Income + Test.Q21Employment + Test.Q20Education + Test.Q11Self + Test.Q12Others + Test.Q13Marine + Test.Q14BP + Test.Q15Responsibility + Test.Q16Charity + Test.Q17Understanding)
-#Significance(Model1)
+# Experts ~ Dependents using OLS
+
+
