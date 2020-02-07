@@ -96,16 +96,78 @@ Task = pd.DataFrame(itertools.chain.from_iterable(itertools.repeat(range(3), Pil
 
 Test.columns = ["ID","Task","Q1Gender", "Q2Age", "Q3Distance", "Q4Trips","Q5CVM1","Q6QOV","Choice","Q10Action", "Q11Self","Q12Others", "Q13Marine", "Q14BP","Q15Responsibility","Q16Charity", "Q17Understanding", "Q18Consequentiality", "Q19Experts", "Q20Education","Q21Employment", "Q22Income","Q23Survey","Effectiveness.ALT","Env.ALT","Price.ALT","Health.ALT","Effectiveness.SQ","Env.SQ","Price.SQ","Health.SQ"]
 
-Test.Choice[Test.Choice != "Alternative"] = 0
-Test.Choice[Test.Choice == "Alternative"] = 1
+
+Dependents = pd.DataFrame(pd.concat([Test.const, Test.Q1Gender , Test.Q2Age , Test.Q3Distance , Test.Q4Trips , Test.Q6QOV, Test.Q10Action ,  Test.Q22Income , Test.Q21Employment , Test.Q20Education , Test.Q11Self , Test.Q12Others , Test.Q13Marine , Test.Q14BP + Test.Q15Responsibility , Test.Q16Charity , Test.Q17Understanding, Test.Q18Consequentiality, Test.Q19Experts],axis=1))
+Dependents = pd.DataFrame(pd.concat([Test.const, Test.Q1Gender , Test.Q2Age , Test.Q3Distance , Test.Q4Trips , Test.Q6QOV, Test.Q10Action ,  Test.Q11Self , Test.Q12Others , Test.Q13Marine , Test.Q14BP + Test.Q15Responsibility , Test.Q16Charity , Test.Q17Understanding, Test.Q18Consequentiality , Test.Q20Education, Test.Q21Employment ,  Test.Q22Income ,Test.Q23Survey],axis=1))
+
+
+Test = statsmodels.tools.tools.add_constant(Test, prepend=True, has_constant='add')
 
 ##########################################################################
 ############### Section 3: Estimation of DCE models #####################
 ##########################################################################
 
 
-Model1 = statsmodels.discrete.discrete_model.Logit(np.asfarray(Test.Choice),np.asfarray(Test.Q10Action))
-Model1 = Model1.fit()
+# SKLEARN MNL approach: works but no summary, great.
+
+# PYLOGIT approach:
+
+from collections import OrderedDict    # For recording the model specification 
+
+import pandas as pd                    # For file input/output
+import numpy as np                     # For vectorized math operations
+import statsmodels.tools.numdiff as numdiff       # For numeric hessian
+import scipy.linalg                    # For matrix inversion
+
+import pylogit as pl                   # For choice model estimation
+from pylogit import nested_logit as nl # For nested logit convenience funcs
+
+
+
+
+
+
+# STATSMODELS approach: hates 13 (never works),14, 16
+Dependents = pd.DataFrame(pd.concat([Test.const, Test.Q1Gender , Test.Q2Age , Test.Q3Distance , Test.Q4Trips , Test.Q6QOV, Test.Q10Action ,Test.Q11Self , Test.Q12Others,Test.Q15Responsibility,Test.Q17Understanding, Test.Q18Consequentiality, Test.Q19Experts  , Test.Q20Education, Test.Q21Employment ,  Test.Q22Income, Test.Q23Survey ],axis=1))
+Model1 = statsmodels.discrete.discrete_model.MNLogit(np.asfarray(Test.Choice),Dependents.to_numpy()).fit()
+Model1.summary(alpha=0.05,yname='DCE Choice',xname=Dependents.columns.to_list())
+Model1.get_margeff().summary()
+PV = pd.DataFrame(pd.read_html(Model1.get_margeff().summary().tables[1].as_html(), header=0, index_col=0)[0])
+PV = PV[:PV.index.get_loc('y=1')]
+PV = pd.DataFrame([PV['dy/dx'],PV['P>|z|']])
+PV = PV.transpose()
+PV.index = ["Test.Q1Gender", "Test.Q2Age" , "Test.Q3Distance" , "Test.Q4Trips" , "Test.Q6QOV", "Test.Q10Action" ,  "Test.Q11Self" , "Test.Q12Others" , "Test.Q15Responsibility" , "Test.Q17Understanding", "Test.Q18Consequentiality" ,"Test.Q19Experts", "Test.Q20Education", "Test.Q21Employment" ,  "Test.Q22Income", "Test.Q23Survey"] 
+PV.columns = ["Marginal Effect","PValue"]
+PV['PValue'] = PV['PValue'].astype('float')
+PV = PV.PValue[PV.PValue < 0.05]
+print(PV)
+
+Dependents = pd.DataFrame(pd.concat([Test.const, Test.Q10Action ,Test.Q11Self , Test.Q12Others,Test.Q15Responsibility,Test.Q17Understanding, Test.Q20Education ,  Test.Q22Income ],axis=1))
+Model1 = statsmodels.discrete.discrete_model.MNLogit(np.asfarray(Test.Choice),Dependents.to_numpy()).fit()
+Model1.summary(alpha=0.05,yname='DCE Choice',xname=Dependents.columns.to_list())
+print(Model1.get_margeff().summary())
+PV = pd.DataFrame(pd.read_html(Model1.get_margeff().summary().tables[1].as_html(), header=0, index_col=0)[0])
+PV = PV[:PV.index.get_loc('y=1')]
+PV = pd.DataFrame([PV['dy/dx'],PV['P>|z|']])
+PV = PV.transpose()
+PV.index = [ "Test.Q10Action" ,  "Test.Q11Self" , "Test.Q12Others" , "Test.Q15Responsibility" , "Test.Q17Understanding", "Test.Q20Education",  "Test.Q22Income"] 
+PV.columns = ["Marginal Effect","PValue"]
+PV['PValue'] = PV['PValue'].astype('float')
+PV = PV.PValue[PV.PValue < 0.05]
+print(PV)
+
+
+
+
+
+#Significance <- function(Model) {
+#  PV <- data.frame(summary(Model).coefficients[,4],summary(Model).coefficients[,1] )
+#  colnames(PV) <- c("PV","Effect")
+#  PV <- subset(PV,PV <=0.05)
+#  PV <- data.frame(row.names(PV), PV.PV, PV.Effect)
+#  colnames(PV) <- c("Variables","PV","Effect")
+#  return(barplot(PV.Effect, names.arg = PV.Variables,xlab = "Variables",ylab = "Effect",ylim = c(-2,5),axes = TRUE))
+#}
 
 
 # https://www.statsmodels.org/dev/generated/statsmodels.discrete.discrete_model.Logit.html
@@ -117,16 +179,16 @@ Model1 = Model1.fit()
 ##########################################################################
 #
 #
-#summary(glm(Test$Q5CVM1 ~ Test$Q1Gender + Test$Q2Age + Test$Q3Distance + Test$Q4Trips + Test$Q10Action + Test$Q22Income + Test$Q21Employment + Test$Q20Education + Test$Q11Self + Test$Q12Others + Test$Q13Marine + Test$Q14BP + Test$Q15Responsibility + Test$Q16Charity + Test$Q17Understanding, data=Test))
+#summary(glm(Test.Q5CVM1 ~ Test.Q1Gender + Test.Q2Age + Test.Q3Distance + Test.Q4Trips + Test.Q10Action + Test.Q22Income + Test.Q21Employment + Test.Q20Education + Test.Q11Self + Test.Q12Others + Test.Q13Marine + Test.Q14BP + Test.Q15Responsibility + Test.Q16Charity + Test.Q17Understanding, data=Test))
 #
 ## Here I've made a function that plots which variables are the most significant
 #Significance <- function(Model) {
-#  PV <- data.frame(summary(Model)$coefficients[,4],summary(Model)$coefficients[,1] )
+#  PV <- data.frame(summary(Model).coefficients[,4],summary(Model).coefficients[,1] )
 #  colnames(PV) <- c("PV","Effect")
 #  PV <- subset(PV,PV <=0.05)
-#  PV <- data.frame(row.names(PV), PV$PV, PV$Effect)
+#  PV <- data.frame(row.names(PV), PV.PV, PV.Effect)
 #  colnames(PV) <- c("Variables","PV","Effect")
-#  return(barplot(PV$Effect, names.arg = PV$Variables,xlab = "Variables",ylab = "Effect",ylim = c(-2,5),axes = TRUE))
+#  return(barplot(PV.Effect, names.arg = PV.Variables,xlab = "Variables",ylab = "Effect",ylim = c(-2,5),axes = TRUE))
 #}
 
 ##########################################################################
@@ -135,7 +197,7 @@ Model1 = Model1.fit()
 
 
 #require(ggplot2)
-#ModelQOV <- (glm(Test$Q6QOV ~ Test$Q1Gender + Test$Q2Age + Test$Q3Distance + Test$Q4Trips + Test$Q10Action + Test$Q22Income + Test$Q21Employment + Test$Q20Education + Test$Q11Self + Test$Q12Others + Test$Q13Marine + Test$Q14BP + Test$Q15Responsibility + Test$Q16Charity + Test$Q17Understanding, data=Test))
+#ModelQOV <- (glm(Test.Q6QOV ~ Test.Q1Gender + Test.Q2Age + Test.Q3Distance + Test.Q4Trips + Test.Q10Action + Test.Q22Income + Test.Q21Employment + Test.Q20Education + Test.Q11Self + Test.Q12Others + Test.Q13Marine + Test.Q14BP + Test.Q15Responsibility + Test.Q16Charity + Test.Q17Understanding, data=Test))
 #Significance(ModelQOV)
 #ggplot(Test, aes(x = Q6QOV, y = Q3Distance, colour = Health_SQ)) + geom_point() + facet_wrap(~Q1Gender)
 
@@ -146,5 +208,5 @@ Model1 = Model1.fit()
 
 #
 ## Testing determinants of belief in experts
-#Model1 <- lm(Test$Q19Experts ~ Test$Q1Gender + Test$Q2Age + Test$Q3Distance + Test$Q4Trips + Test$Q10Action + Test$Q22Income + Test$Q21Employment + Test$Q20Education + Test$Q11Self + Test$Q12Others + Test$Q13Marine + Test$Q14BP + Test$Q15Responsibility + Test$Q16Charity + Test$Q17Understanding)
+#Model1 <- lm(Test.Q19Experts ~ Test.Q1Gender + Test.Q2Age + Test.Q3Distance + Test.Q4Trips + Test.Q10Action + Test.Q22Income + Test.Q21Employment + Test.Q20Education + Test.Q11Self + Test.Q12Others + Test.Q13Marine + Test.Q14BP + Test.Q15Responsibility + Test.Q16Charity + Test.Q17Understanding)
 #Significance(Model1)
