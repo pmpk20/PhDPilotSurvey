@@ -120,7 +120,8 @@ levels(Tests$Test.Choice)[1] <- "ALT"
 levels(Tests$Test.Choice)[2] <- "SQ"
 Test$av_ALT <- rep(1,nrow(Test))
 Test$av_SQ <- rep(1,nrow(Test))
-
+database <- Test
+database$mean_income <- mean(Test$Q22Income)
 ##########################################################################
 ############### Section 3: Estimation of DCE models #####################
 ##########################################################################
@@ -132,18 +133,19 @@ library(apollo)
 apollo_initialise()
 apollo_control = list(
   modelName  ="MNL",
-  modelDescr ="Simple MNL model on mode choice SP data",
+  modelDescr ="Simple MNL model",
   indivID    ="ID"
 )
-database <- Test
-database$mean_income <- mean(Test$Q22Income)
+
 
 apollo_beta=c(asc_ALT  = 0,
               asc_SQ  = 0,
               b_tt_ALT = 0,
               b_tt_SQ = 0,
-              b_c      = 0)
-apollo_fixed = c("asc_SQ")
+              b_c      = 0,
+              b_d = 0)
+# apollo_fixed = c("asc_SQ") Can set this to fix one attribute but doesn't work as well 
+apollo_fixed = c()
 apollo_inputs = apollo_validateInputs()
 
 apollo_probabilities=function(apollo_beta, apollo_inputs, 
@@ -159,8 +161,8 @@ apollo_probabilities=function(apollo_beta, apollo_inputs,
   ### List of utilities: these must use the same names as
   ### in mnl_settings, order is irrelevant.
   V = list()
-  V[['ALT']] = asc_ALT + b_tt_ALT *Health_ALT + b_c*Price_ALT
-  V[['SQ']] = asc_SQ + b_tt_SQ *Health_SQ + b_c*Price_SQ
+  V[['ALT']] = asc_ALT + b_tt_ALT *Health_ALT + b_c*Price_ALT + b_d*Effectiveness_ALT
+  V[['SQ']] = asc_SQ + b_tt_SQ *Health_SQ + b_c*Price_SQ + b_d*Effectiveness_SQ
   ### Define settings for MNL model component
   mnl_settings = list(
     alternatives  = c(ALT=1, SQ=0), 
