@@ -16,8 +16,6 @@
 
 install.packages("dplyr") # Useful later for data manipulation
 install.packages("apollo")
-install.packages("nnet") # Helps estimation of the MNL baseline model
-install.packages("AER")
 install.packages("mlogit")
 rm(list = ls())
 ############ Importing data:
@@ -142,8 +140,7 @@ apollo_beta=c(asc_ALT  = 0,
               asc_SQ  = 0,
               b_tt_ALT = 0,
               b_tt_SQ = 0,
-              b_c      = 0,
-              b_d = 0)
+              b_c      = 0)
 # apollo_fixed = c("asc_SQ") Can set this to fix one attribute but doesn't work as well 
 apollo_fixed = c()
 apollo_inputs = apollo_validateInputs()
@@ -161,8 +158,8 @@ apollo_probabilities=function(apollo_beta, apollo_inputs,
   ### List of utilities: these must use the same names as
   ### in mnl_settings, order is irrelevant.
   V = list()
-  V[['ALT']] = asc_ALT + b_tt_ALT *Health_ALT + b_c*Price_ALT + b_d*Effectiveness_ALT
-  V[['SQ']] = asc_SQ + b_tt_SQ *Health_SQ + b_c*Price_SQ + b_d*Effectiveness_SQ
+  V[['ALT']] = asc_ALT + b_tt_ALT *Health_ALT + b_c*Price_ALT
+  V[['SQ']] = asc_SQ + b_tt_SQ *Health_SQ + b_c*Price_SQ
   ### Define settings for MNL model component
   mnl_settings = list(
     alternatives  = c(ALT=1, SQ=0), 
