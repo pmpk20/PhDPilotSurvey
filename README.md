@@ -1,17 +1,13 @@
 # PhDPilotSurvey
 PhDPilotSurvey
 
-I'm treating this file as a working log to accompany the PilotAnalysis.R script
+To-Do:
+- Finish PYLOGIT attempt in Python and estimate MXL/NL
+- More changes to APOLLO code in R
+- Estimate other models
+- Report
 
-03/02:
-- Setting up the dataset to combine respondent information in Pilot, and information about the DCE in SpecificChoices
-
-04/02:
-- Tried to coerce DCE into MLOGIT data. It worked but models didn't.
-- Translated R to Python in Pylot.py
-- Listed possible models to estimate.
-
-05/02:
-- Used the APOLLO package to estimate one MNL and works but questionably
-- Estimated some Probit and LM models
-- Defined a function to graph results
+Updates:
+10/02:
+- Python: tried different packages and PYLOGIT looks promising so far but not finished.
+- R: Trying to change the APOLLO MNL example to be more realistic with limited progress- at least it doesn't say infinite standard errors anymore.
