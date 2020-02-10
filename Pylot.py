@@ -111,13 +111,19 @@ Test.insert(1,"Task",Task,True)
 Task = pd.DataFrame(itertools.chain.from_iterable(itertools.repeat(range(3), Pilot.shape[0])))
 
 Test.columns = ["ID","Task","Q1Gender", "Q2Age", "Q3Distance", "Q4Trips","Q5CVM1","Q6QOV","Choice","Q10Action", "Q11Self","Q12Others", "Q13Marine", "Q14BP","Q15Responsibility","Q16Charity", "Q17Understanding", "Q18Consequentiality", "Q19Experts", "Q20Education","Q21Employment", "Q22Income","Q23Survey","Effectiveness.ALT","Env.ALT","Price.ALT","Health.ALT","Effectiveness.SQ","Env.SQ","Price.SQ","Health.SQ"]
+Test = statsmodels.tools.tools.add_constant(Test, prepend=True, has_constant='add')
+Test[['const', 'ID', 'Task', 'Q1Gender', 'Q2Age', 'Q3Distance', 'Q4Trips',
+      'Q10Action', 'Q11Self', 'Q12Others',
+       'Q13Marine', 'Q14BP', 'Q15Responsibility', 'Q16Charity',
+       'Q17Understanding', 'Q18Consequentiality', 'Q19Experts', 'Q20Education',
+       'Q21Employment', 'Q22Income', 'Q23Survey',  'Q5CVM1', 'Q6QOV', 'Choice','Effectiveness.ALT',
+       'Env.ALT', 'Price.ALT', 'Health.ALT', 'Effectiveness.SQ', 'Env.SQ',
+       'Price.SQ', 'Health.SQ']]
 
 
-Dependents = pd.DataFrame(pd.concat([Test.const, Test.Q1Gender , Test.Q2Age , Test.Q3Distance , Test.Q4Trips , Test.Q6QOV, Test.Q10Action ,  Test.Q22Income , Test.Q21Employment , Test.Q20Education , Test.Q11Self , Test.Q12Others , Test.Q13Marine , Test.Q14BP + Test.Q15Responsibility , Test.Q16Charity , Test.Q17Understanding, Test.Q18Consequentiality, Test.Q19Experts],axis=1))
 Dependents = pd.DataFrame(pd.concat([Test.const, Test.Q1Gender , Test.Q2Age , Test.Q3Distance , Test.Q4Trips , Test.Q6QOV, Test.Q10Action ,  Test.Q11Self , Test.Q12Others , Test.Q13Marine , Test.Q14BP + Test.Q15Responsibility , Test.Q16Charity , Test.Q17Understanding, Test.Q18Consequentiality , Test.Q20Education, Test.Q21Employment ,  Test.Q22Income ,Test.Q23Survey],axis=1))
 
 
-Test = statsmodels.tools.tools.add_constant(Test, prepend=True, has_constant='add')
 
 ##########################################################################
 ##########################################################################
@@ -128,44 +134,159 @@ Test = statsmodels.tools.tools.add_constant(Test, prepend=True, has_constant='ad
 ##########################################################################
 
 
-
-
-##########################################################################
-############### DCE method: SKLEARN
-############### Link: https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html#sklearn.linear_model.LogisticRegression
-############### Comment: No summary provided so worthless.
-##########################################################################
-
-
-
 ##########################################################################
 ############### DCE method: PYLOGIT
 ############### Link: https://github.com/timothyb0912/pylogit/tree/master/examples/.ipynb_checkpoint 
 ############### Comment: Will learn but the package hasn't been updated since 2017 so maybe avoid
 ##########################################################################
 
+!pip install pylogit
 from collections import OrderedDict    # For recording the model specification 
-import pandas as pd                    # For file input/output
 import statsmodels.tools.numdiff as numdiff       # For numeric hessian
 import scipy.linalg                    # For matrix inversion
 import pylogit as pl                   # For choice model estimation
 from pylogit import nested_logit as nl # For nested logit convenience funcs
 
-##########################################################################
-############### DCE method: CHOICEMODELS
-############### Link: https://readthedocs.org/projects/choicemodels/downloads/pdf/stable/
-############### Comment: Seems to combine other packages and doesn't have other logit specifications available.
-##########################################################################
- 
-import choicemodels
+Test.head().T
+Dependents
+AV_variables = {u'Effectiveness': dict([(1, 'Effectiveness_SQ'),
+                                               (2, 'Effectiveness_ALT')]),
+                          u'Env': dict([(1, 'Env_SQ'),
+                                                (2, 'ENV_ALT')]),
+                          u'Price': dict([(1, 'Price_SQ'),
+                                            (2, 'Price_ALT')]),
+                          u'Health': dict([(1, 'Health_SQ'),
+                                            (2, 'Health_ALT')])}
 
-##########################################################################
-############### DCE method: BIOGEME
-############### Link: https://transp-or.epfl.ch/documents/technicalReports/Bier18.pdf
-############### Comment: Seems thorough with a lot of options - worthwhile learning.
-##########################################################################
+Availability_Variables = {1: 'const'}
 
-import biogeme
+custom_alt_id = "mode_id"
+
+obs_id_column = "custom_id"
+Test[obs_id_column] = np.arange(Test.shape[0],
+                                            dtype=int) + 1
+choice_column = "Choice"
+
+## Just wondering if TEST is already long?
+
+basic_specification = OrderedDict()
+basic_names = OrderedDict()
+
+## To Do: basic_specification downwards
+
+#############################################################################
+#############################################################################
+wide_swiss_metro = pd.read_csv("H:\PhDPilotSurvey\swissmetro.dat",sep='\t')
+include_criteria = (wide_swiss_metro.PURPOSE.isin([1, 3]) &
+                    (wide_swiss_metro.CHOICE != 0))
+wide_swiss_metro = wide_swiss_metro.loc[include_criteria].copy()
+wide_swiss_metro.head().T
+ind_variables = wide_swiss_metro.columns.tolist()[:15] ##
+
+alt_varying_variables = {u'travel_time': dict([(1, 'TRAIN_TT'),
+                                               (2, 'SM_TT'),
+                                               (3, 'CAR_TT')]),
+                          u'travel_cost': dict([(1, 'TRAIN_CO'),
+                                                (2, 'SM_CO'),
+                                                (3, 'CAR_CO')]),
+                          u'headway': dict([(1, 'TRAIN_HE'),
+                                            (2, 'SM_HE')]),
+                          u'seat_configuration': dict([(2, "SM_SEATS")])}
+
+availability_variables = {1: 'TRAIN_AV',
+                          2: 'SM_AV', 
+                          3: 'CAR_AV'}
+
+custom_alt_id = "mode_id"
+
+obs_id_column = "custom_id"
+wide_swiss_metro[obs_id_column] = np.arange(wide_swiss_metro.shape[0],
+                                            dtype=int) + 1
+
+choice_column = "CHOICE"
+long_swiss_metro = pl.convert_wide_to_long(wide_swiss_metro, 
+                                           ind_variables, 
+                                           alt_varying_variables, 
+                                           availability_variables, 
+                                           obs_id_column, 
+                                           choice_column,
+                                           new_alt_id_name=custom_alt_id)
+
+long_swiss_metro.head(10).T
+
+long_swiss_metro["travel_time_hrs"] = long_swiss_metro["travel_time"] / 60.0
+
+long_swiss_metro["headway_hrs"] = long_swiss_metro["headway"] / 60.0
+
+long_swiss_metro["free_ticket"] = (((long_swiss_metro["GA"] == 1) |
+                                    (long_swiss_metro["WHO"] == 2)) &
+                                   long_swiss_metro[custom_alt_id].isin([1,2])).astype(int)
+
+long_swiss_metro["travel_cost_hundreth"] = (long_swiss_metro["travel_cost"] *
+                                            (long_swiss_metro["free_ticket"] == 0) /
+                                            100.0)
+
+long_swiss_metro["single_luggage_piece"] = (long_swiss_metro["LUGGAGE"] == 1).astype(int)
+
+long_swiss_metro["multiple_luggage_pieces"] = (long_swiss_metro["LUGGAGE"] == 3).astype(int)
+
+long_swiss_metro["regular_class"] = 1 - long_swiss_metro["FIRST"]
+
+long_swiss_metro["train_survey"] = 1 - long_swiss_metro["SURVEY"]
+
+
+basic_specification = OrderedDict()
+basic_names = OrderedDict()
+## Edits up to here
+basic_specification["intercept"] = [1, 2]
+basic_names["intercept"] = ['ASC Train',
+                            'ASC Swissmetro']
+
+basic_specification["travel_time_hrs"] = [[1, 2,], 3]
+basic_names["travel_time_hrs"] = ['Travel Time, units:hrs (Train and Swissmetro)',
+                                  'Travel Time, units:hrs (Car)']
+
+basic_specification["travel_cost_hundreth"] = [1, 2, 3]
+basic_names["travel_cost_hundreth"] = ['Travel Cost * (Annual Pass == 0), units: 0.01 CHF (Train)',
+                                       'Travel Cost * (Annual Pass == 0), units: 0.01 CHF (Swissmetro)',
+                                       'Travel Cost, units: 0.01 CHF (Car)']
+
+basic_specification["headway_hrs"] = [1, 2]
+basic_names["headway_hrs"] = ["Headway, units:hrs, (Train)",
+                              "Headway, units:hrs, (Swissmetro)"]
+
+basic_specification["seat_configuration"] = [2]
+basic_names["seat_configuration"] = ['Airline Seat Configuration, base=No (Swissmetro)']
+
+basic_specification["train_survey"] = [[1, 2]]
+basic_names["train_survey"] = ["Surveyed on a Train, base=No, (Train and Swissmetro)"]
+
+basic_specification["regular_class"] = [1]
+basic_names["regular_class"] = ["First Class == False, (Swissmetro)"]
+
+basic_specification["single_luggage_piece"] = [3]
+basic_names["single_luggage_piece"] = ["Number of Luggage Pieces == 1, (Car)"]
+
+basic_specification["multiple_luggage_pieces"] = [3]
+basic_names["multiple_luggage_pieces"] = ["Number of Luggage Pieces > 1, (Car)"]
+
+
+swissmetro_mnl = pl.create_choice_model(data=long_swiss_metro,
+                                        alt_id_col=custom_alt_id,
+                                        obs_id_col=obs_id_column,
+                                        choice_col=choice_column,
+                                        specification=basic_specification,
+                                        model_type="MNL")
+
+swissmetro_mnl.fit_mle(np.zeros(14))
+
+swissmetro_mnl.get_statsmodels_summary()
+
+swissmetro_mnl.print_summaries()
+
+swissmetro_mnl.fit_summary
+
+np.round(swissmetro_mnl.summary, 3)
 
 ##########################################################################
 ############### DCE method: STATSMODELS
@@ -186,7 +307,7 @@ PV = PV.transpose()
 PV.index = ["Test.Q1Gender", "Test.Q2Age" , "Test.Q3Distance" , "Test.Q4Trips" , "Test.Q6QOV", "Test.Q10Action" ,  "Test.Q11Self" , "Test.Q12Others" , "Test.Q15Responsibility" , "Test.Q17Understanding", "Test.Q18Consequentiality" ,"Test.Q19Experts", "Test.Q20Education", "Test.Q21Employment" ,  "Test.Q22Income", "Test.Q23Survey"] 
 PV.columns = ["Marginal Effect","PValue"]
 PV['PValue'] = PV['PValue'].astype('float')
-PV = PV.PValue[PV.PValue < 0.05]
+PV.drop(PV[PV['PValue'] > 0.05].index , inplace=True)
 print(PV)
 
 ## Aim of this block below is to estimate above with only the significant variables
@@ -201,7 +322,7 @@ PV = PV.transpose()
 PV.index = [ "Test.Q10Action" ,  "Test.Q11Self" , "Test.Q12Others" , "Test.Q15Responsibility" , "Test.Q17Understanding", "Test.Q20Education",  "Test.Q22Income"] 
 PV.columns = ["Marginal Effect","PValue"]
 PV['PValue'] = PV['PValue'].astype('float')
-PV = PV.PValue[PV.PValue < 0.05]
+PV.drop(PV[PV['PValue'] > 0.05].index , inplace=True)
 print(PV)
 
 
