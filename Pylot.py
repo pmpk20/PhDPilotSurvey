@@ -123,6 +123,7 @@ Test[['const', 'ID', 'Task', 'Q1Gender', 'Q2Age', 'Q3Distance', 'Q4Trips',
 
 Dependents = pd.DataFrame(pd.concat([Test.const, Test.Q1Gender , Test.Q2Age , Test.Q3Distance , Test.Q4Trips , Test.Q6QOV, Test.Q10Action ,  Test.Q11Self , Test.Q12Others , Test.Q13Marine , Test.Q14BP + Test.Q15Responsibility , Test.Q16Charity , Test.Q17Understanding, Test.Q18Consequentiality , Test.Q20Education, Test.Q21Employment ,  Test.Q22Income ,Test.Q23Survey],axis=1))
 
+## Here I realised that I need to make indicate a 0,1 for every choice so Alt/SQ for every observation and a corresponding 0/1
 
 
 ##########################################################################
@@ -158,9 +159,10 @@ AV_variables = {u'Effectiveness': dict([(1, 'Effectiveness_SQ'),
                           u'Health': dict([(1, 'Health_SQ'),
                                             (2, 'Health_ALT')])}
 
-Availability_Variables = {1: 'const'}
+Availability_variables = {1: 'SQ_AV',
+                          2: 'ALT_AV'}
 
-custom_alt_id = "mode_id"
+custom_alt_id = "Task"
 
 obs_id_column = "custom_id"
 Test[obs_id_column] = np.arange(Test.shape[0],
@@ -169,8 +171,39 @@ choice_column = "Choice"
 
 ## Just wondering if TEST is already long?
 
-basic_specification = OrderedDict()
-basic_names = OrderedDict()
+B_specification = OrderedDict()
+B_names = OrderedDict()
+
+B_specification["intercept"] = [1]
+B_names["intercept"] = ['ASC ALT']
+
+B_specification["Effectiveness"] = [[1], 2]
+B_names["Effectiveness"] = ['Effectiveness levels']
+
+B_specification["Price"] = [1, 2, 3]
+B_names["Price"] = ['Travel Cost * (Annual Pass == 0), units: 0.01 CHF (Train)',
+                                       'Travel Cost * (Annual Pass == 0), units: 0.01 CHF (Swissmetro)',
+                                       'Travel Cost, units: 0.01 CHF (Car)']
+
+B_specification["Health"] = [1, 2]
+B_names["headway_hrs"] = ["Headway, units:hrs, (Train)",
+                              "Headway, units:hrs, (Swissmetro)"]
+
+B_specification["seat_configuration"] = [2]
+B_names["seat_configuration"] = ['Airline Seat Configuration, base=No (Swissmetro)']
+
+B_specification["train_survey"] = [[1, 2]]
+B_names["train_survey"] = ["Surveyed on a Train, base=No, (Train and Swissmetro)"]
+
+B_specification["regular_class"] = [1]
+B_names["regular_class"] = ["First Class == False, (Swissmetro)"]
+
+B_specification["single_luggage_piece"] = [3]
+B_names["single_luggage_piece"] = ["Number of Luggage Pieces == 1, (Car)"]
+
+B_specification["multiple_luggage_pieces"] = [3]
+B_names["multiple_luggage_pieces"] = ["Number of Luggage Pieces > 1, (Car)"]
+
 
 ## To Do: basic_specification downwards
 
