@@ -90,10 +90,7 @@ for (i in colnames(Pilot2)){
   if (is.factor(Pilot[[i]]) == TRUE){
     contrasts(Pilot2[,i]) <- contr.sum(nlevels(Pilot2[,i]))
   }
-}
-
-
-## Aim of the function is to express all variables in the Pilot data as factors
+} ## Aim of the function is to express all variables in the Pilot data as factors
 
 library(dplyr) # Important for data manipulation
 
@@ -113,41 +110,106 @@ colnames(Test) <- c("ID","Task","Q1Gender", "Q2Age", "Q3Distance", "Q4Trips","Q5
 Tests <- data.frame(Test[,1:2],Test$Choice,Test[,24:31])
 # Takes the core elements of the TEST data frame
 
-
-levels(Tests$Test.Choice)[1] <- "ALT"
-levels(Tests$Test.Choice)[2] <- "SQ"
 Test$av_ALT <- rep(1,nrow(Test))
 Test$av_SQ <- rep(1,nrow(Test))
-database <- Test
-database$mean_income <- mean(Test$Q22Income)
+Test$Choice[Test$Choice == 0] <- "SQ"  ## Necessary here to change numeric to string
+Test$Choice[Test$Choice == 1] <- "ALT" ## The MFORMULA looks for _SQ or _ALT so choice must be SQ or ALT
+
 
 ##########################################################################
 ############### Section 3: MLOGIT                    #####################
 ##########################################################################
 
-library(mlogit)
+library(mlogit) #Already have package installed
 
-Test$Choice[Test$Choice == 0] <- "SQ"
-Test$Choice[Test$Choice == 1] <- "ALT"
 
-TTT <- mlogit.data(Test, shape = "wide", choice = "Choice",
+Test_Long <- mlogit.data(Test, shape = "wide", choice = "Choice",
                    varying = 24:31, sep = "_", id.var = "ID",
                    opposite = c("Price", "Effectiveness", "Accumulation", "Health"))
+## This creates an MLOGIT object which is TEST coerced to a LONG format.
+#List of dependents:
+#Q1Gender + Q2Age + Q3Distance + Q4Trips + Q6QOV+ Q10Action +  Q11Self + Q12Others + Q13Marine + Q14BP+ Q15Responsibility + Q16Charity + Q17Understanding+ Q18Consequentiality + Q20Education+ Q21Employment +  Q22Income+Q23Survey
 
 
-Q1Gender + Q2Age + Q3Distance + Q4Trips + Q6QOV+ Q10Action +  Q11Self + Q12Others + Q13Marine + Q14BP+ Q15Responsibility + Q16Charity + Q17Understanding+ Q18Consequentiality + Q20Education+ Q21Employment +  Q22Income+Q23Survey
+M1 <- mlogit(Choice ~ Price + Health, Test_Long, alt.subset = c("SQ", "ALT"), reflevel = "SQ") ##Estimating a simple model first
+summary(M1) ## Estimates a simplistic mlogit model before adding in individual-specifics
+
+M2 <- mlogit(Choice ~ Price + Health |Q1Gender + Q2Age + Q3Distance + Q4Trips + Q6QOV+ Q10Action +  Q11Self + Q12Others + Q13Marine + Q14BP+ Q15Responsibility + Q16Charity + Q17Understanding+ Q18Consequentiality + Q20Education+ Q21Employment +  Q22Income+Q23Survey, Test_Long, alt.subset = c("SQ", "ALT"), reflevel = "SQ") #Estimating a much larger MNL model with all the independent variables. 
+summary(M2) # Summarises the MNL output
+# key things to change include the placing of the |. 
 
 
-M1 <- mlogit(Test.Choice ~ Price + Health, TT, 
-             alt.subset = c("SQ", "ALT"), reflevel = "SQ")
-summary(M1)
-M2 <- mlogit(Choice ~ Price + Health |Q1Gender + Q2Age + Q3Distance + Q4Trips + Q6QOV+ Q10Action +  Q11Self + Q12Others + Q13Marine + Q14BP+ Q15Responsibility + Q16Charity + Q17Understanding+ Q18Consequentiality + Q20Education+ Q21Employment +  Q22Income+Q23Survey
-             , TTT, alt.subset = c("SQ", "ALT"), reflevel = "SQ")
-summary(M2)
+####### Tests of M1 versus M2
+lrtest(mlogit(Choice ~ Price + Health , TTT, alt.subset = c("SQ", "ALT"), reflevel = "SQ"), M2) ## Likelihood Ratio test
+waldtest(mlogit(Choice ~ Price + Health , TTT, alt.subset = c("SQ", "ALT"), reflevel = "SQ"), M2) ## Wald test
+scoretest(mlogit(Choice ~ Price + Health , TTT,alt.subset = c("SQ", "ALT"), reflevel = "SQ"), M2) ## Lagrange Multiplier score test
+
+
+####### Marginal Effects
+effects(M2, covariate = "Price", type = "rr") # Covariate change in column of ALT leads to adjacent column change in probability of selecting that option.
+# i.e. changing the price of the ALT leads to a effects(M2, covariate = "Price", type = "rr")[2] change in the probability of selecting the ALT option.
+
+
+####### P values
+coef(summary(M2))[,4] ##Returns P Values
+PV <- data.frame(coef(summary(M2))[,4],coef(summary(M2))[,1] )
+colnames(PV) <- c("PV","Effect")
+PV <- subset(PV,PV <=0.05)
+PV <- data.frame(row.names(PV), PV$PV, PV$Effect)
+colnames(PV) <- c("Variables","PV","Effect")
+barplot(PV$Effect, names.arg = PV$Variables,xlab = "Variables",ylab = "Effect",ylim = c(-2,5),axes = TRUE)
+
+
+####### WTP and MRS calculations:
+coef(M2)["Heh"]/coef(M2)["Price"] ## For some reason, "Health" comes up as "Heh" ??
+
 
 
 ##########################################################################
-############### Section 3: APOLLO package            #####################
+############### Section 3B: Estimation of CVM models #####################
+##########################################################################
+
+## Estimates a PROBIT model
+summary(glm(Test$Q5CVM1 ~ Test$Q1Gender + Test$Q2Age + Test$Q3Distance + Test$Q4Trips + Test$Q10Action + Test$Q22Income + Test$Q21Employment + Test$Q20Education + Test$Q11Self + Test$Q12Others + Test$Q13Marine + Test$Q14BP + Test$Q15Responsibility + Test$Q16Charity + Test$Q17Understanding, data=Test))
+
+
+# Here I've made a function that plots which variables are the most significant
+Significance <- function(Model) {
+  PV <- data.frame(summary(Model)$coefficients[,4],summary(Model)$coefficients[,1] )
+  colnames(PV) <- c("PV","Effect")
+  PV <- subset(PV,PV <=0.05)
+  PV <- data.frame(row.names(PV), PV$PV, PV$Effect)
+  colnames(PV) <- c("Variables","PV","Effect")
+  return(barplot(PV$Effect, names.arg = PV$Variables,xlab = "Variables",ylab = "Effect",ylim = c(-2,5),axes = TRUE))
+}
+
+##########################################################################
+############### Section 3C: Estimation of QOV models #####################
+##########################################################################
+
+
+require(ggplot2)
+ModelQOV <- (glm(Test$Q6QOV ~ Test$Q1Gender + Test$Q2Age + Test$Q3Distance + Test$Q4Trips + Test$Q10Action + Test$Q22Income + Test$Q21Employment + Test$Q20Education + Test$Q11Self + Test$Q12Others + Test$Q13Marine + Test$Q14BP + Test$Q15Responsibility + Test$Q16Charity + Test$Q17Understanding, data=Test))
+Significance(ModelQOV)
+ggplot(Test, aes(x = Q6QOV, y = Q3Distance, colour = Health_SQ)) + geom_point() + facet_wrap(~Q1Gender)
+
+
+##########################################################################
+############### Section 4: Estimation of other models #####################
+##########################################################################
+
+
+# Testing determinants of belief in experts
+Model1 <- lm(Test$Q19Experts ~ Test$Q1Gender + Test$Q2Age + Test$Q3Distance + Test$Q4Trips + Test$Q10Action + Test$Q22Income + Test$Q21Employment + Test$Q20Education + Test$Q11Self + Test$Q12Others + Test$Q13Marine + Test$Q14BP + Test$Q15Responsibility + Test$Q16Charity + Test$Q17Understanding)
+Significance(Model1)
+
+
+
+
+
+
+##########################################################################
+############### Appendix: APOLLO package            #####################
 ##########################################################################
 # Here I try and adapt a MNL example from the APOLLO package: https://cran.r-project.org/web/packages/apollo/vignettes/apollofirstexample.html
 ## Package documentation: https://cran.r-project.org/web/packages/apollo/apollo.pdf
@@ -224,43 +286,3 @@ change=(predictions_new-predictions_base)/predictions_base
 change=change[,-ncol(change)]
 
 summary(change)
-
-
-##########################################################################
-############### Section 3B: Estimation of CVM models #####################
-##########################################################################
-
-
-summary(glm(Test$Q5CVM1 ~ Test$Q1Gender + Test$Q2Age + Test$Q3Distance + Test$Q4Trips + Test$Q10Action + Test$Q22Income + Test$Q21Employment + Test$Q20Education + Test$Q11Self + Test$Q12Others + Test$Q13Marine + Test$Q14BP + Test$Q15Responsibility + Test$Q16Charity + Test$Q17Understanding, data=Test))
-
-# Here I've made a function that plots which variables are the most significant
-Significance <- function(Model) {
-  PV <- data.frame(summary(Model)$coefficients[,4],summary(Model)$coefficients[,1] )
-  colnames(PV) <- c("PV","Effect")
-  PV <- subset(PV,PV <=0.05)
-  PV <- data.frame(row.names(PV), PV$PV, PV$Effect)
-  colnames(PV) <- c("Variables","PV","Effect")
-  return(barplot(PV$Effect, names.arg = PV$Variables,xlab = "Variables",ylab = "Effect",ylim = c(-2,5),axes = TRUE))
-}
-
-##########################################################################
-############### Section 3C: Estimation of QOV models #####################
-##########################################################################
-
-
-require(ggplot2)
-ModelQOV <- (glm(Test$Q6QOV ~ Test$Q1Gender + Test$Q2Age + Test$Q3Distance + Test$Q4Trips + Test$Q10Action + Test$Q22Income + Test$Q21Employment + Test$Q20Education + Test$Q11Self + Test$Q12Others + Test$Q13Marine + Test$Q14BP + Test$Q15Responsibility + Test$Q16Charity + Test$Q17Understanding, data=Test))
-Significance(ModelQOV)
-ggplot(Test, aes(x = Q6QOV, y = Q3Distance, colour = Health_SQ)) + geom_point() + facet_wrap(~Q1Gender)
-
-
-##########################################################################
-############### Section 4: Estimation of other models #####################
-##########################################################################
-
-
-# Testing determinants of belief in experts
-Model1 <- lm(Test$Q19Experts ~ Test$Q1Gender + Test$Q2Age + Test$Q3Distance + Test$Q4Trips + Test$Q10Action + Test$Q22Income + Test$Q21Employment + Test$Q20Education + Test$Q11Self + Test$Q12Others + Test$Q13Marine + Test$Q14BP + Test$Q15Responsibility + Test$Q16Charity + Test$Q17Understanding)
-Significance(Model1)
-
-
