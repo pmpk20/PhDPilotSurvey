@@ -99,7 +99,7 @@ SpecificChoices = SpecificChoices.loc[SpecificChoices.index.repeat(Pilot.shape[0
 SQChoices= SQChoices.loc[SQChoices.index.repeat(Pilot.shape[0])]
 SpecificChoices.index = Pilot2.index
 SQChoices.index = Pilot2.index
-Test = pd.concat([Pilot,SpecificChoices,SQChoices],axis=1)
+Test = pd.concat([Pilot2,SpecificChoices,SQChoices],axis=1)
 
 Choices = pd.concat([Pilot.iloc[:,7], Pilot.iloc[:,8], Pilot.iloc[:,9]],axis=1).transpose()
 Choices = Choices.unstack().reset_index(drop=True)
@@ -108,7 +108,7 @@ Test = Test.drop([Test.columns[8],Test.columns[9]],axis='columns')
 Task = pd.DataFrame(itertools.chain.from_iterable(itertools.repeat(range(3), Pilot.shape[0])))
 Task.index = Test.index
 Test.insert(1,"Task",Task,True)
-Task = pd.DataFrame(itertools.chain.from_iterable(itertools.repeat(range(3), Pilot.shape[0])))
+
 
 Test.columns = ["ID","Task","Q1Gender", "Q2Age", "Q3Distance", "Q4Trips","Q5CVM1","Q6QOV","Choice","Q10Action", "Q11Self","Q12Others", "Q13Marine", "Q14BP","Q15Responsibility","Q16Charity", "Q17Understanding", "Q18Consequentiality", "Q19Experts", "Q20Education","Q21Employment", "Q22Income","Q23Survey","Effectiveness.ALT","Env.ALT","Price.ALT","Health.ALT","Effectiveness.SQ","Env.SQ","Price.SQ","Health.SQ"]
 Test = statsmodels.tools.tools.add_constant(Test, prepend=True, has_constant='add')
@@ -121,10 +121,13 @@ Test[['const', 'ID', 'Task', 'Q1Gender', 'Q2Age', 'Q3Distance', 'Q4Trips',
        'Price.SQ', 'Health.SQ']]
 
 
-Dependents = pd.DataFrame(pd.concat([Test.const, Test.Q1Gender , Test.Q2Age , Test.Q3Distance , Test.Q4Trips , Test.Q6QOV, Test.Q10Action ,  Test.Q11Self , Test.Q12Others , Test.Q13Marine , Test.Q14BP + Test.Q15Responsibility , Test.Q16Charity , Test.Q17Understanding, Test.Q18Consequentiality , Test.Q20Education, Test.Q21Employment ,  Test.Q22Income ,Test.Q23Survey],axis=1))
+Dependents = pd.DataFrame(pd.concat([Test.const, Test.Q1Gender , Test.Q2Age , Test.Q3Distance , Test.Q4Trips , Test.Q6QOV, Test.Q10Action ,  Test.Q11Self , Test.Q12Others , Test.Q13Marine , Test.Q14BP, Test.Q15Responsibility , Test.Q16Charity , Test.Q17Understanding, Test.Q18Consequentiality , Test.Q20Education, Test.Q21Employment ,  Test.Q22Income ,Test.Q23Survey],axis=1))
 
-## Here I realised that I need to make indicate a 0,1 for every choice so Alt/SQ for every observation and a corresponding 0/1
+## Need to add ALT and SQ AV columns
+## Need to add a 0,1 for whether choice is alt/sq
 
+Test['ALT_AV'] = np.ones(Test.shape[0],dtype=int)
+Test['SQ_AV'] = np.ones(Test.shape[0],dtype=int)
 
 ##########################################################################
 ##########################################################################
@@ -149,27 +152,33 @@ import pylogit as pl                   # For choice model estimation
 from pylogit import nested_logit as nl # For nested logit convenience funcs
 
 Test.head().T
-Dependents
-AV_variables = {u'Effectiveness': dict([(1, 'Effectiveness_SQ'),
-                                               (2, 'Effectiveness_ALT')]),
-                          u'Env': dict([(1, 'Env_SQ'),
-                                                (2, 'ENV_ALT')]),
-                          u'Price': dict([(1, 'Price_SQ'),
-                                            (2, 'Price_ALT')]),
-                          u'Health': dict([(1, 'Health_SQ'),
-                                            (2, 'Health_ALT')])}
+DD = Dependents.columns.tolist()[1:18] ##
 
-Availability_variables = {1: 'SQ_AV',
-                          2: 'ALT_AV'}
 
-custom_alt_id = "Task"
+AV_variables = {u'Effectiveness': dict([(0, 'Effectiveness.SQ'),
+                                               (1, 'Effectiveness.ALT')]),
+                          u'Env': dict([(0, 'Env.SQ'),
+                                                (1, 'Env.ALT')]),
+                          u'Price': dict([(0, 'Price.SQ'),
+                                            (1, 'Price.ALT')]),
+                          u'Health': dict([(0, 'Health.SQ'),
+                                            (1, 'Health.ALT')])}
 
-obs_id_column = "custom_id"
-Test[obs_id_column] = np.arange(Test.shape[0],
+Availability_variables = {0: 'SQ_AV',1:'ALT_AV'}
+
+Custom_ALT_ID = "modes_ID"
+
+OBS_ID_COLUMN = "custom_id"
+Test[OBS_ID_COLUMN] = np.arange(Test.shape[0],
                                             dtype=int) + 1
-choice_column = "Choice"
+Choice_Column = "Choice"
 
-## Just wondering if TEST is already long?
+long_test = pl.convert_wide_to_long(Test, DD,  
+                                AV_variables, Availability_variables, 
+                                OBS_ID_COLUMN, Choice_Column, 
+                                new_alt_id_name=Custom_ALT_ID)
+
+####### Fine to here
 
 B_specification = OrderedDict()
 B_names = OrderedDict()
@@ -177,32 +186,32 @@ B_names = OrderedDict()
 B_specification["intercept"] = [1]
 B_names["intercept"] = ['ASC ALT']
 
-B_specification["Effectiveness"] = [[1], 2]
-B_names["Effectiveness"] = ['Effectiveness levels']
+B_specification["Effectiveness"] = [0, 1]
+B_names["Effectiveness"] = ['Effectiveness_SQ','Effectiveness_ALT']
 
-B_specification["Price"] = [1, 2, 3]
-B_names["Price"] = ['Travel Cost * (Annual Pass == 0), units: 0.01 CHF (Train)',
-                                       'Travel Cost * (Annual Pass == 0), units: 0.01 CHF (Swissmetro)',
-                                       'Travel Cost, units: 0.01 CHF (Car)']
+B_specification["Price"] = [0, 1]
+B_names["Price"] = ['Price_SQ','Price_ALT']
 
-B_specification["Health"] = [1, 2]
-B_names["headway_hrs"] = ["Headway, units:hrs, (Train)",
-                              "Headway, units:hrs, (Swissmetro)"]
+B_specification["Health"] = [0, 1]
+B_names["Health"] = ['Health_SQ','Health_ALT']
 
-B_specification["seat_configuration"] = [2]
-B_names["seat_configuration"] = ['Airline Seat Configuration, base=No (Swissmetro)']
+B_specification["Env"] = [0, 1]
+B_names["Env"] = ['Env_SQ','Env_ALT']
 
-B_specification["train_survey"] = [[1, 2]]
-B_names["train_survey"] = ["Surveyed on a Train, base=No, (Train and Swissmetro)"]
 
-B_specification["regular_class"] = [1]
-B_names["regular_class"] = ["First Class == False, (Swissmetro)"]
+long_test = long_test.drop([long_test.columns[11],long_test.columns[12]],axis='columns')
 
-B_specification["single_luggage_piece"] = [3]
-B_names["single_luggage_piece"] = ["Number of Luggage Pieces == 1, (Car)"]
+MNLT = pl.create_choice_model(data=long_test,alt_id_col=Custom_ALT_ID,obs_id_col=OBS_ID_COLUMN,choice_col=Choice_Column,specification=B_specification,model_type="MNL")
+MNLT.fit_mle(np.zeros(9))
+# Singular matrix produced arghhhhhhhhhhhh
 
-B_specification["multiple_luggage_pieces"] = [3]
-B_names["multiple_luggage_pieces"] = ["Number of Luggage Pieces > 1, (Car)"]
+MNLT.get_statsmodels_summary()
+
+MNLT.print_summaries()
+
+MNLT.fit_summary
+
+np.round(MNLT.summary, 3)
 
 
 ## To Do: basic_specification downwards
