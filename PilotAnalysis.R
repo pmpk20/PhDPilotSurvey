@@ -120,10 +120,35 @@ Test$av_ALT <- rep(1,nrow(Test))
 Test$av_SQ <- rep(1,nrow(Test))
 database <- Test
 database$mean_income <- mean(Test$Q22Income)
+
 ##########################################################################
-############### Section 3: Estimation of DCE models #####################
+############### Section 3: MLOGIT                    #####################
 ##########################################################################
 
+library(mlogit)
+
+Test$Choice[Test$Choice == 0] <- "SQ"
+Test$Choice[Test$Choice == 1] <- "ALT"
+
+TTT <- mlogit.data(Test, shape = "wide", choice = "Choice",
+                   varying = 24:31, sep = "_", id.var = "ID",
+                   opposite = c("Price", "Effectiveness", "Accumulation", "Health"))
+
+
+Q1Gender + Q2Age + Q3Distance + Q4Trips + Q6QOV+ Q10Action +  Q11Self + Q12Others + Q13Marine + Q14BP+ Q15Responsibility + Q16Charity + Q17Understanding+ Q18Consequentiality + Q20Education+ Q21Employment +  Q22Income+Q23Survey
+
+
+M1 <- mlogit(Test.Choice ~ Price + Health, TT, 
+             alt.subset = c("SQ", "ALT"), reflevel = "SQ")
+summary(M1)
+M2 <- mlogit(Choice ~ Price + Health |Q1Gender + Q2Age + Q3Distance + Q4Trips + Q6QOV+ Q10Action +  Q11Self + Q12Others + Q13Marine + Q14BP+ Q15Responsibility + Q16Charity + Q17Understanding+ Q18Consequentiality + Q20Education+ Q21Employment +  Q22Income+Q23Survey
+             , TTT, alt.subset = c("SQ", "ALT"), reflevel = "SQ")
+summary(M2)
+
+
+##########################################################################
+############### Section 3: APOLLO package            #####################
+##########################################################################
 # Here I try and adapt a MNL example from the APOLLO package: https://cran.r-project.org/web/packages/apollo/vignettes/apollofirstexample.html
 ## Package documentation: https://cran.r-project.org/web/packages/apollo/apollo.pdf
 
@@ -237,3 +262,5 @@ ggplot(Test, aes(x = Q6QOV, y = Q3Distance, colour = Health_SQ)) + geom_point() 
 # Testing determinants of belief in experts
 Model1 <- lm(Test$Q19Experts ~ Test$Q1Gender + Test$Q2Age + Test$Q3Distance + Test$Q4Trips + Test$Q10Action + Test$Q22Income + Test$Q21Employment + Test$Q20Education + Test$Q11Self + Test$Q12Others + Test$Q13Marine + Test$Q14BP + Test$Q15Responsibility + Test$Q16Charity + Test$Q17Understanding)
 Significance(Model1)
+
+
