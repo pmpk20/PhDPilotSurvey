@@ -181,7 +181,17 @@ MNL <- mlogit(Choice ~ Price + Health + Accumulation | -1,
 summary(MNL) 
 ## Estimates the basic MNL to start with
 
-
+########### Replication example:
+MIXL = mlogit(Choice~Price+Accumulation|0,
+                            Test_Long,
+                            rpar=c(Price="n",
+                            Accumulation="n"),
+                            R=600,
+                            halton=NULL,
+                            print.level=0,
+                            panel=TRUE)
+summary(MIXL)
+###########
 MXLUncorrelated <- mlogit(Choice ~ Price + Accumulation + Health | -1, 
                Test_Long, panel = TRUE, rpar = c(Price="n",Accumulation="n"), 
                      R = 100, correlation = FALSE, 
