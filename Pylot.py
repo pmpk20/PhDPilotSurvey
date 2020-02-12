@@ -121,10 +121,8 @@ Test[['const', 'ID', 'Task', 'Q1Gender', 'Q2Age', 'Q3Distance', 'Q4Trips',
        'Price.SQ', 'Health.SQ']]
 
 
-Dependents = pd.DataFrame(pd.concat([Test.const, Test.Q1Gender , Test.Q2Age , Test.Q3Distance , Test.Q4Trips , Test.Q6QOV, Test.Q10Action ,  Test.Q11Self , Test.Q12Others , Test.Q13Marine , Test.Q14BP, Test.Q15Responsibility , Test.Q16Charity , Test.Q17Understanding, Test.Q18Consequentiality , Test.Q20Education, Test.Q21Employment ,  Test.Q22Income ,Test.Q23Survey],axis=1))
+Dependents = pd.DataFrame(pd.concat([Test.const, Test.Q1Gender , Test.Q2Age , Test.Q3Distance , Test.Q4Trips , Test.Q5CVM1 ,Test.Q6QOV, Test.Q10Action ,  Test.Q11Self , Test.Q12Others , Test.Q13Marine , Test.Q14BP, Test.Q15Responsibility , Test.Q16Charity , Test.Q17Understanding, Test.Q18Consequentiality , Test.Q19Experts, Test.Q20Education, Test.Q21Employment ,  Test.Q22Income ,Test.Q23Survey],axis=1))
 
-## Need to add ALT and SQ AV columns
-## Need to add a 0,1 for whether choice is alt/sq
 
 Test['ALT_AV'] = np.ones(Test.shape[0],dtype=int)
 Test['SQ_AV'] = np.ones(Test.shape[0],dtype=int)
@@ -151,184 +149,89 @@ import scipy.linalg                    # For matrix inversion
 import pylogit as pl                   # For choice model estimation
 from pylogit import nested_logit as nl # For nested logit convenience funcs
 
-Test.head().T
-DD = Dependents.columns.tolist()[1:18] ##
+## Here I cheat and import the working dataset I made in R
+Test_Long = pd.read_csv("H:/PhDPilotSurvey/Test_Long.csv")
+Test_Long.alt[Test_Long.alt == "SQ"] = 0
+Test_Long.alt[Test_Long.alt == "ALT"] = 1
+## I tried coercing the Python dataframe using PYLOGIT but it would not work.
+
+B_specification = OrderedDict() ## To create the specification in PYLOGIT you need these dictionaries? Don't understand why but I understand how to work it
+B_names = OrderedDict() ## A similar one for names
+
+## Here I added the DCE attributes and an ASC intercept to the utility functions
+B_specification["intercept"] = [1] ## 0,1 specifies what indirect utility function it equals. There may be J-1 ASCs so only one here.
+B_names["intercept"] = ['ALT:(intercept)'] # Can pick any name but went with the generated one in R
+
+B_specification["Price"] = [[0, 1]]
+B_names["Price"] = ['Price']
+
+B_specification["Health"] = [[0, 1]]
+B_names["Health"] = ['Health']
+
+#B_specification["Accumulation"] = [[0, 1]]
+#B_names["Accumulation"] = ['Accumulation']
+
+#B_specification["Effectiveness"] = [[0, 1]]
+#B_names["Effectiveness"] = ['Effectiveness']
+## You can add effectiveness or accumulation but not both and they ruin the values of the others. 
+## R just straight up refused to estimate with them
 
 
-AV_variables = {u'Effectiveness': dict([(0, 'Effectiveness.SQ'),
-                                               (1, 'Effectiveness.ALT')]),
-                          u'Env': dict([(0, 'Env.SQ'),
-                                                (1, 'Env.ALT')]),
-                          u'Price': dict([(0, 'Price.SQ'),
-                                            (1, 'Price.ALT')]),
-                          u'Health': dict([(0, 'Health.SQ'),
-                                            (1, 'Health.ALT')])}
-
-Availability_variables = {0: 'SQ_AV',1:'ALT_AV'}
-
-Custom_ALT_ID = "modes_ID"
-
-OBS_ID_COLUMN = "custom_id"
-Test[OBS_ID_COLUMN] = np.arange(Test.shape[0],
-                                            dtype=int) + 1
-Choice_Column = "Choice"
-
-long_test = pl.convert_wide_to_long(Test, DD,  
-                                AV_variables, Availability_variables, 
-                                OBS_ID_COLUMN, Choice_Column, 
-                                new_alt_id_name=Custom_ALT_ID)
-
-####### Fine to here
-
-B_specification = OrderedDict()
-B_names = OrderedDict()
-
-B_specification["intercept"] = [1]
-B_names["intercept"] = ['ASC ALT']
-
-B_specification["Effectiveness"] = [0, 1]
-B_names["Effectiveness"] = ['Effectiveness_SQ','Effectiveness_ALT']
-
-B_specification["Price"] = [0, 1]
-B_names["Price"] = ['Price_SQ','Price_ALT']
-
-B_specification["Health"] = [0, 1]
-B_names["Health"] = ['Health_SQ','Health_ALT']
-
-B_specification["Env"] = [0, 1]
-B_names["Env"] = ['Env_SQ','Env_ALT']
+## Here I add all the regressors which are from the dataframe.
+B_specification["Q1Gender"] = [1]
+B_names["Q1Gender"] = ['Q1Gender']
+B_specification["Q2Age"] = [1]
+B_names["Q2Age"] = ['Q2Age']
+B_specification["Q3Distance"] = [1]
+B_names["Q3Distance"] = ['Q3Distance']
+B_specification["Q4Trips"] = [1]
+B_names["Q4Trips"] = ['Q4Trips']
+B_specification["Q6QOV"] = [1]
+B_names["Q6QOV"] = ['Q6QOV']
+B_specification["Q10Action"] = [1]
+B_names["Q10Action"] = ['Q10Action']
+B_specification["Q11Self"] = [1]
+B_names["Q11Self"] = ['Q11Self']
+B_specification["Q12Others"] = [1]
+B_names["Q12Others"] = ['Q12Others']
+B_specification["Q13Marine"] = [1]
+B_names["Q13Marine"] = ['Q13Marine']
+B_specification["Q14BP"] = [1]
+B_names["Q14BP"] = ['Q14BP']
+B_specification["Q15Responsibility"] = [1]
+B_names["Q15Responsibility"] = ['Q15Responsibility']
+B_specification["Q16Charity"] = [1]
+B_names["Q16Charity"] = ['Q16Charity']
+B_specification["Q17Understanding"] = [1]
+B_names["Q17Understanding"] = ['Q17Understanding']
+B_specification["Q18Consequentiality"] = [1]
+B_names["Q18Consequentiality"] = ['Q18Consequentiality']
+B_specification["Q19Experts"] = [1]
+B_names["Q19Experts"] = ['Q19Experts']
+B_specification["Q20Education"] = [1]
+B_names["Q20Education"] = ['Q20Education']
+B_specification["Q21Employment"] = [1]
+B_names["Q21Employment"] = ['Q21Employment']
+B_specification["Q22Income"] = [1]
+B_names["Q22Income"] = ['Q22Income']
+B_specification["Q23Survey"] = [1]
+B_names["Q23Survey"] = ['Q23Survey']
 
 
-long_test = long_test.drop([long_test.columns[11],long_test.columns[12]],axis='columns')
+Pilot_MNL = pl.create_choice_model(data=Test_Long,alt_id_col='alt',
+                       obs_id_col='chid',choice_col='Choice',
+                       model_type="MNL",specification=B_specification,
+                       names=B_names)
+## The create_choice_model function is similar to MLOGIT in R and produces the same output
+## It requires specifying certain columns as noted above
+Pilot_MNL.fit_mle(np.zeros(len(B_specification))) ## Initialises it with zeroes for starting values
+Pilot_MNL.get_statsmodels_summary()
+Pilot_MNL.print_summaries() ## Summarises the model
 
-MNLT = pl.create_choice_model(data=long_test,alt_id_col=Custom_ALT_ID,obs_id_col=OBS_ID_COLUMN,choice_col=Choice_Column,specification=B_specification,model_type="MNL")
-MNLT.fit_mle(np.zeros(9))
-# Singular matrix produced arghhhhhhhhhhhh
-
-MNLT.get_statsmodels_summary()
-
-MNLT.print_summaries()
-
-MNLT.fit_summary
-
-np.round(MNLT.summary, 3)
-
-
-## To Do: basic_specification downwards
-
-#############################################################################
-#############################################################################
-wide_swiss_metro = pd.read_csv("H:\PhDPilotSurvey\swissmetro.dat",sep='\t')
-include_criteria = (wide_swiss_metro.PURPOSE.isin([1, 3]) &
-                    (wide_swiss_metro.CHOICE != 0))
-wide_swiss_metro = wide_swiss_metro.loc[include_criteria].copy()
-wide_swiss_metro.head().T
-ind_variables = wide_swiss_metro.columns.tolist()[:15] ##
-
-alt_varying_variables = {u'travel_time': dict([(1, 'TRAIN_TT'),
-                                               (2, 'SM_TT'),
-                                               (3, 'CAR_TT')]),
-                          u'travel_cost': dict([(1, 'TRAIN_CO'),
-                                                (2, 'SM_CO'),
-                                                (3, 'CAR_CO')]),
-                          u'headway': dict([(1, 'TRAIN_HE'),
-                                            (2, 'SM_HE')]),
-                          u'seat_configuration': dict([(2, "SM_SEATS")])}
-
-availability_variables = {1: 'TRAIN_AV',
-                          2: 'SM_AV', 
-                          3: 'CAR_AV'}
-
-custom_alt_id = "mode_id"
-
-obs_id_column = "custom_id"
-wide_swiss_metro[obs_id_column] = np.arange(wide_swiss_metro.shape[0],
-                                            dtype=int) + 1
-
-choice_column = "CHOICE"
-long_swiss_metro = pl.convert_wide_to_long(wide_swiss_metro, 
-                                           ind_variables, 
-                                           alt_varying_variables, 
-                                           availability_variables, 
-                                           obs_id_column, 
-                                           choice_column,
-                                           new_alt_id_name=custom_alt_id)
-
-long_swiss_metro.head(10).T
-
-long_swiss_metro["travel_time_hrs"] = long_swiss_metro["travel_time"] / 60.0
-
-long_swiss_metro["headway_hrs"] = long_swiss_metro["headway"] / 60.0
-
-long_swiss_metro["free_ticket"] = (((long_swiss_metro["GA"] == 1) |
-                                    (long_swiss_metro["WHO"] == 2)) &
-                                   long_swiss_metro[custom_alt_id].isin([1,2])).astype(int)
-
-long_swiss_metro["travel_cost_hundreth"] = (long_swiss_metro["travel_cost"] *
-                                            (long_swiss_metro["free_ticket"] == 0) /
-                                            100.0)
-
-long_swiss_metro["single_luggage_piece"] = (long_swiss_metro["LUGGAGE"] == 1).astype(int)
-
-long_swiss_metro["multiple_luggage_pieces"] = (long_swiss_metro["LUGGAGE"] == 3).astype(int)
-
-long_swiss_metro["regular_class"] = 1 - long_swiss_metro["FIRST"]
-
-long_swiss_metro["train_survey"] = 1 - long_swiss_metro["SURVEY"]
+Pilot_MNL.fit_summary ## Summarises model fit 
+np.round(Pilot_MNL.summary, 3) #  Rounds the above to 3 decimal places for ease of comparison.
 
 
-basic_specification = OrderedDict()
-basic_names = OrderedDict()
-## Edits up to here
-basic_specification["intercept"] = [1, 2]
-basic_names["intercept"] = ['ASC Train',
-                            'ASC Swissmetro']
-
-basic_specification["travel_time_hrs"] = [[1, 2,], 3]
-basic_names["travel_time_hrs"] = ['Travel Time, units:hrs (Train and Swissmetro)',
-                                  'Travel Time, units:hrs (Car)']
-
-basic_specification["travel_cost_hundreth"] = [1, 2, 3]
-basic_names["travel_cost_hundreth"] = ['Travel Cost * (Annual Pass == 0), units: 0.01 CHF (Train)',
-                                       'Travel Cost * (Annual Pass == 0), units: 0.01 CHF (Swissmetro)',
-                                       'Travel Cost, units: 0.01 CHF (Car)']
-
-basic_specification["headway_hrs"] = [1, 2]
-basic_names["headway_hrs"] = ["Headway, units:hrs, (Train)",
-                              "Headway, units:hrs, (Swissmetro)"]
-
-basic_specification["seat_configuration"] = [2]
-basic_names["seat_configuration"] = ['Airline Seat Configuration, base=No (Swissmetro)']
-
-basic_specification["train_survey"] = [[1, 2]]
-basic_names["train_survey"] = ["Surveyed on a Train, base=No, (Train and Swissmetro)"]
-
-basic_specification["regular_class"] = [1]
-basic_names["regular_class"] = ["First Class == False, (Swissmetro)"]
-
-basic_specification["single_luggage_piece"] = [3]
-basic_names["single_luggage_piece"] = ["Number of Luggage Pieces == 1, (Car)"]
-
-basic_specification["multiple_luggage_pieces"] = [3]
-basic_names["multiple_luggage_pieces"] = ["Number of Luggage Pieces > 1, (Car)"]
-
-
-swissmetro_mnl = pl.create_choice_model(data=long_swiss_metro,
-                                        alt_id_col=custom_alt_id,
-                                        obs_id_col=obs_id_column,
-                                        choice_col=choice_column,
-                                        specification=basic_specification,
-                                        model_type="MNL")
-
-swissmetro_mnl.fit_mle(np.zeros(14))
-
-swissmetro_mnl.get_statsmodels_summary()
-
-swissmetro_mnl.print_summaries()
-
-swissmetro_mnl.fit_summary
-
-np.round(swissmetro_mnl.summary, 3)
 
 ##########################################################################
 ############### DCE method: STATSMODELS
