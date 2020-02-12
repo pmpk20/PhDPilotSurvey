@@ -135,11 +135,8 @@ Test['SQ_AV'] = np.ones(Test.shape[0],dtype=int)
 ##########################################################################
 ##########################################################################
 
-
 ##########################################################################
-############### DCE method: PYLOGIT
-############### Link: https://github.com/timothyb0912/pylogit/tree/master/examples/.ipynb_checkpoint 
-############### Comment: Will learn but the package hasn't been updated since 2017 so maybe avoid
+############### MULTINOMIAL LOGIT 
 ##########################################################################
 
 !pip install pylogit
@@ -230,6 +227,93 @@ Pilot_MNL.print_summaries() ## Summarises the model
 
 Pilot_MNL.fit_summary ## Summarises model fit 
 np.round(Pilot_MNL.summary, 3) #  Rounds the above to 3 decimal places for ease of comparison.
+
+##########################################################################
+############### MIXED LOGIT 
+##########################################################################
+
+Test_Long["Choice"] = Test_Long["Choice"].astype(int)
+
+index_var_names = ["Price", "Accumulation"]
+for col in index_var_names:
+    Test_Long[col] = Test_Long[col].astype(float)
+example_specification = OrderedDict()
+example_names = OrderedDict()
+
+for col in index_var_names:
+    example_specification[col] = [[0,1]]
+    example_names[col] = [col]
+
+MXL = pl.create_choice_model(data=Test_Long,
+                                       alt_id_col="alt",
+                                       obs_id_col="chid",
+                                       choice_col="Choice",
+                                       specification=example_specification,
+                                       model_type="Mixed Logit",
+                                       names=example_names,
+                                       mixing_id_col="ID",
+                                       mixing_vars=index_var_names)
+
+MXL.fit_mle(init_vals=np.zeros(2 * len(index_var_names)),
+                      num_draws=600,
+                      seed=123)
+
+MXL.get_statsmodels_summary()
+## Note some slight differences to MLOGIT due to randomness
+
+
+
+
+#heteroskedastic_specification = OrderedDict()
+#heteroskedastic_names = OrderedDict()
+#
+#heteroskedastic_specification["intercept"] = [1]
+#heteroskedastic_names["intercept"] = ["ASC ALT"]
+#
+#specification_dict = OrderedDict()
+#name_dict = OrderedDict()
+#
+## Add the variables to the specification and name dictionaries.
+#specification_dict["intercept"] = [1]
+#name_dict["intercept"] = ["ASC Air"]
+#
+#specification_dict["Price"] = [[0,1]]
+#name_dict["Price"] = ["Price"]
+#
+#specification_dict["Accumulation"] = [[0,1]]
+#name_dict["Accumulation"] = ["Accumulation"]
+#
+#for key in specification_dict:
+#    if key != "intercept":
+#        heteroskedastic_specification[key] = specification_dict[key]
+#        heteroskedastic_names[key] = name_dict[key]
+#
+## Create a list of the variables whose standard deviations
+## are to be estimated
+#mixing_variables = heteroskedastic_names["intercept"]
+#
+#heteroskedastic_model_0 = pl.create_choice_model(data=Test_Long,
+#                                                 alt_id_col="alt",
+#                                                 obs_id_col="chid",
+#                                                 choice_col="Choice",
+#                                                 specification=heteroskedastic_specification,
+#                                                 model_type="Mixed Logit",
+#                                                 names=heteroskedastic_names,
+#                                                 mixing_id_col="individual",
+#                                                 mixing_vars=mixing_variables)
+#
+#initial_values = np.concatenate((Pilot_MNL.params.values[:3],
+#                                 np.zeros(1),  # for the car intercept
+#                                 Pilot_MNL.params.values[3:],
+#                                 np.zeros(len(index_var_names))))
+#
+#heteroskedastic_model_0.fit_mle(initial_values,
+#                                seed=26,
+#                                num_draws=500,
+#                                constrained_pos=[3])
+#
+#heteroskedastic_model_0.get_statsmodels_summary()
+#
 
 
 
