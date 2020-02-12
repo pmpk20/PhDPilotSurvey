@@ -131,6 +131,7 @@ library(mlogit) #Already have package installed
 Test_Long <- mlogit.data(Test, shape = "wide", choice = "Choice",
                    varying = 24:31, sep = "_", id.var = "ID",
                    opposite = c("Price", "Effectiveness", "Accumulation", "Health"))
+
 ## This creates an MLOGIT object which is TEST coerced to a LONG format.
 #List of dependents:
 #Q1Gender + Q2Age + Q3Distance + Q4Trips + Q6QOV+ Q10Action +  Q11Self + Q12Others + Q13Marine + Q14BP+ Q15Responsibility + Q16Charity + Q17Understanding+ Q18Consequentiality + Q20Education+ Q21Employment +  Q22Income+Q23Survey
@@ -145,9 +146,9 @@ summary(M2) # Summarises the MNL output
 
 
 ####### Tests of M1 versus M2
-lrtest(mlogit(Choice ~ Price + Health , TTT, alt.subset = c("SQ", "ALT"), reflevel = "SQ"), M2) ## Likelihood Ratio test
-waldtest(mlogit(Choice ~ Price + Health , TTT, alt.subset = c("SQ", "ALT"), reflevel = "SQ"), M2) ## Wald test
-scoretest(mlogit(Choice ~ Price + Health , TTT,alt.subset = c("SQ", "ALT"), reflevel = "SQ"), M2) ## Lagrange Multiplier score test
+lrtest(mlogit(Choice ~ Price + Health , Test_Long, alt.subset = c("SQ", "ALT"), reflevel = "SQ"), M2) ## Likelihood Ratio test
+waldtest(mlogit(Choice ~ Price + Health , Test_Long, alt.subset = c("SQ", "ALT"), reflevel = "SQ"), M2) ## Wald test
+scoretest(mlogit(Choice ~ Price + Health , Test_Long,alt.subset = c("SQ", "ALT"), reflevel = "SQ"), M2) ## Lagrange Multiplier score test
 
 
 ####### Marginal Effects
@@ -175,25 +176,71 @@ coef(M2)["Heh"]/coef(M2)["Price"] ## For some reason, "Health" comes up as "Heh"
 ############### DCE: MIXED LOGIT                     #####################
 ##########################################################################
 
+MNL <- mlogit(Choice ~ Price + Health + Accumulation | -1, 
+              Test_Long) 
+summary(MNL) 
+## Estimates the basic MNL to start with
+
+
+MXLUncorrelated <- mlogit(Choice ~ Price + Accumulation + Health | -1, 
+               Test_Long, panel = TRUE, rpar = c(Price="n",Accumulation="n"), 
+                     R = 100, correlation = FALSE, 
+                     halton = NA, method = "bhhh")
+summary(MXLUncorrelated)
+names(coef(MXLUncorrelated))
+summary(rpar(MXLUncorrelated,"Accumulation",norm="Price")) ## Reports the distribution of the random parameters in WTP, not preference, space which is the default of MLOGIT.
+## Estimates an uncorrelated Mixed Logit with Alternative-specific covariates only
+
+MXLCorrelated <- mlogit(Choice ~ Price + Accumulation + Health | -1, 
+                          Test_Long, panel = TRUE, rpar = c(Price="n",Accumulation="n"), 
+                          R = 100, correlation = TRUE, 
+                          halton = NA, method = "bhhh")
+summary(MXLCorrelated)
+names(coef(MXLCorrelated))
+summary(rpar(MXLCorrelated,"Accumulation",norm="Price"))
+mean(rpar(MXLCorrelated, "Accumulation", norm = "Price")) ## Reports mean WTP
+## Estimates a correlated MXL
+
+
+## Setup of necessary functions and library to perform tests of the MXL models
+statpval <- function(x){
+  if (inherits(x, "anova")) 
+    result <- as.matrix(x)[2, c("Chisq", "Pr(>Chisq)")]
+  if (inherits(x, "htest")) result <- c(x$statistic, x$p.value)
+  names(result) <- c("stat", "p-value")
+  round(result, 3)
+}
+library(car)
+
+
+## Tests of the MXL models
+names(coef(MXLCorrelated))
+lr.corr <- lrtest(MXLCorrelated, MXLUncorrelated)
+lh.corr <- linearHypothesis(MXLCorrelated, c("chol.Price:Accumulation = 0",
+                                          "chol.Price:Price = 0", "chol.Accumulation:Accumulation = 0"))
+wd.corr <- waldtest(MXLCorrelated, correlation = FALSE)
+sc.corr <- scoretest(MXLUncorrelated, correlation = TRUE)
+sapply(list(wald = wd.corr, lh = lh.corr, score = sc.corr, lr = lr.corr),
+       statpval)
+
+# Extracts individual-level parameters
+indpar <- fitted(MXLCorrelated, type = "parameters")
+head(indpar)
 
 
 
 
+##########################################################################
+############### DCE: NESTED LOGIT                    #####################
+##########################################################################
 
 
+# Can setup a NL object:
+Test_LongNL <- mlogit.data(Test, shape = "wide", choice = "Choice",
+                         varying = 24:31, sep = "_", id.var = "ID",
+                         group.var = "Price")
 
-
-
-
-
-
-
-
-
-
-
-
-
+# No luck estimating a NL model as I can't think of the nests
 
 
 ##########################################################################
