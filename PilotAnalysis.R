@@ -116,9 +116,14 @@ Test$Choice[Test$Choice == 0] <- "SQ"  ## Necessary here to change numeric to st
 Test$Choice[Test$Choice == 1] <- "ALT" ## The MFORMULA looks for _SQ or _ALT so choice must be SQ or ALT
 
 
+
+
 ##########################################################################
-############### Section 3: MLOGIT                    #####################
+############### DCE: MULTINOMIAL LOGIT               #####################
 ##########################################################################
+
+
+
 
 library(mlogit) #Already have package installed
 
@@ -162,6 +167,32 @@ barplot(PV$Effect, names.arg = PV$Variables,xlab = "Variables",ylab = "Effect",y
 
 ####### WTP and MRS calculations:
 coef(M2)["Heh"]/coef(M2)["Price"] ## For some reason, "Health" comes up as "Heh" ??
+
+
+
+
+##########################################################################
+############### DCE: MIXED LOGIT                     #####################
+##########################################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
