@@ -2,12 +2,12 @@
 PhDPilotSurvey
 
 To-Do:
-- Finish PYLOGIT attempt in Python and estimate MXL/NL
-- More changes to APOLLO code in R
-- Estimate other models
+- Learn and estimate MIXED LOGIT
+- Learn and estimate NESTED LOGIT
+- Estimate linear/glm models for other variables of interest
 - Report
 
 Updates:
-10/02:
-- Python: tried different packages and PYLOGIT looks promising so far but not finished.
-- R: Trying to change the APOLLO MNL example to be more realistic with limited progress- at least it doesn't say infinite standard errors anymore.
+12/02:
+- Python: Finished MNL in PYLOGIT with cheating workaround.
+- R: MNL in MLOGIT works. MXL case next then NL.
