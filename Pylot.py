@@ -229,12 +229,17 @@ Pilot_MNL.fit_summary ## Summarises model fit
 np.round(Pilot_MNL.summary, 3) #  Rounds the above to 3 decimal places for ease of comparison.
 
 ##########################################################################
-############### MIXED LOGIT 
+############### MIXED LOGIT
 ##########################################################################
 
 Test_Long["Choice"] = Test_Long["Choice"].astype(int)
 
-index_var_names = ["Price", "Accumulation"]
+index_var_names = ["Price", "Accumulation",'Q1Gender', 
+                   'Q2Age', 'Q3Distance', 'Q4Trips',
+      'Q10Action', 'Q11Self', 'Q12Others',
+       'Q13Marine', 'Q14BP', 'Q15Responsibility', 'Q16Charity',
+       'Q17Understanding', 'Q18Consequentiality', 'Q19Experts', 'Q20Education',
+       'Q21Employment', 'Q22Income', 'Q23Survey']
 for col in index_var_names:
     Test_Long[col] = Test_Long[col].astype(float)
 example_specification = OrderedDict()
@@ -262,97 +267,66 @@ MXL.get_statsmodels_summary()
 ## Note some slight differences to MLOGIT due to randomness
 
 
-
-
-#heteroskedastic_specification = OrderedDict()
-#heteroskedastic_names = OrderedDict()
-#
-#heteroskedastic_specification["intercept"] = [1]
-#heteroskedastic_names["intercept"] = ["ASC ALT"]
-#
-#specification_dict = OrderedDict()
-#name_dict = OrderedDict()
-#
-## Add the variables to the specification and name dictionaries.
-#specification_dict["intercept"] = [1]
-#name_dict["intercept"] = ["ASC Air"]
-#
-#specification_dict["Price"] = [[0,1]]
-#name_dict["Price"] = ["Price"]
-#
-#specification_dict["Accumulation"] = [[0,1]]
-#name_dict["Accumulation"] = ["Accumulation"]
-#
-#for key in specification_dict:
-#    if key != "intercept":
-#        heteroskedastic_specification[key] = specification_dict[key]
-#        heteroskedastic_names[key] = name_dict[key]
-#
-## Create a list of the variables whose standard deviations
-## are to be estimated
-#mixing_variables = heteroskedastic_names["intercept"]
-#
-#heteroskedastic_model_0 = pl.create_choice_model(data=Test_Long,
-#                                                 alt_id_col="alt",
-#                                                 obs_id_col="chid",
-#                                                 choice_col="Choice",
-#                                                 specification=heteroskedastic_specification,
-#                                                 model_type="Mixed Logit",
-#                                                 names=heteroskedastic_names,
-#                                                 mixing_id_col="individual",
-#                                                 mixing_vars=mixing_variables)
-#
-#initial_values = np.concatenate((Pilot_MNL.params.values[:3],
-#                                 np.zeros(1),  # for the car intercept
-#                                 Pilot_MNL.params.values[3:],
-#                                 np.zeros(len(index_var_names))))
-#
-#heteroskedastic_model_0.fit_mle(initial_values,
-#                                seed=26,
-#                                num_draws=500,
-#                                constrained_pos=[3])
-#
-#heteroskedastic_model_0.get_statsmodels_summary()
-#
-
-
-
 ##########################################################################
-############### DCE method: STATSMODELS
-############### Link: https://www.statsmodels.org/stable/generated/statsmodels.discrete.discrete_model.MultinomialResults.html
-############### Comment: Not sure on other logits but widely used.
+############### HETEROSKEDASTIC MIXED LOGIT
 ##########################################################################
 
-# This formula throws a fit when using questions 13 (never works),14, 16
-# Aim here is to estimate a fully general MNL model of Choice ~ Dependents and report the significant variables
-Dependents = pd.DataFrame(pd.concat([Test.const, Test.Q1Gender , Test.Q2Age , Test.Q3Distance , Test.Q4Trips , Test.Q6QOV, Test.Q10Action ,Test.Q11Self , Test.Q12Others,Test.Q15Responsibility,Test.Q17Understanding, Test.Q18Consequentiality, Test.Q19Experts  , Test.Q20Education, Test.Q21Employment ,  Test.Q22Income, Test.Q23Survey ],axis=1))
-Model1 = statsmodels.discrete.discrete_model.MNLogit(np.asfarray(Test.Choice),Dependents.to_numpy()).fit()
-Model1.summary(alpha=0.05,yname='DCE Choice',xname=Dependents.columns.to_list())
-Model1.get_margeff().summary()
-PV = pd.DataFrame(pd.read_html(Model1.get_margeff().summary().tables[1].as_html(), header=0, index_col=0)[0])
-PV = PV[:PV.index.get_loc('y=1')]
-PV = pd.DataFrame([PV['dy/dx'],PV['P>|z|']])
-PV = PV.transpose()
-PV.index = ["Test.Q1Gender", "Test.Q2Age" , "Test.Q3Distance" , "Test.Q4Trips" , "Test.Q6QOV", "Test.Q10Action" ,  "Test.Q11Self" , "Test.Q12Others" , "Test.Q15Responsibility" , "Test.Q17Understanding", "Test.Q18Consequentiality" ,"Test.Q19Experts", "Test.Q20Education", "Test.Q21Employment" ,  "Test.Q22Income", "Test.Q23Survey"] 
-PV.columns = ["Marginal Effect","PValue"]
-PV['PValue'] = PV['PValue'].astype('float')
-PV.drop(PV[PV['PValue'] > 0.05].index , inplace=True)
-print(PV)
+specification_dict = OrderedDict()
+name_dict = OrderedDict()
 
-## Aim of this block below is to estimate above with only the significant variables
-Dependents = pd.DataFrame(pd.concat([Test.const, Test.Q10Action ,Test.Q11Self , Test.Q12Others,Test.Q15Responsibility,Test.Q17Understanding, Test.Q20Education ,  Test.Q22Income ],axis=1))
-Model1 = statsmodels.discrete.discrete_model.MNLogit(np.asfarray(Test.Choice),Dependents.to_numpy()).fit()
-Model1.summary(alpha=0.05,yname='DCE Choice',xname=Dependents.columns.to_list())
-print(Model1.get_margeff().summary())
-PV = pd.DataFrame(pd.read_html(Model1.get_margeff().summary().tables[1].as_html(), header=0, index_col=0)[0])
-PV = PV[:PV.index.get_loc('y=1')]
-PV = pd.DataFrame([PV['dy/dx'],PV['P>|z|']])
-PV = PV.transpose()
-PV.index = [ "Test.Q10Action" ,  "Test.Q11Self" , "Test.Q12Others" , "Test.Q15Responsibility" , "Test.Q17Understanding", "Test.Q20Education",  "Test.Q22Income"] 
-PV.columns = ["Marginal Effect","PValue"]
-PV['PValue'] = PV['PValue'].astype('float')
-PV.drop(PV[PV['PValue'] > 0.05].index , inplace=True)
-print(PV)
+specification_dict["intercept"] = [1]
+name_dict["intercept"] = ["ASC ALT"]
+specification_dict["Price"] = [[0,1]]
+name_dict["Price"] = ["Price"]
+specification_dict["Accumulation"] = [[0,1]]
+name_dict["Accumulation"] = ["Accumulation"]
+
+mnl_model = pl.create_choice_model(data=Test_Long,
+                                   alt_id_col="alt",
+                                   obs_id_col="chid",
+                                   choice_col="Choice",
+                                   specification=specification_dict,
+                                   model_type="MNL",
+                                   names=name_dict)
+
+initial_values = np.zeros(len(specification_dict))
+mnl_model.fit_mle(initial_values)
+mnl_model.get_statsmodels_summary()
+
+
+heteroskedastic_specification = OrderedDict()
+heteroskedastic_names = OrderedDict()
+
+heteroskedastic_specification["intercept"] = [1]
+heteroskedastic_names["intercept"] = ["ASC ALT"]
+
+for key in specification_dict:
+    if key != "intercept":
+        heteroskedastic_specification[key] = specification_dict[key]
+        heteroskedastic_names[key] = name_dict[key]
+
+mixing_variables = heteroskedastic_names["intercept"]
+
+heteroskedastic_model_0 = pl.create_choice_model(data=Test_Long,
+                                                 alt_id_col="alt",
+                                                 obs_id_col="chid",
+                                                 choice_col="Choice",
+                                                 specification=heteroskedastic_specification,
+                                                 model_type="Mixed Logit",
+                                                 names=heteroskedastic_names,
+                                                 mixing_id_col="ID",
+                                                 mixing_vars=mixing_variables)
+
+initial_values = np.concatenate((mnl_model.params.values[:3],
+                                 mnl_model.params.values[3:],
+                                 np.zeros(len(mixing_variables))))
+
+heteroskedastic_model_0.fit_mle(initial_values,
+                                seed=26,
+                                num_draws=500,
+                                constrained_pos=[0])
+
+heteroskedastic_model_0.get_statsmodels_summary()
 
 
 
