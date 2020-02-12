@@ -134,7 +134,7 @@ Test_Long <- mlogit.data(Test, shape = "wide", choice = "Choice",
 M1 <- mlogit(Choice ~ Price + Health, Test_Long, alt.subset = c("SQ", "ALT"), reflevel = "SQ") ##Estimating a simple model first
 summary(M1) ## Estimates a simplistic mlogit model before adding in individual-specifics
 
-M2 <- mlogit(Choice ~ Price + Health |Q1Gender + Q2Age + Q3Distance + Q4Trips + Q6QOV+ Q10Action +  Q11Self + Q12Others + Q13Marine + Q14BP+ Q15Responsibility + Q16Charity + Q17Understanding+ Q18Consequentiality + Q20Education+ Q21Employment +  Q22Income+Q23Survey, Test_Long, alt.subset = c("SQ", "ALT"), reflevel = "SQ") #Estimating a much larger MNL model with all the independent variables. 
+M2 <- mlogit(Choice ~ Price + Health |Q1Gender + Q2Age + Q3Distance + Q4Trips + Q6QOV+ Q10Action +  Q11Self + Q12Others + Q13Marine + Q14BP+ Q15Responsibility + Q16Charity + Q17Understanding+ Q18Consequentiality + Q19Experts +Q20Education+ Q21Employment +  Q22Income+Q23Survey, Test_Long, alt.subset = c("SQ", "ALT"), reflevel = "SQ") #Estimating a much larger MNL model with all the independent variables. 
 summary(M2) # Summarises the MNL output
 # key things to change include the placing of the |. 
 
