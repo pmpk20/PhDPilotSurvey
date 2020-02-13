@@ -139,6 +139,7 @@ Test['SQ_AV'] = np.ones(Test.shape[0],dtype=int)
 ############### MULTINOMIAL LOGIT 
 ##########################################################################
 
+
 !pip install pylogit
 from collections import OrderedDict    # For recording the model specification 
 import statsmodels.tools.numdiff as numdiff       # For numeric hessian
@@ -152,27 +153,47 @@ Test_Long.alt[Test_Long.alt == "SQ"] = 0
 Test_Long.alt[Test_Long.alt == "ALT"] = 1
 ## I tried coercing the Python dataframe using PYLOGIT but it would not work.
 
+
+## Basic Multinomial logit first
+specification_dict = OrderedDict()
+name_dict = OrderedDict()
+
+specification_dict["intercept"] = [1]
+name_dict["intercept"] = ["ASC ALT"]
+specification_dict["Price"] = [[0,1]]
+name_dict["Price"] = ["Price"]
+specification_dict["Health"] = [[0,1]]
+name_dict["Health"] = ["Health"]
+
+Base_MNL = pl.create_choice_model(data=Test_Long,
+                                   alt_id_col="alt",
+                                   obs_id_col="chid",
+                                   choice_col="Choice",
+                                   specification=specification_dict,
+                                   model_type="MNL",
+                                   names=name_dict)
+
+initial_values = np.zeros(len(specification_dict))
+Base_MNL.fit_mle(initial_values)
+Base_MNL.get_statsmodels_summary()
+
+
+## Extended Multinomial logit second
 B_specification = OrderedDict() ## To create the specification in PYLOGIT you need these dictionaries? Don't understand why but I understand how to work it
 B_names = OrderedDict() ## A similar one for names
-
 ## Here I added the DCE attributes and an ASC intercept to the utility functions
 B_specification["intercept"] = [1] ## 0,1 specifies what indirect utility function it equals. There may be J-1 ASCs so only one here.
 B_names["intercept"] = ['ALT:(intercept)'] # Can pick any name but went with the generated one in R
-
 B_specification["Price"] = [[0, 1]]
 B_names["Price"] = ['Price']
-
 B_specification["Health"] = [[0, 1]]
 B_names["Health"] = ['Health']
-
 #B_specification["Accumulation"] = [[0, 1]]
 #B_names["Accumulation"] = ['Accumulation']
-
 #B_specification["Effectiveness"] = [[0, 1]]
 #B_names["Effectiveness"] = ['Effectiveness']
 ## You can add effectiveness or accumulation but not both and they ruin the values of the others. 
 ## R just straight up refused to estimate with them
-
 
 ## Here I add all the regressors which are from the dataframe.
 B_specification["Q1Gender"] = [1]
@@ -214,25 +235,69 @@ B_names["Q22Income"] = ['Q22Income']
 B_specification["Q23Survey"] = [1]
 B_names["Q23Survey"] = ['Q23Survey']
 
-
 Pilot_MNL = pl.create_choice_model(data=Test_Long,alt_id_col='alt',
                        obs_id_col='chid',choice_col='Choice',
                        model_type="MNL",specification=B_specification,
                        names=B_names)
-## The create_choice_model function is similar to MLOGIT in R and produces the same output
-## It requires specifying certain columns as noted above
+
 Pilot_MNL.fit_mle(np.zeros(len(B_specification))) ## Initialises it with zeroes for starting values
 Pilot_MNL.get_statsmodels_summary()
 Pilot_MNL.print_summaries() ## Summarises the model
-
 Pilot_MNL.fit_summary ## Summarises model fit 
 np.round(Pilot_MNL.summary, 3) #  Rounds the above to 3 decimal places for ease of comparison.
+
+## Likelihood ratio test for models
+from scipy.stats.distributions import chi2
+def likelihood_ratio(llmin, llmax):
+    return(2*(llmax-llmin))
+LR = likelihood_ratio(Base_MNL.log_likelihood,Pilot_MNL.log_likelihood)
+p = chi2.sf(LR, 1) # L2 has 1 DoF more than L1
+print('p: %.30f' % p) 
+
+## Marginal Effects
+### No idea how to calculate from PYLOGIT
+
+## P values
+### Can be done just haven't
+
+## WTP and MRS calculations:
+### Again, no idea about marginal effects so idk WTP
+
 
 ##########################################################################
 ############### MIXED LOGIT
 ##########################################################################
 
+
 Test_Long["Choice"] = Test_Long["Choice"].astype(int)
+
+index_var_names = ["Price", "Accumulation"]
+for col in index_var_names:
+    Test_Long[col] = Test_Long[col].astype(float)
+example_specification = OrderedDict()
+example_names = OrderedDict()
+
+for col in index_var_names:
+    example_specification[col] = [[0,1]]
+    example_names[col] = [col]
+
+MIXLuncorrelated = pl.create_choice_model(data=Test_Long,
+                                       alt_id_col="alt",
+                                       obs_id_col="chid",
+                                       choice_col="Choice",
+                                       specification=example_specification,
+                                       model_type="Mixed Logit",
+                                       names=example_names,
+                                       mixing_id_col="ID",
+                                       mixing_vars=index_var_names)
+
+MIXLuncorrelated.fit_mle(init_vals=np.zeros(2 * len(index_var_names)),
+                      num_draws=600,
+                      seed=123)
+
+MIXLuncorrelated.get_statsmodels_summary()
+
+####################################
 
 index_var_names = ["Price", "Accumulation",'Q1Gender', 
                    'Q2Age', 'Q3Distance', 'Q4Trips',
@@ -249,7 +314,7 @@ for col in index_var_names:
     example_specification[col] = [[0,1]]
     example_names[col] = [col]
 
-MXL = pl.create_choice_model(data=Test_Long,
+MXLFull = pl.create_choice_model(data=Test_Long,
                                        alt_id_col="alt",
                                        obs_id_col="chid",
                                        choice_col="Choice",
@@ -259,44 +324,25 @@ MXL = pl.create_choice_model(data=Test_Long,
                                        mixing_id_col="ID",
                                        mixing_vars=index_var_names)
 
-MXL.fit_mle(init_vals=np.zeros(2 * len(index_var_names)),
+MXLFull.fit_mle(init_vals=np.zeros(2 * len(index_var_names)),
                       num_draws=600,
                       seed=123)
 
-MXL.get_statsmodels_summary()
+MXLFull.get_statsmodels_summary()
 ## Note some slight differences to MLOGIT due to randomness
+
+
 
 
 ##########################################################################
 ############### HETEROSKEDASTIC MIXED LOGIT
 ##########################################################################
 
-specification_dict = OrderedDict()
-name_dict = OrderedDict()
 
-specification_dict["intercept"] = [1]
-name_dict["intercept"] = ["ASC ALT"]
-specification_dict["Price"] = [[0,1]]
-name_dict["Price"] = ["Price"]
-specification_dict["Accumulation"] = [[0,1]]
-name_dict["Accumulation"] = ["Accumulation"]
-
-mnl_model = pl.create_choice_model(data=Test_Long,
-                                   alt_id_col="alt",
-                                   obs_id_col="chid",
-                                   choice_col="Choice",
-                                   specification=specification_dict,
-                                   model_type="MNL",
-                                   names=name_dict)
-
-initial_values = np.zeros(len(specification_dict))
-mnl_model.fit_mle(initial_values)
-mnl_model.get_statsmodels_summary()
 
 
 heteroskedastic_specification = OrderedDict()
 heteroskedastic_names = OrderedDict()
-
 heteroskedastic_specification["intercept"] = [1]
 heteroskedastic_names["intercept"] = ["ASC ALT"]
 
@@ -304,7 +350,6 @@ for key in specification_dict:
     if key != "intercept":
         heteroskedastic_specification[key] = specification_dict[key]
         heteroskedastic_names[key] = name_dict[key]
-
 mixing_variables = heteroskedastic_names["intercept"]
 
 heteroskedastic_model_0 = pl.create_choice_model(data=Test_Long,
@@ -320,12 +365,10 @@ heteroskedastic_model_0 = pl.create_choice_model(data=Test_Long,
 initial_values = np.concatenate((mnl_model.params.values[:3],
                                  mnl_model.params.values[3:],
                                  np.zeros(len(mixing_variables))))
-
 heteroskedastic_model_0.fit_mle(initial_values,
                                 seed=26,
                                 num_draws=500,
                                 constrained_pos=[0])
-
 heteroskedastic_model_0.get_statsmodels_summary()
 
 
@@ -338,7 +381,45 @@ heteroskedastic_model_0.get_statsmodels_summary()
 ###############                                             ##############
 ##########################################################################
 
-#
+
+from statsmodels.discrete.discrete_model import Probit
+
+def PVadjusted(DD):
+    global Model, Model2, ME, PV
+    Dependents = pd.DataFrame(pd.concat([Test_Long.Q1Gender , Test_Long.Q2Age, 
+                                     Test_Long.Q3Distance , Test_Long.Q4Trips , 
+                                     Test_Long.Q5CVM1,Test_Long.Q6QOV, Test_Long.Q14BP, 
+                                     Test_Long.Q15Responsibility , Test_Long.Q16Charity , 
+                                     Test_Long.Q17Understanding, Test_Long.Q18Consequentiality , 
+                                     Test_Long.Q19Experts, Test_Long.Q20Education, 
+                                     Test_Long.Q21Employment , Test_Long.Q22Income],axis=1))
+    Dependents = Dependents.drop(columns=DD)
+    Y = Test_Long[DD]
+    X = Dependents
+    X = statsmodels.tools.tools.add_constant(X)
+    Model = Probit(Y, X.astype(float)).fit()
+    print(Model.summary())
+    Model.get_margeff().summary()
+    PV = Model.pvalues[Model.pvalues <0.05]
+    a = []
+    for i in range(PV.shape[0]):
+        if PV.index[i] == "const":
+            i
+        else:
+            Data = pd.DataFrame([Test_Long[str(PV.index[i])]]).transpose()
+            a.append(Data)
+    a=pd.concat(a,axis=1)
+    Y = Test_Long[DD]
+    X = a
+    X = statsmodels.tools.tools.add_constant(X)
+    Model2= Probit(Y, X.astype(float)).fit()
+    print(Model2.summary())
+    ME = Model2.get_margeff().summary()
+    PV = Model2.pvalues[Model2.pvalues <0.05]
+
+PVadjusted("Q5CVM1")
+CVMProbit2 = Model2
+
 # Q5CVM ~ Dependents using probit
 
 ##########################################################################
@@ -347,17 +428,18 @@ heteroskedastic_model_0.get_statsmodels_summary()
 ###############                                             ##############
 ##########################################################################
 
-#
-# Q6QOV ~ Dependents using probit
+
+PVadjusted("Q6QOV")
+QOVProbit = Model2
 
 ##########################################################################
 ###############                                             ##############
 ###############     Section 4: Estimation of other models   ############## 
-###############                                             ##############
+###############     Blue Planet                             ##############
 ##########################################################################
 
-#
-# Experts ~ Dependents using OLS
+PVadjusted("Q14BP")
+BPProbit = Model2
 
 ##########################################################################
 ###############                                             ##############
@@ -367,3 +449,26 @@ heteroskedastic_model_0.get_statsmodels_summary()
 
 #
 # Read this first: https://transp-or.epfl.ch/documents/talks/IVT10.pdf
+
+
+##########################################################################
+###############                                             ##############
+###############     Section 6: Logits with only rational DCE ############# 
+###############                                             ##############
+##########################################################################
+Test_Long = pd.read_csv("H:/PhDPilotSurvey/Test_Long.csv")
+Test_Long.alt[Test_Long.alt == "SQ"] = 0
+Test_Long.alt[Test_Long.alt == "ALT"] = 1
+Test_Long["Choice"] = Test_Long["Choice"].astype(int)
+
+for i in range(len(list(Test_Long.ID[(Test_Long.Task == 1) & (Test_Long.Choice ==0) & (Test_Long["Unnamed: 0"].str.contains("SQ") == False)]))):
+    Test_Long = Test_Long.drop(Test_Long[Test_Long.ID == list(Test_Long.ID[(Test_Long.Task == 1) & (Test_Long.Choice ==0) & (Test_Long["Unnamed: 0"].str.contains("SQ") == False)])[0] ].index,axis=0)
+Pilot_Dominated = Test_Long
+## May perform analysis from this new dataset: Pilot_Dominated
+
+##########################################################################
+###############                                             ##############
+###############     Section 7: Logits with only good understanding ####### 
+###############                                             ##############
+##########################################################################
+
