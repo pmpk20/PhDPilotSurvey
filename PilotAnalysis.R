@@ -123,37 +123,44 @@ Test$Choice[Test$Choice == 1] <- "ALT" ## The MFORMULA looks for _SQ or _ALT so 
 ##########################################################################
 
 
+
+
 library(mlogit) #Already have package installed
 Test_Long <- mlogit.data(Test, shape = "wide", choice = "Choice",
                    varying = 24:31, sep = "_", id.var = "ID",
                    opposite = c("Price", "Effectiveness", "Accumulation", "Health"))
-
 ## This creates an MLOGIT object which is TEST coerced to a LONG format.
-#List of dependents:
-#Q1Gender + Q2Age + Q3Distance + Q4Trips + Q6QOV+ Q10Action +  Q11Self + Q12Others + Q13Marine + Q14BP+ Q15Responsibility + Q16Charity + Q17Understanding+ Q18Consequentiality + Q20Education+ Q21Employment +  Q22Income+Q23Survey
+## List of dependents:
+## Q1Gender + Q2Age + Q3Distance + Q4Trips + Q6QOV+ Q10Action +  Q11Self + Q12Others + Q13Marine + Q14BP+ Q15Responsibility + Q16Charity + Q17Understanding+ Q18Consequentiality + Q20Education+ Q21Employment +  Q22Income+Q23Survey
 
-M1 <- mlogit(Choice ~ Price + Health, Test_Long, alt.subset = c("SQ", "ALT"), reflevel = "SQ") ##Estimating a simple model first
-summary(M1) ## Estimates a simplistic mlogit model before adding in individual-specifics
+Base_MNL <- mlogit(Choice ~  Price + Health, 
+                   Test_Long,
+                   alt.subset = c("SQ","ALT"),reflevel = "SQ") ##Estimating a simple model first
+summary(Base_MNL) ## Estimates a simplistic mlogit model before adding in individual-specifics
 
-M2 <- mlogit(Choice ~ Price + Health |Q1Gender + Q2Age + Q3Distance + Q4Trips + Q6QOV+ Q10Action +  Q11Self + Q12Others + Q13Marine + Q14BP+ Q15Responsibility + Q16Charity + Q17Understanding+ Q18Consequentiality + Q19Experts +Q20Education+ Q21Employment +  Q22Income+Q23Survey, Test_Long, alt.subset = c("SQ", "ALT"), reflevel = "SQ") #Estimating a much larger MNL model with all the independent variables. 
-summary(M2) # Summarises the MNL output
-# key things to change include the placing of the |. 
+Pilot_MNL <- mlogit(Choice ~ Price + Health | 
+                      Q1Gender + Q2Age + Q3Distance
+                    + Q4Trips + Q6QOV+ Q10Action +  
+                      Q11Self + Q12Others + Q13Marine 
+                    + Q14BP+ Q15Responsibility + Q16Charity 
+                    + Q17Understanding+ Q18Consequentiality
+                    + Q19Experts +Q20Education+ Q21Employment
+                    +  Q22Income+Q23Survey, 
+                    Test_Long, alt.subset = c("SQ", "ALT"), 
+                    reflevel = "SQ") ## Estimating a much larger MNL model with all the independent variables. 
+summary(Pilot_MNL) ## Summarises the MNL output
+## key things to change include the placing of the |. 
 
+## Likelihood ratio test for models
+lrtest(Base_MNL , Pilot_MNL) ## Likelihood Ratio test
 
-####### Tests of M1 versus M2
-lrtest(mlogit(Choice ~ Price + Health , Test_Long, alt.subset = c("SQ", "ALT"), reflevel = "SQ"), M2) ## Likelihood Ratio test
-waldtest(mlogit(Choice ~ Price + Health , Test_Long, alt.subset = c("SQ", "ALT"), reflevel = "SQ"), M2) ## Wald test
-scoretest(mlogit(Choice ~ Price + Health , Test_Long,alt.subset = c("SQ", "ALT"), reflevel = "SQ"), M2) ## Lagrange Multiplier score test
+## Marginal Effects
+effects(Pilot_MNL, covariate = "Price", type = "rr") # Covariate change in column of ALT leads to adjacent column change in probability of selecting that option.
+## i.e. changing the price of the ALT leads to a effects(M2, covariate = "Price", type = "rr")[2] change in the probability of selecting the ALT option.
 
-
-####### Marginal Effects
-effects(M2, covariate = "Price", type = "rr") # Covariate change in column of ALT leads to adjacent column change in probability of selecting that option.
-# i.e. changing the price of the ALT leads to a effects(M2, covariate = "Price", type = "rr")[2] change in the probability of selecting the ALT option.
-
-
-####### P values
-coef(summary(M2))[,4] ##Returns P Values
-PV <- data.frame(coef(summary(M2))[,4],coef(summary(M2))[,1] )
+## P values
+coef(summary(Pilot_MNL))[,4] ##Returns P Values
+PV <- data.frame(coef(summary(Pilot_MNL))[,4],coef(summary(Pilot_MNL))[,1] )
 colnames(PV) <- c("PV","Effect")
 PV <- subset(PV,PV <=0.05)
 PV <- data.frame(row.names(PV), PV$PV, PV$Effect)
@@ -161,8 +168,8 @@ colnames(PV) <- c("Variables","PV","Effect")
 barplot(PV$Effect, names.arg = PV$Variables,xlab = "Variables",ylab = "Effect",ylim = c(-2,5),axes = TRUE)
 
 
-####### WTP and MRS calculations:
-coef(M2)["Heh"]/coef(M2)["Price"] ## For some reason, "Health" comes up as "Heh" ??
+## WTP and MRS calculations:
+coef(Pilot_MNL)["Heh"]/coef(Pilot_MNL)["Price"] ## For some reason, "Health" comes up as "Heh" ??
 
 
 
@@ -173,7 +180,7 @@ coef(M2)["Heh"]/coef(M2)["Price"] ## For some reason, "Health" comes up as "Heh"
 
 
 ########### Replication example:
-MIXL = mlogit(Choice~Price+Accumulation|0,
+MIXLcorrelated = mlogit(Choice~Price+Accumulation|0,
                             Test_Long,
                             rpar=c(Price="n",
                             Accumulation="n"),
@@ -181,24 +188,24 @@ MIXL = mlogit(Choice~Price+Accumulation|0,
                             halton=NULL,
                             print.level=0,
                             panel=TRUE,correlation = TRUE)
-summary(MIXL)
-
-MIXLu = mlogit(Choice~Price+Accumulation|0,
+summary(MIXLcorrelated)
+MIXLuncorrelated = mlogit(Choice~Price+Accumulation|0,
               Test_Long,
               rpar=c(Price="n",
                      Accumulation="n"),
               R=600,
               halton=NULL,
               print.level=0,
-              panel=TRUE,correlation = FALSE)
-summary(MIXLu)
+              panel=TRUE,correlation = FALSE,seed=123,start=as.vector(rep(0,4)))
+summary(MIXLuncorrelated)
 
 
 ## Tests of the MXL models
-lr.corr <- lrtest(MIXL, MIXLu)
-lh.corr <- linearHypothesis(MIXL, c("chol.Price:Accumulation = 0","chol.Price:Price = 0", "chol.Accumulation:Accumulation = 0"))
-wd.corr <- waldtest(MIXL, correlation = FALSE)
-sc.corr <- scoretest(MIXLu, correlation = TRUE)
+lr.corr <- lrtest(MIXLcorrelated, MIXLuncorrelated)
+library(car)
+lh.corr <- linearHypothesis(MIXLcorrelated, c("chol.Price:Accumulation = 0","chol.Price:Price = 0", "chol.Accumulation:Accumulation = 0"))
+wd.corr <- waldtest(MIXLcorrelated, correlation = FALSE)
+sc.corr <- scoretest(MIXLuncorrelated, correlation = TRUE)
 statpval <- function(x){
   if (inherits(x, "anova"))
     result <- as.matrix(x)[2, c("Chisq", "Pr(>Chisq)")]
@@ -214,6 +221,12 @@ sapply(list(wald = wd.corr, lh = lh.corr, score = sc.corr, lr = lr.corr),
 indpar <- fitted(MXLCorrelated, type = "parameters")
 head(indpar)
 
+Variables <- c('Q1Gender + Q2Age + 
+                 Q3Distance + Q4Trips + Q6QOV+ Q10Action +  
+                 Q11Self + Q12Others + Q13Marine + Q14BP+ 
+                 Q15Responsibility + Q16Charity + Q17Understanding+ 
+                 Q18Consequentiality + Q19Experts +Q20Education+ 
+                 Q21Employment +  Q22Income+Q23Survey')
 
 # Estimates the full MXL model with all covariates
 MXLFull <- mlogit(
@@ -223,8 +236,8 @@ MXLFull <- mlogit(
     Q15Responsibility + Q16Charity + Q17Understanding+ 
     Q18Consequentiality + Q19Experts +Q20Education+ 
     Q21Employment +  Q22Income+Q23Survey,
-  Test_Long, rpar=c(Price="n"),R=100,correlation = FALSE,
-  halton=NA,method="bhhh",panel=TRUE)
+  Test_Long, rpar=c(Price="n"),R=10,correlation = FALSE,
+  halton=NA,method="bhhh",panel=TRUE,seed=123)
 summary(MXLFull)
 ## Can remove intercept by replacing "Health | Q1Gender" with "Health | +0 + Q1Gender"  
 
@@ -251,7 +264,12 @@ mean(rpar(MXLFull, "Health", norm = "Price"))
 
 ## MIXL model with observed heterogeneity
 library(gmnl)
-mixl.hier <- gmnl(Choice ~ Price +Q22Income
+mixl.hier <- gmnl(Choice ~  Price +  Q1Gender + Q2Age + 
+                    Q3Distance + Q4Trips + Q6QOV+ Q10Action +  
+                    Q11Self + Q12Others + Q13Marine + Q14BP+ 
+                    Q15Responsibility + Q16Charity + Q17Understanding+ 
+                    Q18Consequentiality + Q19Experts +Q20Education+ 
+                    Q21Employment +  Q22Income+Q23Survey
                   | 1 | 0 | Accumulation  - 1,
                   data = Test_Long,
                   model = "mixl",
@@ -281,8 +299,8 @@ Test_LongNL <- mlogit.data(Test, shape = "wide", choice = "Choice",
 ##########################################################################
 
 
-## Estimates a PROBIT model
-summary(glm(Test$Q5CVM1 ~ Test$Q1Gender + Test$Q2Age + Test$Q3Distance + Test$Q4Trips + Test$Q10Action + Test$Q22Income + Test$Q21Employment + Test$Q20Education + Test$Q11Self + Test$Q12Others + Test$Q13Marine + Test$Q14BP + Test$Q15Responsibility + Test$Q16Charity + Test$Q17Understanding, data=Test))
+# ## Estimates a PROBIT model
+# summary(glm(Test$Q5CVM1 ~ Test$Q1Gender + Test$Q2Age + Test$Q3Distance + Test$Q4Trips + Test$Q10Action + Test$Q22Income + Test$Q21Employment + Test$Q20Education + Test$Q11Self + Test$Q12Others + Test$Q13Marine + Test$Q14BP + Test$Q15Responsibility + Test$Q16Charity + Test$Q17Understanding, data=Test))
 
 
 ##########################################################################
@@ -290,15 +308,49 @@ summary(glm(Test$Q5CVM1 ~ Test$Q1Gender + Test$Q2Age + Test$Q3Distance + Test$Q4
 ##########################################################################
 
 
-ModelQOV <- (glm(Test$Q6QOV ~ Test$Q1Gender + Test$Q2Age + Test$Q3Distance + Test$Q4Trips + Test$Q10Action + Test$Q22Income + Test$Q21Employment + Test$Q20Education + Test$Q11Self + Test$Q12Others + Test$Q13Marine + Test$Q14BP + Test$Q15Responsibility + Test$Q16Charity + Test$Q17Understanding, data=Test))
+# ModelQOV <- (glm(Test$Q6QOV ~ Test$Q1Gender + Test$Q2Age + Test$Q3Distance + Test$Q4Trips + Test$Q10Action + Test$Q22Income + Test$Q21Employment + Test$Q20Education + Test$Q11Self + Test$Q12Others + Test$Q13Marine + Test$Q14BP + Test$Q15Responsibility + Test$Q16Charity + Test$Q17Understanding, data=Test))
+# summary(ModelQOV)
+# Use update to change for significant P values
+
+##########################################################################
+###############                                             ##############
+###############     Section 3C: Estimation of QOV models    ############## 
+###############                                             ##############
+##########################################################################
+
+
+# PVadjusted("Q6QOV",0.05)
+# QOVProbit = Model2
+
+##########################################################################
+###############                                             ##############
+###############     Section 4: Estimation of other models   ############## 
+###############     Blue Planet                             ##############
+##########################################################################
+
+# PVadjusted("Q14BP",0.05)
+# BPProbit = Model2
+
+##########################################################################
+###############                                             ##############
+###############     Section 5: Hybrid Choice models?        ############## 
+###############                                             ##############
+##########################################################################
+
+#
+# Read this first: https://transp-or.epfl.ch/documents/talks/IVT10.pdf
 
 
 ##########################################################################
-############### Section 4: Estimation of other models #####################
+###############                                             ##############
+###############     Section 6: Logits with only rational DCE ############# 
+###############                                             ##############
 ##########################################################################
 
+## May perform analysis from this new dataset: Pilot_Dominated
 
-# Testing determinants of belief in experts
-Model1 <- lm(Test$Q19Experts ~ Test$Q1Gender + Test$Q2Age + Test$Q3Distance + Test$Q4Trips + Test$Q10Action + Test$Q22Income + Test$Q21Employment + Test$Q20Education + Test$Q11Self + Test$Q12Others + Test$Q13Marine + Test$Q14BP + Test$Q15Responsibility + Test$Q16Charity + Test$Q17Understanding)
-Significance(Model1)
-
+##########################################################################
+###############                                             ##############
+###############     Section 7: Logits with only good understanding ####### 
+###############                                             ##############
+##########################################################################
