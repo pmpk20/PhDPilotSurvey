@@ -15,8 +15,8 @@
 
 
 install.packages("dplyr") # Useful later for data manipulation
-install.packages("apollo")
 install.packages("mlogit")
+install.packages("gmnl")
 rm(list = ls())
 ############ Importing data:
 
@@ -123,11 +123,7 @@ Test$Choice[Test$Choice == 1] <- "ALT" ## The MFORMULA looks for _SQ or _ALT so 
 ##########################################################################
 
 
-
-
 library(mlogit) #Already have package installed
-
-
 Test_Long <- mlogit.data(Test, shape = "wide", choice = "Choice",
                    varying = 24:31, sep = "_", id.var = "ID",
                    opposite = c("Price", "Effectiveness", "Accumulation", "Health"))
@@ -135,7 +131,6 @@ Test_Long <- mlogit.data(Test, shape = "wide", choice = "Choice",
 ## This creates an MLOGIT object which is TEST coerced to a LONG format.
 #List of dependents:
 #Q1Gender + Q2Age + Q3Distance + Q4Trips + Q6QOV+ Q10Action +  Q11Self + Q12Others + Q13Marine + Q14BP+ Q15Responsibility + Q16Charity + Q17Understanding+ Q18Consequentiality + Q20Education+ Q21Employment +  Q22Income+Q23Survey
-
 
 M1 <- mlogit(Choice ~ Price + Health, Test_Long, alt.subset = c("SQ", "ALT"), reflevel = "SQ") ##Estimating a simple model first
 summary(M1) ## Estimates a simplistic mlogit model before adding in individual-specifics
@@ -176,10 +171,6 @@ coef(M2)["Heh"]/coef(M2)["Price"] ## For some reason, "Health" comes up as "Heh"
 ############### DCE: MIXED LOGIT                     #####################
 ##########################################################################
 
-MNL <- mlogit(Choice ~ Price + Health + Accumulation | -1, 
-              Test_Long) 
-summary(MNL) 
-## Estimates the basic MNL to start with
 
 ########### Replication example:
 MIXL = mlogit(Choice~Price+Accumulation|0,
@@ -189,55 +180,87 @@ MIXL = mlogit(Choice~Price+Accumulation|0,
                             R=600,
                             halton=NULL,
                             print.level=0,
-                            panel=TRUE)
+                            panel=TRUE,correlation = TRUE)
 summary(MIXL)
-###########
-MXLUncorrelated <- mlogit(Choice ~ Price + Accumulation + Health | -1, 
-               Test_Long, panel = TRUE, rpar = c(Price="n",Accumulation="n"), 
-                     R = 100, correlation = FALSE, 
-                     halton = NA, method = "bhhh")
-summary(MXLUncorrelated)
-names(coef(MXLUncorrelated))
-summary(rpar(MXLUncorrelated,"Accumulation",norm="Price")) ## Reports the distribution of the random parameters in WTP, not preference, space which is the default of MLOGIT.
-## Estimates an uncorrelated Mixed Logit with Alternative-specific covariates only
 
-MXLCorrelated <- mlogit(Choice ~ Price + Accumulation + Health | -1, 
-                          Test_Long, panel = TRUE, rpar = c(Price="n",Accumulation="n"), 
-                          R = 100, correlation = TRUE, 
-                          halton = NA, method = "bhhh")
-summary(MXLCorrelated)
-names(coef(MXLCorrelated))
-summary(rpar(MXLCorrelated,"Accumulation",norm="Price"))
-mean(rpar(MXLCorrelated, "Accumulation", norm = "Price")) ## Reports mean WTP
-## Estimates a correlated MXL
+MIXLu = mlogit(Choice~Price+Accumulation|0,
+              Test_Long,
+              rpar=c(Price="n",
+                     Accumulation="n"),
+              R=600,
+              halton=NULL,
+              print.level=0,
+              panel=TRUE,correlation = FALSE)
+summary(MIXLu)
 
 
-## Setup of necessary functions and library to perform tests of the MXL models
+## Tests of the MXL models
+lr.corr <- lrtest(MIXL, MIXLu)
+lh.corr <- linearHypothesis(MIXL, c("chol.Price:Accumulation = 0","chol.Price:Price = 0", "chol.Accumulation:Accumulation = 0"))
+wd.corr <- waldtest(MIXL, correlation = FALSE)
+sc.corr <- scoretest(MIXLu, correlation = TRUE)
 statpval <- function(x){
-  if (inherits(x, "anova")) 
+  if (inherits(x, "anova"))
     result <- as.matrix(x)[2, c("Chisq", "Pr(>Chisq)")]
   if (inherits(x, "htest")) result <- c(x$statistic, x$p.value)
   names(result) <- c("stat", "p-value")
   round(result, 3)
 }
-library(car)
-
-
-## Tests of the MXL models
-names(coef(MXLCorrelated))
-lr.corr <- lrtest(MXLCorrelated, MXLUncorrelated)
-lh.corr <- linearHypothesis(MXLCorrelated, c("chol.Price:Accumulation = 0",
-                                          "chol.Price:Price = 0", "chol.Accumulation:Accumulation = 0"))
-wd.corr <- waldtest(MXLCorrelated, correlation = FALSE)
-sc.corr <- scoretest(MXLUncorrelated, correlation = TRUE)
 sapply(list(wald = wd.corr, lh = lh.corr, score = sc.corr, lr = lr.corr),
        statpval)
+
 
 # Extracts individual-level parameters
 indpar <- fitted(MXLCorrelated, type = "parameters")
 head(indpar)
 
 
+# Estimates the full MXL model with all covariates
+MXLFull <- mlogit(
+  Choice ~  Price |  Q1Gender + Q2Age + 
+    Q3Distance + Q4Trips + Q6QOV+ Q10Action +  
+    Q11Self + Q12Others + Q13Marine + Q14BP+ 
+    Q15Responsibility + Q16Charity + Q17Understanding+ 
+    Q18Consequentiality + Q19Experts +Q20Education+ 
+    Q21Employment +  Q22Income+Q23Survey,
+  Test_Long, rpar=c(Price="n"),R=100,correlation = FALSE,
+  halton=NA,method="bhhh",panel=TRUE)
+summary(MXLFull)
+## Can remove intercept by replacing "Health | Q1Gender" with "Health | +0 + Q1Gender"  
+
+
+# Testing Pvalues to find a good model
+PV <- data.frame(coef(summary(MXLFull))[,4],coef(summary(MXLFull))[,1] )
+colnames(PV) <- c("PV","Effect")
+PV <- subset(PV,PV <=0.05)
+PV <- data.frame(row.names(PV), PV$PV, PV$Effect)
+colnames(PV) <- c("Variables","PV","Effect")
+barplot(PV$Effect, names.arg = PV$Variables,xlab = "Variables",ylab = "Effect",ylim = c(-2,5),axes = TRUE)
+length(PV$PV)
+
+
+# Reports MRS in WTP Space 
+summary(rpar(MXLFull,"Health",norm="Price"))
+mean(rpar(MXLFull, "Health", norm = "Price"))
+
+
+##########################################################################
+############### DCE: GMNL package                    #####################
+##########################################################################
+
+
+## MIXL model with observed heterogeneity
+library(gmnl)
+mixl.hier <- gmnl(Choice ~ Price +Q22Income
+                  | 1 | 0 | Accumulation  - 1,
+                  data = Test_Long,
+                  model = "mixl",
+                  ranp = c( Price = "n"),
+                  mvar = list(c("Accumulation")),
+                  R = 30,
+                  haltons = NA)
+summary(mixl.hier)
+wtp.gmnl(mixl.hier,wrt = "Price")
 
 
 ##########################################################################
@@ -257,29 +280,17 @@ Test_LongNL <- mlogit.data(Test, shape = "wide", choice = "Choice",
 ############### Section 3B: Estimation of CVM models #####################
 ##########################################################################
 
+
 ## Estimates a PROBIT model
 summary(glm(Test$Q5CVM1 ~ Test$Q1Gender + Test$Q2Age + Test$Q3Distance + Test$Q4Trips + Test$Q10Action + Test$Q22Income + Test$Q21Employment + Test$Q20Education + Test$Q11Self + Test$Q12Others + Test$Q13Marine + Test$Q14BP + Test$Q15Responsibility + Test$Q16Charity + Test$Q17Understanding, data=Test))
 
-
-# Here I've made a function that plots which variables are the most significant
-Significance <- function(Model) {
-  PV <- data.frame(summary(Model)$coefficients[,4],summary(Model)$coefficients[,1] )
-  colnames(PV) <- c("PV","Effect")
-  PV <- subset(PV,PV <=0.05)
-  PV <- data.frame(row.names(PV), PV$PV, PV$Effect)
-  colnames(PV) <- c("Variables","PV","Effect")
-  return(barplot(PV$Effect, names.arg = PV$Variables,xlab = "Variables",ylab = "Effect",ylim = c(-2,5),axes = TRUE))
-}
 
 ##########################################################################
 ############### Section 3C: Estimation of QOV models #####################
 ##########################################################################
 
 
-require(ggplot2)
 ModelQOV <- (glm(Test$Q6QOV ~ Test$Q1Gender + Test$Q2Age + Test$Q3Distance + Test$Q4Trips + Test$Q10Action + Test$Q22Income + Test$Q21Employment + Test$Q20Education + Test$Q11Self + Test$Q12Others + Test$Q13Marine + Test$Q14BP + Test$Q15Responsibility + Test$Q16Charity + Test$Q17Understanding, data=Test))
-Significance(ModelQOV)
-ggplot(Test, aes(x = Q6QOV, y = Q3Distance, colour = Health_SQ)) + geom_point() + facet_wrap(~Q1Gender)
 
 
 ##########################################################################
@@ -291,86 +302,3 @@ ggplot(Test, aes(x = Q6QOV, y = Q3Distance, colour = Health_SQ)) + geom_point() 
 Model1 <- lm(Test$Q19Experts ~ Test$Q1Gender + Test$Q2Age + Test$Q3Distance + Test$Q4Trips + Test$Q10Action + Test$Q22Income + Test$Q21Employment + Test$Q20Education + Test$Q11Self + Test$Q12Others + Test$Q13Marine + Test$Q14BP + Test$Q15Responsibility + Test$Q16Charity + Test$Q17Understanding)
 Significance(Model1)
 
-
-
-
-
-
-##########################################################################
-############### Appendix: APOLLO package            #####################
-##########################################################################
-# Here I try and adapt a MNL example from the APOLLO package: https://cran.r-project.org/web/packages/apollo/vignettes/apollofirstexample.html
-## Package documentation: https://cran.r-project.org/web/packages/apollo/apollo.pdf
-
-library(apollo)
-apollo_initialise()
-apollo_control = list(
-  modelName  ="MNL",
-  modelDescr ="Simple MNL model",
-  indivID    ="ID"
-)
-
-
-apollo_beta=c(asc_ALT  = 0,
-              asc_SQ  = 0,
-              b_tt_ALT = 0,
-              b_tt_SQ = 0,
-              b_c      = 0)
-# apollo_fixed = c("asc_SQ") Can set this to fix one attribute but doesn't work as well 
-apollo_fixed = c()
-apollo_inputs = apollo_validateInputs()
-
-apollo_probabilities=function(apollo_beta, apollo_inputs, 
-                              functionality="estimate"){
-  
-  ### Attach inputs and detach after function exit
-  apollo_attach(apollo_beta, apollo_inputs)
-  on.exit(apollo_detach(apollo_beta, apollo_inputs))
-  
-  ### Create list of probabilities P
-  P = list()
-  
-  ### List of utilities: these must use the same names as
-  ### in mnl_settings, order is irrelevant.
-  V = list()
-  V[['ALT']] = asc_ALT + b_tt_ALT *Health_ALT + b_c*Price_ALT
-  V[['SQ']] = asc_SQ + b_tt_SQ *Health_SQ + b_c*Price_SQ
-  ### Define settings for MNL model component
-  mnl_settings = list(
-    alternatives  = c(ALT=1, SQ=0), 
-    avail         = list(ALT=av_ALT, SQ=av_SQ), 
-    choiceVar     = Choice,
-    V             = V
-  )
-  
-  ### Compute probabilities using MNL model
-  P[['model']] = apollo_mnl(mnl_settings, functionality)
-  
-  ### Take product across observation for same individual
-  P = apollo_panelProd(P, apollo_inputs, functionality)
-  
-  ### Prepare and return outputs of function
-  P = apollo_prepareProb(P, apollo_inputs, functionality)
-  return(P)
-}
-
-
-model = apollo_estimate(apollo_beta, apollo_fixed, 
-                        apollo_probabilities, 
-                        apollo_inputs)
-apollo_modelOutput(model)
-apollo_saveOutput(model)
-
-predictions_base = apollo_prediction(model, 
-                                     apollo_probabilities, 
-                                     apollo_inputs)
-
-predictions_new = apollo_prediction(model, 
-                                    apollo_probabilities, 
-                                    apollo_inputs)
-
-change=(predictions_new-predictions_base)/predictions_base
-
-change=change[,-ncol(change)]
-
-summary(change)
