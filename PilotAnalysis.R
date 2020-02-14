@@ -142,7 +142,7 @@ Pilot_MNL <- mlogit(Choice ~ Price + Health |
                       Q1Gender + Q2Age + Q3Distance
                     + Q4Trips + Q6QOV+ Q10Action +  
                       Q11Self + Q12Others + Q13Marine 
-                    + Q14BP+ Q15Responsibility + Q16Charity 
+                    + Q14BP + Q16Charity 
                     + Q17Understanding+ Q18Consequentiality
                     + Q19Experts +Q20Education+ Q21Employment
                     +  Q22Income+Q23Survey, 
@@ -223,17 +223,17 @@ head(indpar)
 
 Variables <- c('Q1Gender + Q2Age + 
                  Q3Distance + Q4Trips + Q6QOV+ Q10Action +  
-                 Q11Self + Q12Others + Q13Marine + Q14BP+ 
-                 Q15Responsibility + Q16Charity + Q17Understanding+ 
+                 Q11Self + Q12Others + Q13Marine + Q14BP + 
+                 Q16Charity + Q17Understanding+ 
                  Q18Consequentiality + Q19Experts +Q20Education+ 
                  Q21Employment +  Q22Income+Q23Survey')
 
 # Estimates the full MXL model with all covariates
 MXLFull <- mlogit(
-  Choice ~  Price |  Q1Gender + Q2Age + 
+  Choice ~  Price + Health|  Q1Gender + Q2Age + 
     Q3Distance + Q4Trips + Q6QOV+ Q10Action +  
-    Q11Self + Q12Others + Q13Marine + Q14BP+ 
-    Q15Responsibility + Q16Charity + Q17Understanding+ 
+    Q11Self + Q12Others + Q13Marine + Q14BP +
+    Q16Charity + Q17Understanding+ 
     Q18Consequentiality + Q19Experts +Q20Education+ 
     Q21Employment +  Q22Income+Q23Survey,
   Test_Long, rpar=c(Price="n"),R=10,correlation = FALSE,
@@ -266,8 +266,8 @@ mean(rpar(MXLFull, "Health", norm = "Price"))
 library(gmnl)
 mixl.hier <- gmnl(Choice ~  Price +  Q1Gender + Q2Age + 
                     Q3Distance + Q4Trips + Q6QOV+ Q10Action +  
-                    Q11Self + Q12Others + Q13Marine + Q14BP+ 
-                    Q15Responsibility + Q16Charity + Q17Understanding+ 
+                    Q11Self + Q12Others + Q13Marine + Q14BP + 
+                    Q16Charity + Q17Understanding+ 
                     Q18Consequentiality + Q19Experts +Q20Education+ 
                     Q21Employment +  Q22Income+Q23Survey
                   | 1 | 0 | Accumulation  - 1,
