@@ -216,8 +216,6 @@ B_specification["Q13Marine"] = [1]
 B_names["Q13Marine"] = ['Q13Marine']
 B_specification["Q14BP"] = [1]
 B_names["Q14BP"] = ['Q14BP']
-B_specification["Q15Responsibility"] = [1]
-B_names["Q15Responsibility"] = ['Q15Responsibility']
 B_specification["Q16Charity"] = [1]
 B_names["Q16Charity"] = ['Q16Charity']
 B_specification["Q17Understanding"] = [1]
@@ -302,7 +300,7 @@ MIXLuncorrelated.get_statsmodels_summary()
 index_var_names = ["Price", "Accumulation",'Q1Gender', 
                    'Q2Age', 'Q3Distance', 'Q4Trips',
       'Q10Action', 'Q11Self', 'Q12Others',
-       'Q13Marine', 'Q14BP', 'Q15Responsibility', 'Q16Charity',
+       'Q13Marine', 'Q14BP', 'Q16Charity',
        'Q17Understanding', 'Q18Consequentiality', 'Q19Experts', 'Q20Education',
        'Q21Employment', 'Q22Income', 'Q23Survey']
 for col in index_var_names:
@@ -362,8 +360,8 @@ heteroskedastic_model_0 = pl.create_choice_model(data=Test_Long,
                                                  mixing_id_col="ID",
                                                  mixing_vars=mixing_variables)
 
-initial_values = np.concatenate((mnl_model.params.values[:3],
-                                 mnl_model.params.values[3:],
+initial_values = np.concatenate((Pilot_MNL.params.values[:3],
+                                 Pilot_MNL.params.values[3:],
                                  np.zeros(len(mixing_variables))))
 heteroskedastic_model_0.fit_mle(initial_values,
                                 seed=26,
@@ -384,12 +382,12 @@ heteroskedastic_model_0.get_statsmodels_summary()
 
 from statsmodels.discrete.discrete_model import Probit
 
-def PVadjusted(DD):
+def PVadjusted(DD, Sig):
     global Model, Model2, ME, PV
     Dependents = pd.DataFrame(pd.concat([Test_Long.Q1Gender , Test_Long.Q2Age, 
                                      Test_Long.Q3Distance , Test_Long.Q4Trips , 
                                      Test_Long.Q5CVM1,Test_Long.Q6QOV, Test_Long.Q14BP, 
-                                     Test_Long.Q15Responsibility , Test_Long.Q16Charity , 
+                                     Test_Long.Q16Charity , 
                                      Test_Long.Q17Understanding, Test_Long.Q18Consequentiality , 
                                      Test_Long.Q19Experts, Test_Long.Q20Education, 
                                      Test_Long.Q21Employment , Test_Long.Q22Income],axis=1))
@@ -400,7 +398,7 @@ def PVadjusted(DD):
     Model = Probit(Y, X.astype(float)).fit()
     print(Model.summary())
     Model.get_margeff().summary()
-    PV = Model.pvalues[Model.pvalues <0.05]
+    PV = Model.pvalues[Model.pvalues < Sig]
     a = []
     for i in range(PV.shape[0]):
         if PV.index[i] == "const":
@@ -413,11 +411,11 @@ def PVadjusted(DD):
     X = a
     X = statsmodels.tools.tools.add_constant(X)
     Model2= Probit(Y, X.astype(float)).fit()
-    print(Model2.summary())
+    print(Model2.get_margeff().summary())
     ME = Model2.get_margeff().summary()
-    PV = Model2.pvalues[Model2.pvalues <0.05]
+    PV = Model2.pvalues[Model2.pvalues <Sig]
 
-PVadjusted("Q5CVM1")
+PVadjusted("Q5CVM1",0.05)
 CVMProbit2 = Model2
 
 # Q5CVM ~ Dependents using probit
@@ -429,7 +427,7 @@ CVMProbit2 = Model2
 ##########################################################################
 
 
-PVadjusted("Q6QOV")
+PVadjusted("Q6QOV",0.05)
 QOVProbit = Model2
 
 ##########################################################################
@@ -438,7 +436,7 @@ QOVProbit = Model2
 ###############     Blue Planet                             ##############
 ##########################################################################
 
-PVadjusted("Q14BP")
+PVadjusted("Q14BP",0.05)
 BPProbit = Model2
 
 ##########################################################################
