@@ -330,49 +330,6 @@ MXLFull.get_statsmodels_summary()
 ## Note some slight differences to MLOGIT due to randomness
 
 
-
-
-##########################################################################
-############### HETEROSKEDASTIC MIXED LOGIT
-##########################################################################
-
-
-
-
-heteroskedastic_specification = OrderedDict()
-heteroskedastic_names = OrderedDict()
-heteroskedastic_specification["intercept"] = [1]
-heteroskedastic_names["intercept"] = ["ASC ALT"]
-
-for key in specification_dict:
-    if key != "intercept":
-        heteroskedastic_specification[key] = specification_dict[key]
-        heteroskedastic_names[key] = name_dict[key]
-mixing_variables = heteroskedastic_names["intercept"]
-
-heteroskedastic_model_0 = pl.create_choice_model(data=Test_Long,
-                                                 alt_id_col="alt",
-                                                 obs_id_col="chid",
-                                                 choice_col="Choice",
-                                                 specification=heteroskedastic_specification,
-                                                 model_type="Mixed Logit",
-                                                 names=heteroskedastic_names,
-                                                 mixing_id_col="ID",
-                                                 mixing_vars=mixing_variables)
-
-initial_values = np.concatenate((Pilot_MNL.params.values[:3],
-                                 Pilot_MNL.params.values[3:],
-                                 np.zeros(len(mixing_variables))))
-heteroskedastic_model_0.fit_mle(initial_values,
-                                seed=26,
-                                num_draws=500,
-                                constrained_pos=[0])
-heteroskedastic_model_0.get_statsmodels_summary()
-
-
-
-
-
 ##########################################################################
 ###############                                             ##############
 ###############     Section 3B: Estimation of CVM models    ############## 
@@ -396,8 +353,7 @@ def PVadjusted(DD, Sig):
     X = Dependents
     X = statsmodels.tools.tools.add_constant(X)
     Model = Probit(Y, X.astype(float)).fit()
-    print(Model.summary())
-    Model.get_margeff().summary()
+    print(Model.get_margeff().summary())
     PV = Model.pvalues[Model.pvalues < Sig]
     a = []
     for i in range(PV.shape[0]):
@@ -451,7 +407,7 @@ BPProbit = Model2
 
 ##########################################################################
 ###############                                             ##############
-###############     Section 6: Logits with only rational DCE ############# 
+###############     Section 6: Altered samples ############# 
 ###############                                             ##############
 ##########################################################################
 Test_Long = pd.read_csv("H:/PhDPilotSurvey/Test_Long.csv")
@@ -462,7 +418,13 @@ Test_Long["Choice"] = Test_Long["Choice"].astype(int)
 for i in range(len(list(Test_Long.ID[(Test_Long.Task == 1) & (Test_Long.Choice ==0) & (Test_Long["Unnamed: 0"].str.contains("SQ") == False)]))):
     Test_Long = Test_Long.drop(Test_Long[Test_Long.ID == list(Test_Long.ID[(Test_Long.Task == 1) & (Test_Long.Choice ==0) & (Test_Long["Unnamed: 0"].str.contains("SQ") == False)])[0] ].index,axis=0)
 Pilot_Dominated = Test_Long
-## May perform analysis from this new dataset: Pilot_Dominated
+
+for i in range(len(list(Pilot_Dominated.ID[Pilot_Dominated.Q23Survey <= 5].unique()))):
+    Pilot_Dominated = Pilot_Dominated.drop(Pilot_Dominated[Pilot_Dominated.ID ==  list(Pilot_Dominated.ID[Pilot_Dominated.Q23Survey <= 5].unique())[0] ].index,axis=0)
+Pilot_Understanding = Pilot_Dominated  
+
+
+Pilot_Cons = Pilot_Understanding.drop(Pilot_Understanding[Pilot_Understanding.Q18Consequentiality == 0].index,axis=0)
 
 ##########################################################################
 ###############                                             ##############
@@ -470,3 +432,15 @@ Pilot_Dominated = Test_Long
 ###############                                             ##############
 ##########################################################################
 
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
