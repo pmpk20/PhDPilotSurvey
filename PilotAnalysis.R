@@ -180,7 +180,7 @@ coef(Pilot_MNL)["Heh"]/coef(Pilot_MNL)["Price"] ## For some reason, "Health" com
 
 
 ########### Replication example:
-MIXLcorrelated = mlogit(Choice~Price+Accumulation|0,
+MIXLcorrelated <- mlogit(Choice~Price+Accumulation|0,
                             Test_Long,
                             rpar=c(Price="n",
                             Accumulation="n"),
@@ -189,7 +189,7 @@ MIXLcorrelated = mlogit(Choice~Price+Accumulation|0,
                             print.level=0,
                             panel=TRUE,correlation = TRUE)
 summary(MIXLcorrelated)
-MIXLuncorrelated = mlogit(Choice~Price+Accumulation|0,
+MIXLuncorrelated <- mlogit(Choice~Price+Accumulation|0,
               Test_Long,
               rpar=c(Price="n",
                      Accumulation="n"),
@@ -218,7 +218,7 @@ sapply(list(wald = wd.corr, lh = lh.corr, score = sc.corr, lr = lr.corr),
 
 
 # Extracts individual-level parameters
-indpar <- fitted(MXLCorrelated, type = "parameters")
+indpar <- fitted(MIXLcorrelated, type = "parameters")
 head(indpar)
 
 Variables <- c('Q1Gender + Q2Age + 
@@ -292,65 +292,25 @@ Test_LongNL <- mlogit.data(Test, shape = "wide", choice = "Choice",
                          group.var = "Price")
 
 # No luck estimating a NL model as I can't think of the nests
+##########################################################################
+############### Apollo Again #####################
+##########################################################################
+
+library(apollo)
+
+
 
 
 ##########################################################################
-############### Section 3B: Estimation of CVM models #####################
+############### Trimmed sample #####################
 ##########################################################################
 
+Test_Long <- data.frame(read.csv("Test_Long.csv"))
+Test_Long$alt <- as.numeric(Test_Long$alt)
+Test_Long$alt[Test_Long$alt == 2] <- 0
+Test_Long$Choice <- as.integer(Test_Long$Choice)
 
-# ## Estimates a PROBIT model
-# summary(glm(Test$Q5CVM1 ~ Test$Q1Gender + Test$Q2Age + Test$Q3Distance + Test$Q4Trips + Test$Q10Action + Test$Q22Income + Test$Q21Employment + Test$Q20Education + Test$Q11Self + Test$Q12Others + Test$Q13Marine + Test$Q14BP + Test$Q15Responsibility + Test$Q16Charity + Test$Q17Understanding, data=Test))
+Pilot_Dominated <- Test_Long[!Test_Long$ID %in% c(Test_Long$ID[ ((Test_Long$Task == 1) & (Test_Long$Choice ==0) & (grepl("SQ",Test_Long$X,fixed = TRUE) == FALSE)) ]),]
+Pilot_Understanding <- Pilot_Dominated[!Pilot_Dominated$ID %in% c( unique(Pilot_Dominated$ID[Pilot_Dominated$Q23Survey <= 5])),]
+Pilot_Cons <- Pilot_Understanding[!Pilot_Understanding$ID %in% c( unique(Pilot_Understanding$ID[Pilot_Understanding$Q18Consequentiality == 0])),]
 
-
-##########################################################################
-############### Section 3C: Estimation of QOV models #####################
-##########################################################################
-
-
-# ModelQOV <- (glm(Test$Q6QOV ~ Test$Q1Gender + Test$Q2Age + Test$Q3Distance + Test$Q4Trips + Test$Q10Action + Test$Q22Income + Test$Q21Employment + Test$Q20Education + Test$Q11Self + Test$Q12Others + Test$Q13Marine + Test$Q14BP + Test$Q15Responsibility + Test$Q16Charity + Test$Q17Understanding, data=Test))
-# summary(ModelQOV)
-# Use update to change for significant P values
-
-##########################################################################
-###############                                             ##############
-###############     Section 3C: Estimation of QOV models    ############## 
-###############                                             ##############
-##########################################################################
-
-
-# PVadjusted("Q6QOV",0.05)
-# QOVProbit = Model2
-
-##########################################################################
-###############                                             ##############
-###############     Section 4: Estimation of other models   ############## 
-###############     Blue Planet                             ##############
-##########################################################################
-
-# PVadjusted("Q14BP",0.05)
-# BPProbit = Model2
-
-##########################################################################
-###############                                             ##############
-###############     Section 5: Hybrid Choice models?        ############## 
-###############                                             ##############
-##########################################################################
-
-#
-# Read this first: https://transp-or.epfl.ch/documents/talks/IVT10.pdf
-
-
-##########################################################################
-###############                                             ##############
-###############     Section 6: Logits with only rational DCE ############# 
-###############                                             ##############
-##########################################################################
-
-## May perform analysis from this new dataset: Pilot_Dominated
-
-##########################################################################
-###############                                             ##############
-###############     Section 7: Logits with only good understanding ####### 
-###############                                             ##############
-##########################################################################
