@@ -9,6 +9,14 @@
 # https://onlinelibrary.wiley.com/doi/pdf/10.1002/hec.984
 
 
+##########################################################################
+############### Current Issues:                             ##############
+############### -- Correct APOLLO MXL/HCM                       ########## 
+############### -- Is the GMNL package worthwhile?              ##########
+############### -- Fix the MXL and report in full               ##########
+##########################################################################
+
+
 ####################################################################################
 ############### Section 1: Import Data  ##########################
 ####################################################################################
@@ -17,6 +25,7 @@
 install.packages("dplyr") # Useful later for data manipulation
 install.packages("mlogit")
 install.packages("gmnl")
+install.packages("apollo")
 rm(list = ls())
 ############ Importing data:
 
@@ -131,14 +140,21 @@ Test_Long <- mlogit.data(Test, shape = "wide", choice = "Choice",
                    varying = 24:31, sep = "_", id.var = "ID",
                    opposite = c("Price", "Effectiveness", "Accumulation", "Health"))
 ## This creates an MLOGIT object which is TEST coerced to a LONG format.
-## List of dependents:
-## Q1Gender + Q2Age + Q3Distance + Q4Trips + Q6QOV+ Q10Action +  Q11Self + Q12Others + Q13Marine + Q14BP+ Q15Responsibility + Q16Charity + Q17Understanding+ Q18Consequentiality + Q20Education+ Q21Employment +  Q22Income+Q23Survey
+# write.csv(x = Test_Long,"H:/PhDPilotSurvey/Test_Long.csv") to export
 
+## To trim the sample: 
+Pilot_Dominated <- Test_Long[!Test_Long$ID %in% c(Test_Long$ID[ ((Test_Long$Task == 1) & (Test_Long$Choice ==0) & (grepl("SQ",Test_Long$X,fixed = TRUE) == FALSE)) ]),]
+Pilot_Understanding <- Pilot_Dominated[!Pilot_Dominated$ID %in% c( unique(Pilot_Dominated$ID[Pilot_Dominated$Q23Survey <= 5])),]
+Pilot_Cons <- Pilot_Understanding[!Pilot_Understanding$ID %in% c( unique(Pilot_Understanding$ID[Pilot_Understanding$Q18Consequentiality == 0])),]
+Test_Long <- Pilot_Cons
+
+## Basic MNL: 
 Base_MNL <- mlogit(Choice ~  Price + Health, 
                    Test_Long,
                    alt.subset = c("SQ","ALT"),reflevel = "SQ") ##Estimating a simple model first
 summary(Base_MNL) ## Estimates a simplistic mlogit model before adding in individual-specifics
 
+## Full MNL:
 Pilot_MNL <- mlogit(Choice ~ Price + Health | 
                       Q1Gender + Q2Age + Q3Distance
                     + Q4Trips + Q6QOV+ Q10Action +  
@@ -305,7 +321,7 @@ Test_Long$alt <- as.numeric(Test_Long$alt)
 Test_Long$alt[Test_Long$alt == 2] <- 0
 Test_Long$Choice <- as.integer(Test_Long$Choice)
 
-Pilot_Dominated <- Test_Long[!Test_Long$ID %in% c(Test_Long$ID[ ((Test_Long$Task == 1) & (Test_Long$Choice ==0) & (grepl("SQ",Test_Long$X,fixed = TRUE) == FALSE)) ]),]
+Pilot_Dominated <- Tests[!Tests$ID %in% c(Tests$ID[ ((Tests$Task == 1) & (Tests$Choice ==0))]),]
 Pilot_Understanding <- Pilot_Dominated[!Pilot_Dominated$ID %in% c( unique(Pilot_Dominated$ID[Pilot_Dominated$Q23Survey <= 5])),]
 Pilot_Cons <- Pilot_Understanding[!Pilot_Understanding$ID %in% c( unique(Pilot_Understanding$ID[Pilot_Understanding$Q18Consequentiality == 0])),]
 
@@ -323,7 +339,8 @@ apollo_control = list(
   modelName  ="MY_Apollo_example",
   modelDescr ="Simple MNL model on my Pilot data",
   indivID    ="ID",
-  HB = FALSE
+  HB = FALSE,
+  mixing=FALSE
 )
 
 Test_Apollo <- data.frame(Tests$ID,Tests$Task, Tests$Q1Gender,Tests$Q2Age,Tests$Q3Distance,Tests$Q4Trips,Tests$Q6QOV,Tests$Q10Action,Tests$Q11Self,Tests$Q12Others,Tests$Q13Marine,Tests$Q14BP,Tests$Q16Charity,Tests$Q17Understanding,Tests$Q18Consequentiality,Tests$Q19Experts,Tests$Q20Education,Tests$Q21Employment,Tests$Q23Survey,Tests[,24:33],Tests$Choice,mean(Tests$Q22Income))
@@ -333,7 +350,9 @@ Test_Apollo$av_ALT <- as.integer(Test_Apollo$av_ALT)
 Test_Apollo$av_SQ  <- as.integer(Test_Apollo$av_SQ)
 colnames(Test_Apollo) <- c("ID","Task","Q1Gender","Age","Distance","Trips","QOV","Action",
                            "Self","Others","Marine","BP","Charity","Understanding","Consequentiality",
-                           "Experts","Education","Employment","Survey","Effectiveness_ALT","Accumulation_ALT","Price_ALT","Health_ALT","Effectiveness_SQ","Accumulation_SQ","Price_SQ","Health_SQ",
+                           "Experts","Education","Employment","Survey",
+                           "Effectiveness_ALT","Accumulation_ALT","Price_ALT","Health_ALT",
+                           "Effectiveness_SQ","Accumulation_SQ","Price_SQ","Health_SQ",
                            "av_ALT","av_SQ","Choice","Income")
 
 
@@ -341,8 +360,10 @@ choiceAnalysis_settings <- list(
   alternatives = c(SQ=1, ALT=2),
   avail        = list(SQ=Test_Apollo$av_SQ, ALT=Test_Apollo$av_ALT),
   choiceVar    = Test_Apollo$Choice,
-  explanators  = Test_Apollo[,c("Price","Health","Q1Gender","Age","Distance","Trips","BP","Charity","Understanding",
-                                "Consequentiality","Education","Employment","Income")]
+  explanators  = Test_Apollo[,c("Price_ALT","Health_ALT","Q1Gender","Age","Distance",
+                                "Trips","BP","Charity","Understanding",
+                                "Consequentiality","Education","Employment",
+                                "Income")]
 )
 
 apollo_choiceAnalysis(choiceAnalysis_settings, apollo_control, Test_Apollo)
@@ -363,7 +384,8 @@ apollo_beta=c(asc_SQ     = 0,
               b_Income     = 0)
 
 apollo_fixed = c("asc_SQ")
-apollo_inputs = apollo_validateInputs(database = Test_Apollo)
+database <- Test_Apollo
+apollo_inputs = apollo_validateInputs()
 
 apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
   apollo_attach(apollo_beta, apollo_inputs)
@@ -408,122 +430,87 @@ apollo_modelOutput(apollo_estimate(apollo_beta, apollo_fixed, apollo_probabiliti
 
 
 library(apollo)
-
-
 apollo_initialise()
-
 apollo_control = list(
-  modelName ="Apollo_example_16",
-  modelDescr ="Mixed logit model on Swiss route choice data, WTP space with correlated and flexible distributions, inter and intra-individual heterogeneity",
-  indivID   ="ID",  
-  mixing    = TRUE, 
-  nCores    = 3
+  modelName  ="MMNL",
+  modelDescr ="Simple MMNL model on mode choice SP data",
+  indivID    ="ID",
+  mixing     = TRUE,
+  nCores     = 1
 )
-
-database = read.csv("apollo_swissRouteChoiceData.csv",header=TRUE)
-
-apollo_beta = c(asc_1                     = 0,
-                asc_2                     = 0,
-                mu_log_b_tc               =-3,
-                sigma_log_b_tc_inter      = 0,
-                mu_log_v_tt               =-3,
-                sigma_log_v_tt_inter      = 0,
-                sigma_log_v_tt_inter_2    = 0,
-                sigma_log_v_tt_intra      = 0,
-                mu_log_v_hw               =-3,
-                sigma_log_v_hw_inter      = 0,
-                sigma_log_v_hw_v_tt_inter = 0,
-                v_ch                      = 0,
-                gamma_vtt_business        = 0)
-apollo_fixed = c("asc_2")
+data("apollo_modeChoiceData")
+database = apollo_modeChoiceData
+rm(apollo_modeChoiceData)
+database = subset(database,database$SP==1)
+database$mean_income = mean(database$income)
+apollo_beta=c(asc_car  = 0,
+              asc_bus  = 0,
+              asc_air  = 0,
+              asc_rail = 0,
+              mu_tt    = 0,
+              sigma_tt = 1,
+              b_c      = 0)
+apollo_fixed = c("asc_car")
 
 apollo_draws = list(
   interDrawsType = "halton",
-  interNDraws    = 100,
-  interUnifDraws = c("draws_tc_inter"),
-  interNormDraws = c("draws_hw_inter","draws_tt_inter"),
-  intraDrawsType = "mlhs",
-  intraNDraws    = 100,
+  interNDraws    = 500,
+  interUnifDraws = c(),
+  interNormDraws = c("draws_tt"),
+  intraDrawsType = "halton",
+  intraNDraws    = 0,
   intraUnifDraws = c(),
-  intraNormDraws = c("draws_tt_intra")
+  intraNormDraws = c()
 )
-
 apollo_randCoeff = function(apollo_beta, apollo_inputs){
   randcoeff = list()
   
-  randcoeff[["b_tc"]] = -exp( mu_log_b_tc
-                              + sigma_log_b_tc_inter      * draws_tc_inter )
-  
-  randcoeff[["v_tt"]] =  ( exp( mu_log_v_tt
-                                + sigma_log_v_tt_inter      * draws_tt_inter
-                                + sigma_log_v_tt_inter_2    * draws_tt_inter ^ 2
-                                + sigma_log_v_tt_intra      * draws_tt_intra   ) 
-                           * ( gamma_vtt_business    * business + ( 1 - business ) ) )
-  
-  randcoeff[["v_hw"]] =  exp( mu_log_v_hw
-                              + sigma_log_v_hw_inter      * draws_hw_inter
-                              + sigma_log_v_hw_v_tt_inter * draws_tt_inter )
+  randcoeff[["b_tt"]] = -exp(mu_tt + sigma_tt*draws_tt)
   
   return(randcoeff)
 }
 
 apollo_inputs = apollo_validateInputs()
 
-apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+apollo_probabilities=function(apollo_beta, apollo_inputs, 
+                              functionality="estimate"){
+  
   apollo_attach(apollo_beta, apollo_inputs)
   on.exit(apollo_detach(apollo_beta, apollo_inputs))
   P = list()
   V = list()
-  V[['alt1']] = asc_1 + b_tc*(v_tt*tt1 + tc1 + v_hw*hw1 + v_ch*ch1)
-  V[['alt2']] = asc_2 + b_tc*(v_tt*tt2 + tc2 + v_hw*hw2 + v_ch*ch2)
+  V[['car']]  = asc_car  + b_tt*time_car  + b_c*cost_car
+  V[['bus']]  = asc_bus  + b_tt*time_bus  + b_c*cost_bus 
+  V[['air']]  = asc_air  + b_tt*time_air  + b_c*cost_air   
+  V[['rail']] = asc_rail + b_tt*time_rail + b_c*cost_rail  
   mnl_settings = list(
-    alternatives  = c(alt1=1, alt2=2),
-    avail         = list(alt1=1, alt2=1),
+    alternatives  = c(car=1, bus=2, air=3, rail=4), 
+    avail         = list(car=av_car, bus=av_bus, 
+                         air=av_air, rail=av_rail), 
     choiceVar     = choice,
     V             = V
   )
   P[['model']] = apollo_mnl(mnl_settings, functionality)
-  P = apollo_avgIntraDraws(P, apollo_inputs, functionality)
   P = apollo_panelProd(P, apollo_inputs, functionality)
   P = apollo_avgInterDraws(P, apollo_inputs, functionality)
   P = apollo_prepareProb(P, apollo_inputs, functionality)
   return(P)
 }
 
-speedTest_settings=list(
-   nDrawsTry = c(50, 75, 100),
-   nCoresTry = 1:3,
-   nRep      = 10
-)
+apollo_modelOutput(apollo_estimate(apollo_beta, apollo_fixed, 
+                        apollo_probabilities, 
+                        apollo_inputs))
 
-apollo_speedTest(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs, speedTest_settings)
-
-apollo_modelOutput(apollo_estimate(apollo_beta, apollo_fixed,
-                        apollo_probabilities, apollo_inputs, estimate_settings=list(hessianRoutine="maxLik")))
-
-apollo_saveOutput(model)
-
-sink(paste(model$apollo_control$modelName,"_additional_output.txt",sep=""),split=TRUE)
-
-unconditionals <- apollo_unconditionals(model,apollo_probabilities, apollo_inputs)
-
-plot(density(as.vector(unconditionals[["v_tt"]])))
-
-conditionals <- apollo_conditionals(model,apollo_probabilities, apollo_inputs)
-
-mean(unconditionals[["v_tt"]])
-
-sd(unconditionals[["v_tt"]])
-
-summary(conditionals[["v_tt"]])
-
-income_n = apollo_firstRow(database$hh_inc_abs, apollo_inputs)
-
-summary(lm(conditionals[["v_tt"]][,2]~income_n))
-
-write.csv(conditionals,paste(model$apollo_control$modelName,"_conditionals.csv",sep=""))
-
-if(sink.number()>0) sink()
+predictions_base = apollo_prediction(model, 
+                                     apollo_probabilities, 
+                                     apollo_inputs)
+database$cost_rail = 1.1*database$cost_rail
+predictions_new = apollo_prediction(model, 
+                                    apollo_probabilities, 
+                                    apollo_inputs)
+change=(predictions_new-predictions_base)/predictions_base
+change=change[,-ncol(change)]
+summary(change)
 
 
 ##########################################################################
@@ -777,3 +764,8 @@ speedTest_settings=list(
 apollo_speedTest(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs, speedTest_settings)
 
 apollo_modelOutput(apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs))
+
+
+
+
+#############################################################################
