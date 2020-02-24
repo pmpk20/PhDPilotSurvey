@@ -7,14 +7,18 @@ Created on Fri Jan 31 18:19:06 2020
 
 #Script to replicate Pilot Data Analysis in Python
 ##########################################################################
+############### Current Issues:                             ##############
+############### -- All samples work except PILOT_CONS           ########## 
+############### -- Need to find MWTP, bootstrapping, LCM and HCM methods##
+##########################################################################
+
+
 ##########################################################################
 ###############                                             ##############
 ###############     Section 1: Setup                        ############## 
 ###############                                             ##############
 ##########################################################################
 ##########################################################################
-
-
 
 
 import os
@@ -32,8 +36,6 @@ from sklearn.preprocessing import LabelEncoder
 
 #Step 2: Import data
 Pilot = pd.read_csv("\\\\myfiles\pmpk20\dos\PhD\Data Collection\Pilot\PhD Survey_ Sample A.csv")
-
-
 
 
 ##########################################################################
@@ -127,6 +129,9 @@ Dependents = pd.DataFrame(pd.concat([Test.const, Test.Q1Gender , Test.Q2Age , Te
 Test['ALT_AV'] = np.ones(Test.shape[0],dtype=int)
 Test['SQ_AV'] = np.ones(Test.shape[0],dtype=int)
 
+
+
+
 ##########################################################################
 ##########################################################################
 ###############                                             ##############
@@ -135,10 +140,38 @@ Test['SQ_AV'] = np.ones(Test.shape[0],dtype=int)
 ##########################################################################
 ##########################################################################
 
+
+
+
 ##########################################################################
-############### MULTINOMIAL LOGIT 
+###############                                             ##############
+###############     Trimming the sample                     ############## 
+###############                                             ##############
 ##########################################################################
 
+
+Test_Long = pd.read_csv("H:/PhDPilotSurvey/Test_Long.csv")
+## Here I cheat and import the working dataset I made in R
+Test_Long.alt[Test_Long.alt == "SQ"] = 0
+Test_Long.alt[Test_Long.alt == "ALT"] = 1
+Test_Long["Choice"] = Test_Long["Choice"].astype(int)
+
+for i in range(len(list(Test_Long.ID[(Test_Long.Task == 1) & (Test_Long.Choice ==0) & (Test_Long["Unnamed: 0"].str.contains("SQ") == False)]))):
+    Test_Long = Test_Long.drop(Test_Long[Test_Long.ID == list(Test_Long.ID[(Test_Long.Task == 1) & (Test_Long.Choice ==0) & (Test_Long["Unnamed: 0"].str.contains("SQ") == False)])[0] ].index,axis=0)
+Pilot_Dominated = Test_Long
+
+for i in range(len(list(Pilot_Dominated.ID[Pilot_Dominated.Q23Survey <= 5].unique()))):
+    Pilot_Dominated = Pilot_Dominated.drop(Pilot_Dominated[Pilot_Dominated.ID ==  list(Pilot_Dominated.ID[Pilot_Dominated.Q23Survey <= 5].unique())[0] ].index,axis=0)
+Pilot_Understanding = Pilot_Dominated  
+
+
+# list(Pilot_Understanding[Pilot_Understanding.Q18Consequentiality == 0].index)
+
+
+
+Pilot_Cons = Pilot_Understanding.drop(Pilot_Understanding[Pilot_Understanding.Q18Consequentiality == 0].index,axis=0)
+# Pilot_Cons = Pilot_Cons.drop(columns="intercept")
+# Test_Long = Pilot_Cons
 
 !pip install pylogit
 from collections import OrderedDict    # For recording the model specification 
@@ -147,11 +180,20 @@ import scipy.linalg                    # For matrix inversion
 import pylogit as pl                   # For choice model estimation
 from pylogit import nested_logit as nl # For nested logit convenience funcs
 
-## Here I cheat and import the working dataset I made in R
-Test_Long = pd.read_csv("H:/PhDPilotSurvey/Test_Long.csv")
-Test_Long.alt[Test_Long.alt == "SQ"] = 0
-Test_Long.alt[Test_Long.alt == "ALT"] = 1
-## I tried coercing the Python dataframe using PYLOGIT but it would not work.
+
+##########################################################################
+############### MULTINOMIAL LOGIT 
+############### ISSUES:
+## Marginal Effects
+### No idea how to calculate from PYLOGIT
+#
+## P values
+### Can be done just haven't
+#
+## WTP and MRS calculations:
+### Again, no idea about marginal effects so idk WTP
+#
+##########################################################################
 
 
 ## Basic Multinomial logit first
@@ -188,14 +230,6 @@ B_specification["Price"] = [[0, 1]]
 B_names["Price"] = ['Price']
 B_specification["Health"] = [[0, 1]]
 B_names["Health"] = ['Health']
-#B_specification["Accumulation"] = [[0, 1]]
-#B_names["Accumulation"] = ['Accumulation']
-#B_specification["Effectiveness"] = [[0, 1]]
-#B_names["Effectiveness"] = ['Effectiveness']
-## You can add effectiveness or accumulation but not both and they ruin the values of the others. 
-## R just straight up refused to estimate with them
-
-## Here I add all the regressors which are from the dataframe.
 B_specification["Q1Gender"] = [1]
 B_names["Q1Gender"] = ['Q1Gender']
 B_specification["Q2Age"] = [1]
@@ -238,7 +272,7 @@ Pilot_MNL = pl.create_choice_model(data=Test_Long,alt_id_col='alt',
                        model_type="MNL",specification=B_specification,
                        names=B_names)
 
-Pilot_MNL.fit_mle(np.zeros(len(B_specification))) ## Initialises it with zeroes for starting values
+Pilot_MNL.fit_mle(np.zeros(len(B_specification)))  ## Initialises it with zeroes for starting values
 Pilot_MNL.get_statsmodels_summary()
 Pilot_MNL.print_summaries() ## Summarises the model
 Pilot_MNL.fit_summary ## Summarises model fit 
@@ -252,14 +286,22 @@ LR = likelihood_ratio(Base_MNL.log_likelihood,Pilot_MNL.log_likelihood)
 p = chi2.sf(LR, 1) # L2 has 1 DoF more than L1
 print('p: %.30f' % p) 
 
-## Marginal Effects
-### No idea how to calculate from PYLOGIT
 
-## P values
-### Can be done just haven't
+#Pilot_MNLTL = pl.create_choice_model(data=Pilot_Cons,alt_id_col='alt',
+#                       obs_id_col='chid',choice_col='Choice',
+#                       model_type="MNL",specification=B_specification,
+#                       names=B_names)
+#
+#Pilot_MNLTL.fit_mle(np.zeros(len(B_specification)))
+#Pilot_MNLTL.get_statsmodels_summary()
+#Pilot_MNLTL.coefs[1]
 
-## WTP and MRS calculations:
-### Again, no idea about marginal effects so idk WTP
+
+# Values per sample used:
+#PD: 26.655270580934108
+#PU: 26.655270580934108
+#PC:
+#TL: 27.281266847596676
 
 
 ##########################################################################
@@ -339,6 +381,8 @@ MXLFull.get_statsmodels_summary()
 
 from statsmodels.discrete.discrete_model import Probit
 
+Test_Long = Pilot_Cons
+
 def PVadjusted(DD, Sig):
     global Model, Model2, ME, PV
     Dependents = pd.DataFrame(pd.concat([Test_Long.Q1Gender , Test_Long.Q2Age, 
@@ -374,7 +418,6 @@ def PVadjusted(DD, Sig):
 PVadjusted("Q5CVM1",0.05)
 CVMProbit2 = Model2
 
-# Q5CVM ~ Dependents using probit
 
 ##########################################################################
 ###############                                             ##############
@@ -404,37 +447,6 @@ BPProbit = Model2
 #
 # Read this first: https://transp-or.epfl.ch/documents/talks/IVT10.pdf
 
-
-##########################################################################
-###############                                             ##############
-###############     Section 6: Altered samples ############# 
-###############                                             ##############
-##########################################################################
-Test_Long = pd.read_csv("H:/PhDPilotSurvey/Test_Long.csv")
-Test_Long.alt[Test_Long.alt == "SQ"] = 0
-Test_Long.alt[Test_Long.alt == "ALT"] = 1
-Test_Long["Choice"] = Test_Long["Choice"].astype(int)
-
-for i in range(len(list(Test_Long.ID[(Test_Long.Task == 1) & (Test_Long.Choice ==0) & (Test_Long["Unnamed: 0"].str.contains("SQ") == False)]))):
-    Test_Long = Test_Long.drop(Test_Long[Test_Long.ID == list(Test_Long.ID[(Test_Long.Task == 1) & (Test_Long.Choice ==0) & (Test_Long["Unnamed: 0"].str.contains("SQ") == False)])[0] ].index,axis=0)
-Pilot_Dominated = Test_Long
-
-for i in range(len(list(Pilot_Dominated.ID[Pilot_Dominated.Q23Survey <= 5].unique()))):
-    Pilot_Dominated = Pilot_Dominated.drop(Pilot_Dominated[Pilot_Dominated.ID ==  list(Pilot_Dominated.ID[Pilot_Dominated.Q23Survey <= 5].unique())[0] ].index,axis=0)
-Pilot_Understanding = Pilot_Dominated  
-
-
-Pilot_Cons = Pilot_Understanding.drop(Pilot_Understanding[Pilot_Understanding.Q18Consequentiality == 0].index,axis=0)
-
-##########################################################################
-###############                                             ##############
-###############     Section 7: Logits with only good understanding ####### 
-###############                                             ##############
-##########################################################################
-
-
-    
-    
     
     
     
