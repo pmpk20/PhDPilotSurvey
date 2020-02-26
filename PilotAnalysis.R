@@ -143,10 +143,10 @@ Test_Long <- mlogit.data(Test, shape = "wide", choice = "Choice",
 # write.csv(x = Test_Long,"H:/PhDPilotSurvey/Test_Long.csv") to export
 
 ## To trim the sample: 
-Pilot_Dominated <- Test_Long[!Test_Long$ID %in% c(Test_Long$ID[ ((Test_Long$Task == 1) & (Test_Long$Choice ==0) & (grepl("SQ",Test_Long$X,fixed = TRUE) == FALSE)) ]),]
+Pilot_Dominated <- Test_Long[!Test_Long$ID %in% c(Test_Long$ID[ ((Test_Long$Task == 1) & (Test_Long$Choice ==0) & (grepl("SQ",rownames(Test_Long),fixed = TRUE) == FALSE)) ]),]
 Pilot_Understanding <- Pilot_Dominated[!Pilot_Dominated$ID %in% c( unique(Pilot_Dominated$ID[Pilot_Dominated$Q23Survey <= 5])),]
 Pilot_Cons <- Pilot_Understanding[!Pilot_Understanding$ID %in% c( unique(Pilot_Understanding$ID[Pilot_Understanding$Q18Consequentiality == 0])),]
-Test_Long <- Pilot_Cons
+# Test_Long <- Pilot_Cons
 
 ## Basic MNL: 
 Base_MNL <- mlogit(Choice ~  Price + Health, 
@@ -157,8 +157,7 @@ summary(Base_MNL) ## Estimates a simplistic mlogit model before adding in indivi
 ## Full MNL:
 Pilot_MNL <- mlogit(Choice ~ Price + Health | 
                       Q1Gender + Q2Age + Q3Distance
-                    + Q4Trips + Q6QOV+ Q10Action +  
-                      Q11Self + Q12Others + Q13Marine 
+                    + Q4Trips + Q6QOV 
                     + Q14BP + Q16Charity 
                     + Q17Understanding+ Q18Consequentiality
                     + Q19Experts +Q20Education+ Q21Employment
@@ -167,6 +166,14 @@ Pilot_MNL <- mlogit(Choice ~ Price + Health |
                     reflevel = "SQ") ## Estimating a much larger MNL model with all the independent variables. 
 summary(Pilot_MNL) ## Summarises the MNL output
 ## key things to change include the placing of the |. 
+
+
+Pilot_MNLa <- mlogit(Choice ~ Price + Health | 
+                      Q1Gender + Q14BP +Q18Consequentiality
+                    + Q19Experts +Q21Employment, 
+                    Test_Long, alt.subset = c("SQ", "ALT"), 
+                    reflevel = "SQ") ## Estimating a much larger MNL model with all the independent variables. 
+summary(Pilot_MNLa)
 
 ## Likelihood ratio test for models
 lrtest(Base_MNL , Pilot_MNL) ## Likelihood Ratio test
@@ -330,7 +337,7 @@ Pilot_Cons <- Pilot_Understanding[!Pilot_Understanding$ID %in% c( unique(Pilot_U
 ##########################################################################
 ############### Apollo: MNL: WORKS                   #####################
 ##########################################################################
-rm(list = ls())
+# rm(list = ls())
 library(apollo)
 apollo_initialise()
 
