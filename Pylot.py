@@ -156,22 +156,20 @@ Test_Long.alt[Test_Long.alt == "SQ"] = 0
 Test_Long.alt[Test_Long.alt == "ALT"] = 1
 Test_Long["Choice"] = Test_Long["Choice"].astype(int)
 
-for i in range(len(list(Test_Long.ID[(Test_Long.Task == 1) & (Test_Long.Choice ==0) & (Test_Long["Unnamed: 0"].str.contains("SQ") == False)]))):
-    Test_Long = Test_Long.drop(Test_Long[Test_Long.ID == list(Test_Long.ID[(Test_Long.Task == 1) & (Test_Long.Choice ==0) & (Test_Long["Unnamed: 0"].str.contains("SQ") == False)])[0] ].index,axis=0)
+
 Pilot_Dominated = Test_Long
+for i in range(len(list(Test_Long.ID[(Test_Long.Task == 1) & (Test_Long.Choice ==0) & (Test_Long["Unnamed: 0"].str.contains("SQ") == False)]))):
+    Pilot_Dominated = Pilot_Dominated.drop(Pilot_Dominated[Pilot_Dominated.ID == list(Pilot_Dominated.ID[(Pilot_Dominated.Task == 1) & (Pilot_Dominated.Choice ==0) & (Pilot_Dominated["Unnamed: 0"].str.contains("SQ") == False)].unique())[0] ].index)
 
 for i in range(len(list(Pilot_Dominated.ID[Pilot_Dominated.Q23Survey <= 5].unique()))):
     Pilot_Dominated = Pilot_Dominated.drop(Pilot_Dominated[Pilot_Dominated.ID ==  list(Pilot_Dominated.ID[Pilot_Dominated.Q23Survey <= 5].unique())[0] ].index,axis=0)
 Pilot_Understanding = Pilot_Dominated  
 
-
-# list(Pilot_Understanding[Pilot_Understanding.Q18Consequentiality == 0].index)
-
-
-
 Pilot_Cons = Pilot_Understanding.drop(Pilot_Understanding[Pilot_Understanding.Q18Consequentiality == 0].index,axis=0)
-# Pilot_Cons = Pilot_Cons.drop(columns="intercept")
-# Test_Long = Pilot_Cons
+Pilot_Cons = Pilot_Cons.drop(columns="Unnamed: 0")
+Test_Long = Pilot_Cons
+Test_Long.index = range(len(Test_Long))
+    
 
 !pip install pylogit
 from collections import OrderedDict    # For recording the model specification 
@@ -240,14 +238,6 @@ B_specification["Q4Trips"] = [1]
 B_names["Q4Trips"] = ['Q4Trips']
 B_specification["Q6QOV"] = [1]
 B_names["Q6QOV"] = ['Q6QOV']
-B_specification["Q10Action"] = [1]
-B_names["Q10Action"] = ['Q10Action']
-B_specification["Q11Self"] = [1]
-B_names["Q11Self"] = ['Q11Self']
-B_specification["Q12Others"] = [1]
-B_names["Q12Others"] = ['Q12Others']
-B_specification["Q13Marine"] = [1]
-B_names["Q13Marine"] = ['Q13Marine']
 B_specification["Q14BP"] = [1]
 B_names["Q14BP"] = ['Q14BP']
 B_specification["Q16Charity"] = [1]
@@ -381,7 +371,7 @@ MXLFull.get_statsmodels_summary()
 
 from statsmodels.discrete.discrete_model import Probit
 
-Test_Long = Pilot_Cons
+#Test_Long = Pilot_Cons
 
 def PVadjusted(DD, Sig):
     global Model, Model2, ME, PV
