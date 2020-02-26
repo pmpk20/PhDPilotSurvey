@@ -150,7 +150,7 @@ Pilot_Cons <- Pilot_Understanding[!Pilot_Understanding$ID %in% c( unique(Pilot_U
 
 ## Basic MNL: 
 Base_MNL <- mlogit(Choice ~  Price + Health, 
-                   Test_Long,
+                   Pilot_Understanding,
                    alt.subset = c("SQ","ALT"),reflevel = "SQ") ##Estimating a simple model first
 summary(Base_MNL) ## Estimates a simplistic mlogit model before adding in individual-specifics
 
@@ -162,7 +162,7 @@ Pilot_MNL <- mlogit(Choice ~ Price + Health |
                     + Q17Understanding+ Q18Consequentiality
                     + Q19Experts +Q20Education+ Q21Employment
                     +  Q22Income+Q23Survey, 
-                    Test_Long, alt.subset = c("SQ", "ALT"), 
+                    Pilot_Understanding, alt.subset = c("SQ", "ALT"), 
                     reflevel = "SQ") ## Estimating a much larger MNL model with all the independent variables. 
 summary(Pilot_MNL) ## Summarises the MNL output
 ## key things to change include the placing of the |. 
@@ -171,7 +171,7 @@ summary(Pilot_MNL) ## Summarises the MNL output
 Pilot_MNLa <- mlogit(Choice ~ Price + Health | 
                       Q1Gender + Q14BP +Q18Consequentiality
                     + Q19Experts +Q21Employment, 
-                    Test_Long, alt.subset = c("SQ", "ALT"), 
+                    Pilot_Understanding, alt.subset = c("SQ", "ALT"), 
                     reflevel = "SQ") ## Estimating a much larger MNL model with all the independent variables. 
 summary(Pilot_MNLa)
 
@@ -286,24 +286,58 @@ mean(rpar(MXLFull, "Health", norm = "Price"))
 ##########################################################################
 
 
-## MIXL model with observed heterogeneity
 library(gmnl)
-mixl.hier <- gmnl(Choice ~  Price +  Q1Gender + Q2Age + 
-                    Q3Distance + Q4Trips + Q6QOV+ Q10Action +  
-                    Q11Self + Q12Others + Q13Marine + Q14BP + 
-                    Q16Charity + Q17Understanding+ 
-                    Q18Consequentiality + Q19Experts +Q20Education+ 
-                    Q21Employment +  Q22Income+Q23Survey
-                  | 1 | 0 | Accumulation  - 1,
-                  data = Test_Long,
-                  model = "mixl",
-                  ranp = c( Price = "n"),
-                  mvar = list(c("Accumulation")),
-                  R = 30,
-                  haltons = NA)
-summary(mixl.hier)
-wtp.gmnl(mixl.hier,wrt = "Price")
 
+# Comparison with MLOGIT
+MNL_ML <- mlogit(Choice ~  Price + Health | Q1Gender + Q2Age
+                 + Q3Distance
+               + Q4Trips + Q6QOV 
+               + Q14BP + Q16Charity 
+               + Q17Understanding+ Q18Consequentiality
+               + Q19Experts +Q20Education+ Q21Employment
+               +  Q22Income+Q23Survey, 
+               Pilot_Dominated,
+                   alt.subset = c("SQ","ALT"),reflevel = "SQ")
+summary(MNL_ML)
+
+# Multinomial logit
+MNL_GM <- gmnl(Choice ~  Price + Health | Q1Gender + Q2Age
+               + Q3Distance
+             + Q4Trips + Q6QOV 
+             + Q14BP + Q16Charity 
+             + Q17Understanding+ Q18Consequentiality
+             + Q19Experts +Q20Education+ Q21Employment
+             +  Q22Income+Q23Survey,
+             data = Pilot_Dominated,
+             model = "mnl",reflevel = "SQ")
+summary(MNL_GM)
+wtp.gmnl(MNL_GM,"Price",3)
+
+# Mixed logit
+MXL_GM <- gmnl(Choice ~  Price + Health| 1| 0 | Q1Gender + Q2Age + 
+               Q3Distance + Q4Trips + Q6QOV+ Q10Action +  
+               Q11Self + Q12Others + Q13Marine + Q14BP + 
+               Q16Charity + Q17Understanding+ 
+               Q18Consequentiality + Q19Experts +Q20Education+ 
+               Q21Employment +  Q22Income+Q23Survey,
+             data = Test_Long,
+             model = "mixl",
+             ranp = c( Price = "n", Heh = "n"),
+             mvar = list(Price = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey"),
+                         Heh = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey")),
+             R = 30,
+             haltons = list("primes"= c(2, 17),
+                            "drop" = rep(19, 2))
+             ,seed = 123,reflevel = "SQ")
+
+# Latent class models
+LC_GM <- gmnl(Choice ~ Price + Health | 0 |
+                  0 | 0 | 1,
+                data = Pilot_Understanding,
+                model = 'lc',
+                panel = TRUE,
+                Q = 2)
+summary(LC_GM)
 
 ##########################################################################
 ############### DCE: NESTED LOGIT                    #####################
