@@ -255,8 +255,7 @@ Variables <- c('Q1Gender + Q2Age +
 # Estimates the full MXL model with all covariates
 MXLFull <- mlogit(
   Choice ~  Price + Health|  Q1Gender + Q2Age + 
-    Q3Distance + Q4Trips + Q6QOV+ Q10Action +  
-    Q11Self + Q12Others + Q13Marine + Q14BP +
+    Q3Distance + Q4Trips + Q6QOV+ Q14BP +
     Q16Charity + Q17Understanding+ 
     Q18Consequentiality + Q19Experts +Q20Education+ 
     Q21Employment +  Q22Income+Q23Survey,
@@ -309,14 +308,14 @@ MNL_GM <- gmnl(Choice ~  Price + Health | Q1Gender + Q2Age
              + Q19Experts +Q20Education+ Q21Employment
              +  Q22Income+Q23Survey,
              data = Pilot_Dominated,
-             model = "mnl",reflevel = "SQ")
+             model = "mnl",reflevel = "SQ",alt.subset = c("SQ","ALT"))
 summary(MNL_GM)
 wtp.gmnl(MNL_GM,"Price",3)
 
+
 # Mixed logit
-MXL_GM <- gmnl(Choice ~  Price + Health| 1| 0 | Q1Gender + Q2Age + 
-               Q3Distance + Q4Trips + Q6QOV+ Q10Action +  
-               Q11Self + Q12Others + Q13Marine + Q14BP + 
+GMNL_MXLDefault <- gmnl(Choice ~  Price + Health| 1| 0 | Q1Gender + Q2Age + 
+               Q3Distance + Q4Trips + Q6QOV+  Q14BP + 
                Q16Charity + Q17Understanding+ 
                Q18Consequentiality + Q19Experts +Q20Education+ 
                Q21Employment +  Q22Income+Q23Survey,
@@ -325,10 +324,187 @@ MXL_GM <- gmnl(Choice ~  Price + Health| 1| 0 | Q1Gender + Q2Age +
              ranp = c( Price = "n", Heh = "n"),
              mvar = list(Price = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey"),
                          Heh = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey")),
-             R = 30,
+             R = 10,
              haltons = list("primes"= c(2, 17),
                             "drop" = rep(19, 2))
              ,seed = 123,reflevel = "SQ")
+
+# Mixed logit with Panel set to TRUE
+GMNL_MXLPanel <- gmnl(Choice ~  Price + Health| 1| 0 | Q1Gender + Q2Age + 
+                 Q3Distance + Q4Trips + Q6QOV+  Q14BP + 
+                 Q16Charity + Q17Understanding+ 
+                 Q18Consequentiality + Q19Experts +Q20Education+ 
+                 Q21Employment +  Q22Income+Q23Survey,
+               data = Test_Long,
+               model = "mixl",
+               ranp = c( Price = "n", Heh = "n"),
+               mvar = list(Price = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey"),
+                           Heh = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey")),
+               R = 10,
+               haltons = list("primes"= c(2, 17),
+                              "drop" = rep(19, 2))
+               ,seed = 123,reflevel = "SQ",panel=TRUE)
+
+# Mixed logit with Correlation set to TRUE
+GMNL_MXLCorr <- gmnl(Choice ~  Price + Health| 1| 0 | Q1Gender + Q2Age + 
+                 Q3Distance + Q4Trips + Q6QOV+  Q14BP + 
+                 Q16Charity + Q17Understanding+ 
+                 Q18Consequentiality + Q19Experts +Q20Education+ 
+                 Q21Employment +  Q22Income+Q23Survey,
+               data = Test_Long,
+               model = "mixl",
+               ranp = c( Price = "n", Heh = "n"),
+               mvar = list(Price = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey"),
+                           Heh = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey")),
+               R = 10,
+               haltons = list("primes"= c(2, 17),
+                              "drop" = rep(19, 2))
+               ,seed = 123,reflevel = "SQ", correlation = TRUE)
+
+# Mixed logit with Correlation AND Panel set to TRUE
+GMNL_MXLBoth <- gmnl(Choice ~  Price + Health| 1| 0 | Q1Gender + Q2Age + 
+                       Q3Distance + Q4Trips + Q6QOV+  Q14BP + 
+                       Q16Charity + Q17Understanding+ 
+                       Q18Consequentiality + Q19Experts +Q20Education+ 
+                       Q21Employment +  Q22Income+Q23Survey,
+                     data = Test_Long,
+                     model = "mixl",
+                     ranp = c( Price = "n", Heh = "n"),
+                     mvar = list(Price = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey"),
+                                 Heh = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey")),
+                     R = 10,
+                     haltons = list("primes"= c(2, 17),
+                                    "drop" = rep(19, 2))
+                     ,seed = 123,reflevel = "SQ", correlation = TRUE, panel = TRUE)
+# Mixed logit: log-normal distribution
+GMNL_MXLln <- gmnl(Choice ~  Price + Health| 1| 0 | Q1Gender + Q2Age + 
+               Q3Distance + Q4Trips + Q6QOV+  Q14BP + 
+               Q16Charity + Q17Understanding+ 
+               Q18Consequentiality + Q19Experts +Q20Education+ 
+               Q21Employment +  Q22Income+Q23Survey,
+             data = Test_Long,
+             model = "mixl",
+             ranp = c( Price = "ln", Heh = "ln"),
+             mvar = list(Price = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey"),
+                         Heh = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey")),
+             R = 10,
+             haltons = list("primes"= c(2, 17),
+                            "drop" = rep(19, 2))
+             ,seed = 123,reflevel = "SQ")
+# Mixed logit: truncated normal distribution
+GMNL_MXLcn <- gmnl(Choice ~  Price + Health| 1| 0 | Q1Gender + Q2Age + 
+                     Q3Distance + Q4Trips + Q6QOV+  Q14BP + 
+                     Q16Charity + Q17Understanding+ 
+                     Q18Consequentiality + Q19Experts +Q20Education+ 
+                     Q21Employment +  Q22Income+Q23Survey,
+                   data = Test_Long,
+                   model = "mixl",
+                   ranp = c( Price = "cn", Heh = "cn"),
+                   mvar = list(Price = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey"),
+                               Heh = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey")),
+                   R = 10,
+                   haltons = list("primes"= c(2, 17),
+                                  "drop" = rep(19, 2))
+                   ,seed = 123,reflevel = "SQ")
+# Mixed logit: uniform distribution
+GMNL_MXLu <- gmnl(Choice ~  Price + Health| 1| 0 | Q1Gender + Q2Age + 
+                     Q3Distance + Q4Trips + Q6QOV+  Q14BP + 
+                     Q16Charity + Q17Understanding+ 
+                     Q18Consequentiality + Q19Experts +Q20Education+ 
+                     Q21Employment +  Q22Income+Q23Survey,
+                   data = Test_Long,
+                   model = "mixl",
+                   ranp = c( Price = "u", Heh = "u"),
+                   mvar = list(Price = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey"),
+                               Heh = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey")),
+                   R = 10,
+                   haltons = list("primes"= c(2, 17),
+                                  "drop" = rep(19, 2))
+                   ,seed = 123,reflevel = "SQ")
+# Mixed logit: triangular distribution
+GMNL_MXLt <- gmnl(Choice ~  Price + Health| 1| 0 | Q1Gender + Q2Age + 
+                     Q3Distance + Q4Trips + Q6QOV+  Q14BP + 
+                     Q16Charity + Q17Understanding+ 
+                     Q18Consequentiality + Q19Experts +Q20Education+ 
+                     Q21Employment +  Q22Income+Q23Survey,
+                   data = Test_Long,
+                   model = "mixl",
+                   ranp = c( Price = "t", Heh = "t"),
+                   mvar = list(Price = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey"),
+                               Heh = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey")),
+                   R = 10,
+                   haltons = list("primes"= c(2, 17),
+                                  "drop" = rep(19, 2))
+                   ,seed = 123,reflevel = "SQ")
+# Mixed logit: Johnston distribution
+GMNL_MXLsb <- gmnl(Choice ~  Price + Health| 1| 0 | Q1Gender + Q2Age + 
+                     Q3Distance + Q4Trips + Q6QOV+  Q14BP + 
+                     Q16Charity + Q17Understanding+ 
+                     Q18Consequentiality + Q19Experts +Q20Education+ 
+                     Q21Employment +  Q22Income+Q23Survey,
+                   data = Test_Long,
+                   model = "mixl",
+                   ranp = c( Price = "sb", Heh = "sb"),
+                   mvar = list(Price = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey"),
+                               Heh = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey")),
+                   R = 10,
+                   haltons = list("primes"= c(2, 17),
+                                  "drop" = rep(19, 2))
+                   ,seed = 123,reflevel = "SQ")
+
+
+# Mixed logit: model testing
+AICs <- t(data.frame("AIC(GMNL_MXLDefault)" = c(AIC(GMNL_MXLDefault)),
+                     "AIC(GMNL_MXLPanel)" = c(AIC(GMNL_MXLPanel)),
+                     "AIC(GMNL_MXLCorr)" = c(AIC(GMNL_MXLCorr)),
+                     "AIC(GMNL_MXLBoth)" = c(AIC(GMNL_MXLBoth)),
+                     "AIC(GMNL_MXLu)" = c(AIC(GMNL_MXLu)),
+                     "AIC(GMNL_MXLln)" = c(AIC(GMNL_MXLln)),
+                     "AIC(GMNL_MXLcn)" = c(AIC(GMNL_MXLcn)),
+                     "AIC(GMNL_MXLt)" = c(AIC(GMNL_MXLt)),
+                     "AIC(GMNL_MXLsb)" = c(AIC(GMNL_MXLsb))))
+colnames(AICs) <- c("AIC")
+AICs <- data.frame(AICs[order(AICs),])
+BICs <- t(data.frame("BIC(GMNL_MXLDefault)" = c(BIC(GMNL_MXLDefault)),
+                     "BIC(GMNL_MXLPanel)" =   c(BIC(GMNL_MXLPanel)),
+                     "BIC(GMNL_MXLCorr)" =    c(BIC(GMNL_MXLCorr)),
+                     "BIC(GMNL_MXLBoth)" =    c(BIC(GMNL_MXLBoth)),
+                     "BIC(GMNL_MXLu)" =       c(BIC(GMNL_MXLu)),
+                     "BIC(GMNL_MXLln)" =      c(BIC(GMNL_MXLln)),
+                     "BIC(GMNL_MXLcn)" =      c(BIC(GMNL_MXLcn)),
+                     "BIC(GMNL_MXLt)" =       c(BIC(GMNL_MXLt)),
+                     "BIC(GMNL_MXLsb)" =      c(BIC(GMNL_MXLsb))))
+colnames(BICs) <- c("BIC")
+BICs <- data.frame(BICs[order(BICs),])
+
+
+# Mixed logit: Finding the best fitting model
+GMNL_MXLidk <- gmnl(formula = Choice ~ Price + Health  |  Q6QOV | 0 | Q22Income - 1, 
+                            data = Pilot_Understanding, model = "mixl", ranp = c( Heh = "n"), 
+                            R = 10, haltons =NULL,
+                    mvar = list(Heh = c("Q22Income")),
+                            method = "bfgs",correlation = TRUE)
+summary(GMNL_MXLidk)
+wtp.gmnl(GMNL_MXLidk,"Price",3)
+# panel = FALSE by default, correlation = FALSE by default
+
+
+# Comparison of MLOGIT to GMNl 
+summary(mlogit(
+  Choice ~  Price + Health |  Q1Gender,
+       Pilot_Understanding,
+       rpar=c(Heh="n"),
+       R=10,
+       halton=NULL,
+       panel=FALSE,correlation = FALSE,seed=123,
+       method="bfgs",reflevel = "SQ"))
+summary(gmnl(formula = 
+               Choice ~  Price + Health|  Q1Gender, 
+             Pilot_Understanding,
+             model = "mixl", ranp = c(Heh = "n"), R = 10, haltons = NULL,
+             panel = FALSE,  correlation = FALSE, method = "bfgs",reflevel = "SQ", 
+             seed = 123))
+
 
 # Latent class models
 LC_GM <- gmnl(Choice ~ Price + Health | 0 |
