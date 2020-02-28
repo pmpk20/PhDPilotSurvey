@@ -293,7 +293,7 @@ mean(rpar(MXLFull, "Health", norm = "Price"))
 
 
 
-
+library(mlogit)
 library(gmnl)
 
 ########### Comparing MLOGIT and GMNL
@@ -510,13 +510,13 @@ BICs <- data.frame(BICs[order(BICs),])
 
 
 ########### Best model search
-GMNL_MXLidk <- gmnl(formula = Choice ~ Price + Health   | 1 |
-                           0 |  Q22Income- 1, 
-                         data = Pilot_Understanding, 
-                         model = "mixl", ranp = c( Heh = "n"), 
-                         R = 10, haltons =NULL,
-                         mvar = list(Heh = c("Q22Income")),
-                         method = "bfgs",correlation = FALSE)
+GMNL_MXLidk <- gmnl(formula = Choice ~ Price + Health |
+                      0   | 0 |Q14BP, 
+                      data = Pilot_Understanding, 
+                      model = "mixl", ranp = c( Heh = "n"), 
+                      R = 10, haltons =NULL,
+                      mvar = list(Heh = c("Q14BP")),
+                      method = "bfgs",correlation = FALSE)
 summary(GMNL_MXLidk)
 wtp.gmnl(GMNL_MXLidk,"Price",3)
 plot(GMNL_MXLidk, 
@@ -542,6 +542,46 @@ LC_GM <- gmnl(Choice ~ Price + Health | 0 |
 summary(LC_GM)
 
 
+
+
+##########################################################################
+############### CVM Probit                           #####################
+##########################################################################
+
+# Guidance on PROBIT:
+## https://stats.idre.ucla.edu/r/dae/probit-regression/
+# Guidance on MFX:
+## https://cran.r-project.org/web/packages/mfx/vignettes/mfxarticle.pdf
+
+install.packages("aod")
+install.packages("mfx")
+library(mfx)
+require(aod)
+CVMProbit <-glm(Q5CVM1 ~ Q1Gender + Q2Age + 
+                  Q3Distance + Q4Trips + Q6QOV+  Q14BP + 
+                  Q16Charity + Q17Understanding+ 
+                  Q18Consequentiality + Q19Experts +Q20Education+ 
+                  Q21Employment +  Q22Income+Q23Survey, family = binomial(link = "probit"),data = Pilot_Understanding)
+summary(CVMProbit)
+confint(CVMProbit)
+wald.test(b = coef(CVMProbit), Sigma = vcov(CVMProbit), Terms=2)
+
+probitmfx(formula = Q6QOV ~ Q2Age + Q3Distance + Q4Trips + Q6QOV+  Q14BP 
+          +Q17Understanding+ +Q18Consequentiality + Q19Experts +Q20Education+ 
+            +Q21Employment +  Q22Income,data = Pilot_Understanding,robust = TRUE)
+
+##########################################################################
+############### QOV Probit                           #####################
+##########################################################################
+
+QOVProbit <-glm(Q6QOV ~ Q2Age + 
+                  Q3Distance + Q4Trips + Q6QOV+  Q14BP 
+                   + Q17Understanding+ 
+                  Q18Consequentiality + Q19Experts +Q20Education+ 
+                  Q21Employment +  Q22Income, family = binomial(link = "probit"),data = Pilot_Understanding)
+summary(QOVProbit)
+confint(QOVProbit)
+wald.test(b = coef(QOVProbit), Sigma = vcov(QOVProbit), Terms=2)
 
 ##########################################################################
 ############### DCE: APOLLO package                  #####################
