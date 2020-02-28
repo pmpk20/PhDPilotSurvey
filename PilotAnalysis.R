@@ -328,7 +328,8 @@ GMNL_MXLDefault <- gmnl(Choice ~  Price + Health| 1| 0 | Q1Gender + Q2Age +
              haltons = list("primes"= c(2, 17),
                             "drop" = rep(19, 2))
              ,seed = 123,reflevel = "SQ")
-
+summary(GMNL_MXLDefault)
+plot(GMNL_MXLDefault, par = "Heh", effect = "wtp", type = "density", col = "grey",wrt="Price")
 # Mixed logit with Panel set to TRUE
 GMNL_MXLPanel <- gmnl(Choice ~  Price + Health| 1| 0 | Q1Gender + Q2Age + 
                  Q3Distance + Q4Trips + Q6QOV+  Q14BP + 
@@ -479,20 +480,31 @@ BICs <- data.frame(BICs[order(BICs),])
 
 
 # Mixed logit: Finding the best fitting model
-GMNL_MXLidk <- gmnl(formula = Choice ~ Price + Health  |  Q6QOV | 0 | Q22Income - 1, 
-                            data = Pilot_Understanding, model = "mixl", ranp = c( Heh = "n"), 
-                            R = 10, haltons =NULL,
-                    mvar = list(Heh = c("Q22Income")),
-                            method = "bfgs",correlation = TRUE)
+GMNL_MXLidk <- gmnl(formula = Choice ~ Price + Health   | 1 |
+                           0 |  Q22Income- 1, 
+                         data = Pilot_Understanding, 
+                         model = "mixl", ranp = c( Heh = "n"), 
+                         R = 10, haltons =NULL,
+                         mvar = list(Heh = c("Q22Income")),
+                         method = "bfgs",correlation = FALSE)
 summary(GMNL_MXLidk)
 wtp.gmnl(GMNL_MXLidk,"Price",3)
-# panel = FALSE by default, correlation = FALSE by default
+plot(GMNL_MXLidk, 
+     par = "Heh", effect = "wtp", 
+     type = "density", col = "grey",wrt="Price")
+AIC(GMNL_MXLidk)
+BIC(GMNL_MXLidk)
+## scoretest
+## hmftest
+## waldtest
+## haltons = list("primes"= c(2, 17),"drop" = rep(19, 2))
+## panel = FALSE by default, correlation = FALSE by default
 
 
 # Comparison of MLOGIT to GMNl 
 summary(mlogit(
-  Choice ~  Price + Health |  Q1Gender,
-       Pilot_Understanding,
+  Choice ~  Price + Health |  Q22Income,
+  Pilot_Understanding,
        rpar=c(Heh="n"),
        R=10,
        halton=NULL,
