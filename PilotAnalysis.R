@@ -35,7 +35,7 @@ Pilot <- data.frame(read.csv("PhD Survey_ Sample A.csv")) # Imports the pilot su
 
 
 ####################################################################################
-############### Section 2: Data pre-processing  ##########################
+############### Section 2: Data pre-processing            ##########################
 ####################################################################################
 
 
@@ -125,20 +125,10 @@ Tests <- Test
 Test$Choice[Test$Choice == 0] <- "SQ"  ## Necessary here to change numeric to string
 Test$Choice[Test$Choice == 1] <- "ALT" ## The MFORMULA looks for _SQ or _ALT so choice must be SQ or ALT
 
-
-
-
-##########################################################################
-############### DCE: MULTINOMIAL LOGIT               #####################
-##########################################################################
-
-
-
-
 library(mlogit) #Already have package installed
 Test_Long <- mlogit.data(Test, shape = "wide", choice = "Choice",
-                   varying = 24:31, sep = "_", id.var = "ID",
-                   opposite = c("Price", "Effectiveness", "Accumulation", "Health"))
+                         varying = 24:31, sep = "_", id.var = "ID",
+                         opposite = c("Price", "Effectiveness", "Accumulation", "Health"))
 ## This creates an MLOGIT object which is TEST coerced to a LONG format.
 # write.csv(x = Test_Long,"H:/PhDPilotSurvey/Test_Long.csv") to export
 
@@ -148,7 +138,32 @@ Pilot_Understanding <- Pilot_Dominated[!Pilot_Dominated$ID %in% c( unique(Pilot_
 Pilot_Cons <- Pilot_Understanding[!Pilot_Understanding$ID %in% c( unique(Pilot_Understanding$ID[Pilot_Understanding$Q18Consequentiality == 0])),]
 # Test_Long <- Pilot_Cons
 
-## Basic MNL: 
+
+
+####################################################################################
+############### Section 3: Descriptive                    ##########################
+####################################################################################
+
+
+
+library(lattice)
+xyplot(Q5CVM1~Q6QOV|as.factor(Pilot_Understanding$Q1Gender), data = Pilot_Understanding,type=c("p","r","g"), col="dark blue", col.line="black")
+
+
+####################################################################################
+############### Section 4: DCE Analysis                    ##########################
+####################################################################################
+
+
+##########################################################################
+############### DCE: GMNL package                    #####################
+##########################################################################
+
+
+##########################################################################
+############### Estimation                           #####################
+
+########### Multinomial Logit:
 Base_MNL <- mlogit(Choice ~  Price + Health, 
                    Pilot_Understanding,
                    alt.subset = c("SQ","ALT"),reflevel = "SQ") ##Estimating a simple model first
@@ -167,7 +182,6 @@ Pilot_MNL <- mlogit(Choice ~ Price + Health |
 summary(Pilot_MNL) ## Summarises the MNL output
 ## key things to change include the placing of the |. 
 
-
 Pilot_MNLa <- mlogit(Choice ~ Price + Health | 
                       Q1Gender + Q14BP +Q18Consequentiality
                     + Q19Experts +Q21Employment, 
@@ -175,14 +189,50 @@ Pilot_MNLa <- mlogit(Choice ~ Price + Health |
                     reflevel = "SQ") ## Estimating a much larger MNL model with all the independent variables. 
 summary(Pilot_MNLa)
 
-## Likelihood ratio test for models
+########### Mixed Logit:
+MIXLcorrelated <- mlogit(Choice~Price+Accumulation|0,
+                         Test_Long,
+                         rpar=c(Price="n",
+                                Accumulation="n"),
+                         R=600,
+                         halton=NULL,
+                         print.level=0,
+                         panel=TRUE,correlation = TRUE)
+summary(MIXLcorrelated)
+MIXLuncorrelated <- mlogit(Choice~Price+Accumulation|0,
+                           Test_Long,
+                           rpar=c(Price="n",
+                                  Accumulation="n"),
+                           R=600,
+                           halton=NULL,
+                           print.level=0,
+                           panel=TRUE,correlation = FALSE,seed=123,start=as.vector(rep(0,4)))
+summary(MIXLuncorrelated)
+# Estimates the full MXL model with all covariates
+MXLFull <- mlogit(
+  Choice ~  Price + Health|  Q1Gender + Q2Age + 
+    Q3Distance + Q4Trips + Q6QOV+ Q14BP +
+    Q16Charity + Q17Understanding+ 
+    Q18Consequentiality + Q19Experts +Q20Education+ 
+    Q21Employment +  Q22Income+Q23Survey,
+  Test_Long, rpar=c(Price="n"),R=10,correlation = FALSE,
+  halton=NA,method="bhhh",panel=TRUE,seed=123)
+summary(MXLFull)
+# Can remove intercept by replacing "Health | Q1Gender" with "Health | +0 + Q1Gender"  
+
+
+##########################################################################
+############### Evaluation                           #####################
+
+
+# Likelihood ratio test for models
 lrtest(Base_MNL , Pilot_MNL) ## Likelihood Ratio test
 
-## Marginal Effects
+# Marginal Effects
 effects(Pilot_MNL, covariate = "Price", type = "rr") # Covariate change in column of ALT leads to adjacent column change in probability of selecting that option.
 ## i.e. changing the price of the ALT leads to a effects(M2, covariate = "Price", type = "rr")[2] change in the probability of selecting the ALT option.
 
-## P values
+# P values
 coef(summary(Pilot_MNL))[,4] ##Returns P Values
 PV <- data.frame(coef(summary(Pilot_MNL))[,4],coef(summary(Pilot_MNL))[,1] )
 colnames(PV) <- c("PV","Effect")
@@ -191,40 +241,10 @@ PV <- data.frame(row.names(PV), PV$PV, PV$Effect)
 colnames(PV) <- c("Variables","PV","Effect")
 barplot(PV$Effect, names.arg = PV$Variables,xlab = "Variables",ylab = "Effect",ylim = c(-2,5),axes = TRUE)
 
-
-## WTP and MRS calculations:
+# WTP and MRS calculations:
 coef(Pilot_MNL)["Heh"]/coef(Pilot_MNL)["Price"] ## For some reason, "Health" comes up as "Heh" ??
 
-
-
-
-##########################################################################
-############### DCE: MIXED LOGIT                     #####################
-##########################################################################
-
-
-########### Replication example:
-MIXLcorrelated <- mlogit(Choice~Price+Accumulation|0,
-                            Test_Long,
-                            rpar=c(Price="n",
-                            Accumulation="n"),
-                            R=600,
-                            halton=NULL,
-                            print.level=0,
-                            panel=TRUE,correlation = TRUE)
-summary(MIXLcorrelated)
-MIXLuncorrelated <- mlogit(Choice~Price+Accumulation|0,
-              Test_Long,
-              rpar=c(Price="n",
-                     Accumulation="n"),
-              R=600,
-              halton=NULL,
-              print.level=0,
-              panel=TRUE,correlation = FALSE,seed=123,start=as.vector(rep(0,4)))
-summary(MIXLuncorrelated)
-
-
-## Tests of the MXL models
+# Tests of the MXL models
 lr.corr <- lrtest(MIXLcorrelated, MIXLuncorrelated)
 library(car)
 lh.corr <- linearHypothesis(MIXLcorrelated, c("chol.Price:Accumulation = 0","chol.Price:Price = 0", "chol.Accumulation:Accumulation = 0"))
@@ -240,7 +260,6 @@ statpval <- function(x){
 sapply(list(wald = wd.corr, lh = lh.corr, score = sc.corr, lr = lr.corr),
        statpval)
 
-
 # Extracts individual-level parameters
 indpar <- fitted(MIXLcorrelated, type = "parameters")
 head(indpar)
@@ -252,19 +271,6 @@ Variables <- c('Q1Gender + Q2Age +
                  Q18Consequentiality + Q19Experts +Q20Education+ 
                  Q21Employment +  Q22Income+Q23Survey')
 
-# Estimates the full MXL model with all covariates
-MXLFull <- mlogit(
-  Choice ~  Price + Health|  Q1Gender + Q2Age + 
-    Q3Distance + Q4Trips + Q6QOV+ Q14BP +
-    Q16Charity + Q17Understanding+ 
-    Q18Consequentiality + Q19Experts +Q20Education+ 
-    Q21Employment +  Q22Income+Q23Survey,
-  Test_Long, rpar=c(Price="n"),R=10,correlation = FALSE,
-  halton=NA,method="bhhh",panel=TRUE,seed=123)
-summary(MXLFull)
-## Can remove intercept by replacing "Health | Q1Gender" with "Health | +0 + Q1Gender"  
-
-
 # Testing Pvalues to find a good model
 PV <- data.frame(coef(summary(MXLFull))[,4],coef(summary(MXLFull))[,1] )
 colnames(PV) <- c("PV","Effect")
@@ -274,10 +280,11 @@ colnames(PV) <- c("Variables","PV","Effect")
 barplot(PV$Effect, names.arg = PV$Variables,xlab = "Variables",ylab = "Effect",ylim = c(-2,5),axes = TRUE)
 length(PV$PV)
 
-
 # Reports MRS in WTP Space 
 summary(rpar(MXLFull,"Health",norm="Price"))
 mean(rpar(MXLFull, "Health", norm = "Price"))
+
+
 
 
 ##########################################################################
@@ -285,9 +292,12 @@ mean(rpar(MXLFull, "Health", norm = "Price"))
 ##########################################################################
 
 
+
+
 library(gmnl)
 
-# Comparison with MLOGIT
+########### Comparing MLOGIT and GMNL
+# Multinomial logits
 MNL_ML <- mlogit(Choice ~  Price + Health | Q1Gender + Q2Age
                  + Q3Distance
                + Q4Trips + Q6QOV 
@@ -298,8 +308,6 @@ MNL_ML <- mlogit(Choice ~  Price + Health | Q1Gender + Q2Age
                Pilot_Dominated,
                    alt.subset = c("SQ","ALT"),reflevel = "SQ")
 summary(MNL_ML)
-
-# Multinomial logit
 MNL_GM <- gmnl(Choice ~  Price + Health | Q1Gender + Q2Age
                + Q3Distance
              + Q4Trips + Q6QOV 
@@ -312,8 +320,24 @@ MNL_GM <- gmnl(Choice ~  Price + Health | Q1Gender + Q2Age
 summary(MNL_GM)
 wtp.gmnl(MNL_GM,"Price",3)
 
+# Mixed logits
+summary(mlogit(
+  Choice ~  Price + Health |  Q22Income,
+  Pilot_Understanding,
+  rpar=c(Heh="n"),
+  R=10,
+  halton=NULL,
+  panel=FALSE,correlation = FALSE,seed=123,
+  method="bfgs",reflevel = "SQ"))
+summary(gmnl(formula = 
+               Choice ~  Price + Health|  Q1Gender, 
+             Pilot_Understanding,
+             model = "mixl", ranp = c(Heh = "n"), R = 10, haltons = NULL,
+             panel = FALSE,  correlation = FALSE, method = "bfgs",reflevel = "SQ", 
+             seed = 123))
 
-# Mixed logit
+
+########### Mixed Logit in GMNL
 GMNL_MXLDefault <- gmnl(Choice ~  Price + Health| 1| 0 | Q1Gender + Q2Age + 
                Q3Distance + Q4Trips + Q6QOV+  Q14BP + 
                Q16Charity + Q17Understanding+ 
@@ -330,6 +354,7 @@ GMNL_MXLDefault <- gmnl(Choice ~  Price + Health| 1| 0 | Q1Gender + Q2Age +
              ,seed = 123,reflevel = "SQ")
 summary(GMNL_MXLDefault)
 plot(GMNL_MXLDefault, par = "Heh", effect = "wtp", type = "density", col = "grey",wrt="Price")
+
 # Mixed logit with Panel set to TRUE
 GMNL_MXLPanel <- gmnl(Choice ~  Price + Health| 1| 0 | Q1Gender + Q2Age + 
                  Q3Distance + Q4Trips + Q6QOV+  Q14BP + 
@@ -377,6 +402,7 @@ GMNL_MXLBoth <- gmnl(Choice ~  Price + Health| 1| 0 | Q1Gender + Q2Age +
                      haltons = list("primes"= c(2, 17),
                                     "drop" = rep(19, 2))
                      ,seed = 123,reflevel = "SQ", correlation = TRUE, panel = TRUE)
+
 # Mixed logit: log-normal distribution
 GMNL_MXLln <- gmnl(Choice ~  Price + Health| 1| 0 | Q1Gender + Q2Age + 
                Q3Distance + Q4Trips + Q6QOV+  Q14BP + 
@@ -392,6 +418,7 @@ GMNL_MXLln <- gmnl(Choice ~  Price + Health| 1| 0 | Q1Gender + Q2Age +
              haltons = list("primes"= c(2, 17),
                             "drop" = rep(19, 2))
              ,seed = 123,reflevel = "SQ")
+
 # Mixed logit: truncated normal distribution
 GMNL_MXLcn <- gmnl(Choice ~  Price + Health| 1| 0 | Q1Gender + Q2Age + 
                      Q3Distance + Q4Trips + Q6QOV+  Q14BP + 
@@ -407,6 +434,7 @@ GMNL_MXLcn <- gmnl(Choice ~  Price + Health| 1| 0 | Q1Gender + Q2Age +
                    haltons = list("primes"= c(2, 17),
                                   "drop" = rep(19, 2))
                    ,seed = 123,reflevel = "SQ")
+
 # Mixed logit: uniform distribution
 GMNL_MXLu <- gmnl(Choice ~  Price + Health| 1| 0 | Q1Gender + Q2Age + 
                      Q3Distance + Q4Trips + Q6QOV+  Q14BP + 
@@ -422,6 +450,7 @@ GMNL_MXLu <- gmnl(Choice ~  Price + Health| 1| 0 | Q1Gender + Q2Age +
                    haltons = list("primes"= c(2, 17),
                                   "drop" = rep(19, 2))
                    ,seed = 123,reflevel = "SQ")
+
 # Mixed logit: triangular distribution
 GMNL_MXLt <- gmnl(Choice ~  Price + Health| 1| 0 | Q1Gender + Q2Age + 
                      Q3Distance + Q4Trips + Q6QOV+  Q14BP + 
@@ -437,6 +466,7 @@ GMNL_MXLt <- gmnl(Choice ~  Price + Health| 1| 0 | Q1Gender + Q2Age +
                    haltons = list("primes"= c(2, 17),
                                   "drop" = rep(19, 2))
                    ,seed = 123,reflevel = "SQ")
+
 # Mixed logit: Johnston distribution
 GMNL_MXLsb <- gmnl(Choice ~  Price + Health| 1| 0 | Q1Gender + Q2Age + 
                      Q3Distance + Q4Trips + Q6QOV+  Q14BP + 
@@ -454,7 +484,7 @@ GMNL_MXLsb <- gmnl(Choice ~  Price + Health| 1| 0 | Q1Gender + Q2Age +
                    ,seed = 123,reflevel = "SQ")
 
 
-# Mixed logit: model testing
+########### Model testing
 AICs <- t(data.frame("AIC(GMNL_MXLDefault)" = c(AIC(GMNL_MXLDefault)),
                      "AIC(GMNL_MXLPanel)" = c(AIC(GMNL_MXLPanel)),
                      "AIC(GMNL_MXLCorr)" = c(AIC(GMNL_MXLCorr)),
@@ -479,7 +509,7 @@ colnames(BICs) <- c("BIC")
 BICs <- data.frame(BICs[order(BICs),])
 
 
-# Mixed logit: Finding the best fitting model
+########### Best model search
 GMNL_MXLidk <- gmnl(formula = Choice ~ Price + Health   | 1 |
                            0 |  Q22Income- 1, 
                          data = Pilot_Understanding, 
@@ -501,24 +531,8 @@ BIC(GMNL_MXLidk)
 ## panel = FALSE by default, correlation = FALSE by default
 
 
-# Comparison of MLOGIT to GMNl 
-summary(mlogit(
-  Choice ~  Price + Health |  Q22Income,
-  Pilot_Understanding,
-       rpar=c(Heh="n"),
-       R=10,
-       halton=NULL,
-       panel=FALSE,correlation = FALSE,seed=123,
-       method="bfgs",reflevel = "SQ"))
-summary(gmnl(formula = 
-               Choice ~  Price + Health|  Q1Gender, 
-             Pilot_Understanding,
-             model = "mixl", ranp = c(Heh = "n"), R = 10, haltons = NULL,
-             panel = FALSE,  correlation = FALSE, method = "bfgs",reflevel = "SQ", 
-             seed = 123))
 
-
-# Latent class models
+########### Latent-Class Models
 LC_GM <- gmnl(Choice ~ Price + Health | 0 |
                   0 | 0 | 1,
                 data = Pilot_Understanding,
@@ -527,39 +541,15 @@ LC_GM <- gmnl(Choice ~ Price + Health | 0 |
                 Q = 2)
 summary(LC_GM)
 
-##########################################################################
-############### DCE: NESTED LOGIT                    #####################
-##########################################################################
-
-
-# Can setup a NL object:
-Test_LongNL <- mlogit.data(Test, shape = "wide", choice = "Choice",
-                         varying = 24:31, sep = "_", id.var = "ID",
-                         group.var = "Price")
-
-# No luck estimating a NL model as I can't think of the nests
 
 
 ##########################################################################
-############### Trimmed sample #####################
+############### DCE: APOLLO package                  #####################
 ##########################################################################
 
-
-Test_Long <- data.frame(read.csv("Test_Long.csv"))
-Test_Long$alt <- as.numeric(Test_Long$alt)
-Test_Long$alt[Test_Long$alt == 2] <- 0
-Test_Long$Choice <- as.integer(Test_Long$Choice)
-
-Pilot_Dominated <- Tests[!Tests$ID %in% c(Tests$ID[ ((Tests$Task == 1) & (Tests$Choice ==0))]),]
-Pilot_Understanding <- Pilot_Dominated[!Pilot_Dominated$ID %in% c( unique(Pilot_Dominated$ID[Pilot_Dominated$Q23Survey <= 5])),]
-Pilot_Cons <- Pilot_Understanding[!Pilot_Understanding$ID %in% c( unique(Pilot_Understanding$ID[Pilot_Understanding$Q18Consequentiality == 0])),]
-
-
-
 ##########################################################################
-############### Apollo: MNL: WORKS                   #####################
-##########################################################################
-# rm(list = ls())
+############### APOLLO: MNL                          #####################
+
 library(apollo)
 apollo_initialise()
 
@@ -654,8 +644,7 @@ apollo_modelOutput(apollo_estimate(apollo_beta, apollo_fixed, apollo_probabiliti
 
 
 ##########################################################################
-############### Apollo: MXL: FAULT                   #####################
-##########################################################################
+############### APOLLO: MXL                          #####################
 
 
 library(apollo)
@@ -741,10 +730,8 @@ change=(predictions_new-predictions_base)/predictions_base
 change=change[,-ncol(change)]
 summary(change)
 
-
 ##########################################################################
-############### Apollo: LCM: WORKS                   #####################
-##########################################################################
+############### APOLLO: LCM                          #####################
 
 
 rm(list = ls())
@@ -838,11 +825,8 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
 apollo_beta=apollo_searchStart(apollo_beta, apollo_fixed,apollo_probabilities, apollo_inputs)
 apollo_modelOutput(apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs))
 
-
-
 ##########################################################################
-############### Apollo: HCM: FAULT                  #####################
-##########################################################################
+############### APOLLO: HCM                          #####################
 
 
 library(apollo)
