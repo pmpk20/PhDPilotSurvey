@@ -215,7 +215,7 @@ MXLFull <- mlogit(
     Q16Charity + Q17Understanding+ 
     Q18Consequentiality + Q19Experts +Q20Education+ 
     Q21Employment +  Q22Income+Q23Survey,
-  Test_Long, rpar=c(Price="n"),R=10,correlation = FALSE,
+  Test_Long, rpar=c(Health="n"),R=10,correlation = FALSE,
   halton=NA,method="bhhh",panel=TRUE,seed=123)
 summary(MXLFull)
 # Can remove intercept by replacing "Health | Q1Gender" with "Health | +0 + Q1Gender"  
@@ -510,20 +510,179 @@ BICs <- data.frame(BICs[order(BICs),])
 
 
 ########### Best model search
+MXR_Gender <- gmnl(formula = Choice ~ Price + Health |
+                      0   | 0 |Q1Gender, 
+                    data = Pilot_Understanding, 
+                    model = "mixl", ranp = c( Heh = "n"), 
+                    R = 10, haltons =NULL,
+                    mvar = list(Heh = c("Q1Gender")),
+                    method = "bfgs",correlation = FALSE)
+MXR_Age <- gmnl(formula = Choice ~ Price + Health |
+                      0   | 0 |Q2Age, 
+                    data = Pilot_Understanding, 
+                    model = "mixl", ranp = c( Heh = "n"), 
+                    R = 10, haltons =NULL,
+                    mvar = list(Heh = c("Q2Age")),
+                    method = "bfgs",correlation = FALSE)
+MXR_Distance <- gmnl(formula = Choice ~ Price + Health |
+                      0   | 0 |Q3Distance, 
+                    data = Pilot_Understanding, 
+                    model = "mixl", ranp = c( Heh = "n"), 
+                    R = 10, haltons =NULL,
+                    mvar = list(Heh = c("Q3Distance")),
+                    method = "bfgs",correlation = FALSE)
+MXR_Trips <- gmnl(formula = Choice ~ Price + Health |
+                       0   | 0 |Q4Trips, 
+                     data = Pilot_Understanding, 
+                     model = "mixl", ranp = c( Heh = "n"), 
+                     R = 10, haltons =NULL,
+                     mvar = list(Heh = c("Q4Trips")),
+                     method = "bfgs",correlation = FALSE)
+MXR_Action <- gmnl(formula = Choice ~ Price + Health |
+                    0   | 0 |Q10Action, 
+                  data = Pilot_Understanding, 
+                  model = "mixl", ranp = c( Heh = "n"), 
+                  R = 10, haltons =NULL,
+                  mvar = list(Heh = c("Q10Action")),
+                  method = "bfgs",correlation = FALSE)
+MXR_Self <- gmnl(formula = Choice ~ Price + Health |
+                    0   | 0 |Q11Self, 
+                  data = Pilot_Understanding, 
+                  model = "mixl", ranp = c( Heh = "n"), 
+                  R = 10, haltons =NULL,
+                  mvar = list(Heh = c("Q11Self")),
+                  method = "bfgs",correlation = FALSE)
+MXR_Others <- gmnl(formula = Choice ~ Price + Health |
+                   0   | 0 |Q12Others, 
+                 data = Pilot_Understanding, 
+                 model = "mixl", ranp = c( Heh = "n"), 
+                 R = 10, haltons =NULL,
+                 mvar = list(Heh = c("Q12Others")),
+                 method = "bfgs",correlation = FALSE)
+MXR_Marine <- gmnl(formula = Choice ~ Price + Health |
+                   0   | 0 |Q13Marine, 
+                 data = Pilot_Understanding, 
+                 model = "mixl", ranp = c( Heh = "n"), 
+                 R = 10, haltons =NULL,
+                 mvar = list(Heh = c("Q13Marine")),
+                 method = "bfgs",correlation = FALSE)
+MXR_BP <- gmnl(formula = Choice ~ Price + Health |
+                     0   | 0 |Q14BP, 
+                   data = Pilot_Understanding, 
+                   model = "mixl", ranp = c( Heh = "n"), 
+                   R = 10, haltons =NULL,
+                   mvar = list(Heh = c("Q14BP")),
+                   method = "bfgs",correlation = FALSE)
+MXR_Charity <- gmnl(formula = Choice ~ Price + Health |
+                     0   | 0 |Q16Charity, 
+                   data = Pilot_Understanding, 
+                   model = "mixl", ranp = c( Heh = "n"), 
+                   R = 10, haltons =NULL,
+                   mvar = list(Heh = c("Q16Charity")),
+                   method = "bfgs",correlation = FALSE)
+MXR_understanding <- gmnl(formula = Choice ~ Price + Health |
+                      0   | 0 |Q17Understanding, 
+                    data = Pilot_Understanding, 
+                    model = "mixl", ranp = c( Heh = "n"), 
+                    R = 10, haltons =NULL,
+                    mvar = list(Heh = c("Q17Understanding")),
+                    method = "bfgs",correlation = FALSE)
+MXR_Consequentiality <- gmnl(formula = Choice ~ Price + Health |
+                      0   | 0 |Q18Consequentiality, 
+                    data = Pilot_Understanding, 
+                    model = "mixl", ranp = c( Heh = "n"), 
+                    R = 10, haltons =NULL,
+                    mvar = list(Heh = c("Q18Consequentiality")),
+                    method = "bfgs",correlation = FALSE)
+MXR_Q19Experts <- gmnl(formula = Choice ~ Price + Health |
+                               0   | 0 |Q19Experts, 
+                             data = Pilot_Understanding, 
+                             model = "mixl", ranp = c( Heh = "n"), 
+                             R = 10, haltons =NULL,
+                             mvar = list(Heh = c("Q19Experts")),
+                             method = "bfgs",correlation = FALSE)
+MXR_Q20Education <- gmnl(formula = Choice ~ Price + Health |
+                               0   | 0 |Q20Education, 
+                             data = Pilot_Understanding, 
+                             model = "mixl", ranp = c( Heh = "n"), 
+                             R = 10, haltons =NULL,
+                             mvar = list(Heh = c("Q20Education")),
+                             method = "bfgs",correlation = FALSE)
+MXR_Q22Income <- gmnl(formula = Choice ~ Price + Health |
+                               0   | 0 |Q22Income, 
+                             data = Pilot_Understanding, 
+                             model = "mixl", ranp = c( Heh = "n"), 
+                             R = 10, haltons =NULL,
+                             mvar = list(Heh = c("Q22Income")),
+                             method = "bfgs",correlation = FALSE)
+AICs <- t(data.frame("AIC(MXR_Gender)" = c(AIC(MXR_Gender)),
+                     "AIC(MXR_Age)" = c(AIC(MXR_Age)),
+                     "AIC(MXR_Distance)" = c(AIC(MXR_Distance)),
+                     "AIC(MXR_Trips)" = c(AIC(MXR_Trips)),
+                     "AIC(MXR_Action)" = c(AIC(MXR_Action)),
+                     "AIC(MXR_Self)" = c(AIC(MXR_Self)),
+                     "AIC(MXR_Others)" = c(AIC(MXR_Others)),
+                     "AIC(MXR_Marine)" = c(AIC(MXR_Marine)),
+                     "AIC(MXR_BP)" = c(AIC(MXR_BP)),
+                     "AIC(MXR_Charity)" = c(AIC(MXR_Charity)),
+                     "AIC(MXR_understanding)" = c(AIC(MXR_understanding)),
+                     "AIC(MXR_Consequentiality)" = c(AIC(MXR_Consequentiality)),
+                     "AIC(MXR_Q19Experts)" = c(AIC(MXR_Q19Experts)),
+                     "AIC(MXR_Q20Education)" = c(AIC(MXR_Q20Education)),
+                     "AIC(MXR_Q22Income)" = c(AIC(MXR_Q22Income))))
+colnames(AICs) <- c("AIC")
+AICs <- data.frame(AICs[order(AICs),])
+BICs <- t(data.frame("BIC(MXR_Gender)" = c(BIC(MXR_Gender)),
+                     "BIC(MXR_Age)" = c(BIC(MXR_Age)),
+                     "BIC(MXR_Distance)" = c(BIC(MXR_Distance)),
+                     "BIC(MXR_Trips)" = c(BIC(MXR_Trips)),
+                     "BIC(MXR_Action)" = c(BIC(MXR_Action)),
+                     "BIC(MXR_Self)" = c(BIC(MXR_Self)),
+                     "BIC(MXR_Others)" = c(BIC(MXR_Others)),
+                     "BIC(MXR_Marine)" = c(BIC(MXR_Marine)),
+                     "BIC(MXR_BP)" = c(BIC(MXR_BP)),
+                     "BIC(MXR_Charity)" = c(BIC(MXR_Charity)),
+                     "BIC(MXR_understanding)" = c(BIC(MXR_understanding)),
+                     "BIC(MXR_Consequentiality)" = c(BIC(MXR_Consequentiality)),
+                     "BIC(MXR_Q19Experts)" = c(BIC(MXR_Q19Experts)),
+                     "BIC(MXR_Q20Education)" = c(BIC(MXR_Q20Education)),
+                     "BIC(MXR_Q22Income)" = c(BIC(MXR_Q22Income))))
+colnames(BICs) <- c("BIC")
+BICs <- data.frame(BICs[order(BICs),])
+summary(MXR_Gender) 
+summary(MXR_Age) 
+summary(MXR_Distance) 
+summary(MXR_Action)
+summary(MXR_Self)
+summary(MXR_Action)
+summary(MXR_Others)
+summary(MXR_Marine)
+summary(MXR_BP)
+summary(MXR_Charity)
+summary(MXR_understanding)
+summary(MXR_Consequentiality)
+summary(MXR_Q19Experts)
+summary(MXR_Q20Education)
+summary(MXR_Q22Income)
+
+
+
 GMNL_MXLidk <- gmnl(formula = Choice ~ Price + Health |
-                      0   | 0 |Q14BP, 
+                      0   | 0 |Q20Education, 
                       data = Pilot_Understanding, 
                       model = "mixl", ranp = c( Heh = "n"), 
                       R = 10, haltons =NULL,
-                      mvar = list(Heh = c("Q14BP")),
+                      mvar = list(Heh = c("Q4Trips")),
                       method = "bfgs",correlation = FALSE)
 summary(GMNL_MXLidk)
-wtp.gmnl(GMNL_MXLidk,"Price",3)
+AIC(GMNL_MXLidk)
+BIC(GMNL_MXLidk)
 plot(GMNL_MXLidk, 
      par = "Heh", effect = "wtp", 
      type = "density", col = "grey",wrt="Price")
-AIC(GMNL_MXLidk)
-BIC(GMNL_MXLidk)
+
+wtp.gmnl(GMNL_MXLidk,"Price",3)
+
 ## scoretest
 ## hmftest
 ## waldtest
