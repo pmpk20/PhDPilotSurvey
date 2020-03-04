@@ -150,14 +150,16 @@ library(lattice)
 xyplot(Q5CVM1~Q6QOV|as.factor(Pilot_Understanding$Q1Gender), data = Pilot_Understanding,type=c("p","r","g"), col="dark blue", col.line="black")
 
 
-####################################################################################
-############### Section 4: DCE Analysis                    ##########################
-####################################################################################
 
 
 ##########################################################################
-############### DCE: GMNL package                    #####################
 ##########################################################################
+############### DCE                                  #####################
+##########################################################################
+##########################################################################
+
+
+
 
 
 ##########################################################################
@@ -215,7 +217,7 @@ MXLFull <- mlogit(
     Q16Charity + Q17Understanding+ 
     Q18Consequentiality + Q19Experts +Q20Education+ 
     Q21Employment +  Q22Income+Q23Survey,
-  Test_Long, rpar=c(Health="n"),R=10,correlation = FALSE,
+  Test_Long, rpar=c(Heh="n"),R=10,correlation = FALSE,
   halton=NA,method="bhhh",panel=TRUE,seed=123)
 summary(MXLFull)
 # Can remove intercept by replacing "Health | Q1Gender" with "Health | +0 + Q1Gender"  
@@ -281,7 +283,7 @@ barplot(PV$Effect, names.arg = PV$Variables,xlab = "Variables",ylab = "Effect",y
 length(PV$PV)
 
 # Reports MRS in WTP Space 
-summary(rpar(MXLFull,"Health",norm="Price"))
+rpar(MXLFull,"Health",norm="Price")
 mean(rpar(MXLFull, "Health", norm = "Price"))
 
 
@@ -649,30 +651,52 @@ BICs <- t(data.frame("BIC(MXR_Gender)" = c(BIC(MXR_Gender)),
                      "BIC(MXR_Q22Income)" = c(BIC(MXR_Q22Income))))
 colnames(BICs) <- c("BIC")
 BICs <- data.frame(BICs[order(BICs),])
-summary(MXR_Gender) 
-summary(MXR_Age) 
-summary(MXR_Distance) 
-summary(MXR_Action)
-summary(MXR_Self)
-summary(MXR_Action)
-summary(MXR_Others)
-summary(MXR_Marine)
-summary(MXR_BP)
-summary(MXR_Charity)
-summary(MXR_understanding)
-summary(MXR_Consequentiality)
-summary(MXR_Q19Experts)
-summary(MXR_Q20Education)
-summary(MXR_Q22Income)
+Peez <- t(data.frame("MXR_Gender"  = c(getSummary.gmnl(MXR_Gender)$coef[,4]),
+                     "MXR_Age"     = c(getSummary.gmnl(MXR_Age)$coef[,4]),
+                     "MXR_Distance"= c(getSummary.gmnl(MXR_Distance)$coef[,4]),
+                     "MXR_Trips"   = c(getSummary.gmnl(MXR_Trips)$coef[,4]),
+                     "MXR_Action"  = c(getSummary.gmnl(MXR_Action)$coef[,4]),
+                     "MXR_Self"    = c(getSummary.gmnl(MXR_Self)$coef[,4]),
+                     "MXR_Others"  = c(getSummary.gmnl(MXR_Others)$coef[,4]),
+                     "MXR_Marine"  = c(getSummary.gmnl(MXR_Marine)$coef[,4]),
+                     "MXR_BP"      = c(getSummary.gmnl(MXR_BP)$coef[,4]),
+                     "MXR_Charity" = c(getSummary.gmnl(MXR_Charity)$coef[,4]),
+                     "MXR_understanding"    = c(getSummary.gmnl(MXR_understanding)$coef[,4]),
+                     "MXR_Consequentiality" = c(getSummary.gmnl(MXR_Consequentiality)$coef[,4]),
+                     "MXR_Q19Experts"       = c(getSummary.gmnl(MXR_Q19Experts)$coef[,4]),
+                     "MXR_Q20Education"     = c(getSummary.gmnl(MXR_Q20Education)$coef[,4]),
+                     "MXR_Q22Income"        = c(getSummary.gmnl(MXR_Q22Income)$coef[,4])))
+Peez <- cbind(Peez,data.frame(rowSums(Peez)))
+colnames(Peez) <- c("Price","Health","Health*Gender","SD*Health","Score")
+Peez <- data.frame(Peez[order(Peez[,5]),])
+LLik <- t(data.frame("MXR_Gender"  = c(getSummary.gmnl(MXR_Gender)$sumstat[1]),
+                     "MXR_Age"     = c(getSummary.gmnl(MXR_Age)$sumstat[1]),
+                     "MXR_Distance"= c(getSummary.gmnl(MXR_Distance)$sumstat[1]),
+                     "MXR_Trips"   = c(getSummary.gmnl(MXR_Trips)$sumstat[1]),
+                     "MXR_Action"  = c(getSummary.gmnl(MXR_Action)$sumstat[1]),
+                     "MXR_Self"    = c(getSummary.gmnl(MXR_Self)$sumstat[1]),
+                     "MXR_Others"  = c(getSummary.gmnl(MXR_Others)$sumstat[1]),
+                     "MXR_Marine"  = c(getSummary.gmnl(MXR_Marine)$sumstat[1]),
+                     "MXR_BP"      = c(getSummary.gmnl(MXR_BP)$sumstat[1]),
+                     "MXR_Charity" = c(getSummary.gmnl(MXR_Charity)$sumstat[1]),
+                     "MXR_understanding"    = c(getSummary.gmnl(MXR_understanding)$sumstat[1]),
+                     "MXR_Consequentiality" = c(getSummary.gmnl(MXR_Consequentiality)$sumstat[1]),
+                     "MXR_Q19Experts"       = c(getSummary.gmnl(MXR_Q19Experts)$sumstat[1]),
+                     "MXR_Q20Education"     = c(getSummary.gmnl(MXR_Q20Education)$sumstat[1]),
+                     "MXR_Q22Income"        = c(getSummary.gmnl(MXR_Q22Income)$sumstat[1])))
+LLik <- data.frame(LLik[order(LLik,decreasing = TRUE),])
+OverallModels <- data.frame(AICs[,1]+BICs[,1]+Peez[,5]+LLik[,1])
+OverallModels <- data.frame(OverallModels[order(OverallModels,decreasing = FALSE),,drop=FALSE])
+
 
 
 
 GMNL_MXLidk <- gmnl(formula = Choice ~ Price + Health |
-                      0   | 0 |Q20Education, 
+                      0   | 0 |Q16Charity, 
                       data = Pilot_Understanding, 
                       model = "mixl", ranp = c( Heh = "n"), 
                       R = 10, haltons =NULL,
-                      mvar = list(Heh = c("Q4Trips")),
+                      mvar = list(Heh = c("Q16Charity")),
                       method = "bfgs",correlation = FALSE)
 summary(GMNL_MXLidk)
 AIC(GMNL_MXLidk)
@@ -680,8 +704,9 @@ BIC(GMNL_MXLidk)
 plot(GMNL_MXLidk, 
      par = "Heh", effect = "wtp", 
      type = "density", col = "grey",wrt="Price")
-
 wtp.gmnl(GMNL_MXLidk,"Price",3)
+summary(effect.gmnl(GMNL_MXLidk, par = "Heh", effect = "wtp", wrt = "Price")$mean)
+
 
 ## scoretest
 ## hmftest
@@ -689,23 +714,63 @@ wtp.gmnl(GMNL_MXLidk,"Price",3)
 ## haltons = list("primes"= c(2, 17),"drop" = rep(19, 2))
 ## panel = FALSE by default, correlation = FALSE by default
 
+ML_idk <- mlogit(formula = Choice ~ Price + Health |Q16Charity, 
+                 data = Pilot_Understanding, 
+                 model = "mixl", ranp = c( Heh = "n"), 
+                 R = 10, haltons =NULL,
+                 method = "bfgs",correlation = FALSE)
+plot(ML_idk,par = "Heh",norm = "Price",type = "density")
+summary(effect.gmnl(GMNL_MXLidk, par = "Heh", effect = "wtp", wrt = "Price")$mean)
 
 
+
+##########################################################################
+############### Bootstrapping
+## Problem: can only use GMNL
+library(boot)
+bs <- function(formula, data, indices) {
+  d <- data[indices,] # allows boot to select sample
+  fit <- gmnl(formula, data, 
+  model = "mixl", ranp = c( Heh = "n"), 
+  R = 10, haltons =NULL,
+  mvar = list(Heh = c("Q16Charity")),
+  method = "bfgs",correlation = FALSE)
+  return(summary(effect.gmnl(fit, par = "Heh", effect = "wtp", wrt = "Price")$mean)[4])
+}
+results <- boot(data=Pilot_Understanding, statistic=bs,
+                R=3, formula= Choice ~ Price + Health | 0   | 0 | Q16Charity)
+results
+plot(results)
+
+
+##########################################################################
+############### Clustering
+## Problem: can only use MLOGIT
+cluster.bs.mlogit(ML_idk, Pilot_Understanding, ~ ID, boot.reps=3)
+
+
+##########################################################################
+############### Latent-Class Models                  #####################
+##########################################################################
 ########### Latent-Class Models
 LC_GM <- gmnl(Choice ~ Price + Health | 0 |
-                  0 | 0 | 1,
-                data = Pilot_Understanding,
-                model = 'lc',
-                panel = TRUE,
-                Q = 2)
+                0 | 0 | 1,
+              data = Pilot_Understanding,
+              model = 'lc',
+              panel = TRUE,
+              Q = 2)
 summary(LC_GM)
 
 
 
+##########################################################################
+##########################################################################
+############### CVM                                  #####################
+##########################################################################
+##########################################################################
 
-##########################################################################
-############### CVM Probit                           #####################
-##########################################################################
+
+
 
 # Guidance on PROBIT:
 ## https://stats.idre.ucla.edu/r/dae/probit-regression/
@@ -725,9 +790,11 @@ summary(CVMProbit)
 confint(CVMProbit)
 wald.test(b = coef(CVMProbit), Sigma = vcov(CVMProbit), Terms=2)
 
-probitmfx(formula = Q6QOV ~ Q2Age + Q3Distance + Q4Trips + Q6QOV+  Q14BP 
-          +Q17Understanding+ +Q18Consequentiality + Q19Experts +Q20Education+ 
-            +Q21Employment +  Q22Income,data = Pilot_Understanding,robust = TRUE)
+probitmfx(formula = Q5CVM1 ~ Q1Gender + Q2Age + 
+            Q3Distance + Q4Trips + Q6QOV+  Q14BP + 
+            Q16Charity + Q17Understanding+ 
+            Q18Consequentiality + Q19Experts +Q20Education+ 
+            Q21Employment +  Q22Income+Q23Survey,data = Pilot_Understanding,robust = TRUE)
 
 ##########################################################################
 ############### QOV Probit                           #####################
@@ -739,8 +806,92 @@ QOVProbit <-glm(Q6QOV ~ Q2Age +
                   Q18Consequentiality + Q19Experts +Q20Education+ 
                   Q21Employment +  Q22Income, family = binomial(link = "probit"),data = Pilot_Understanding)
 summary(QOVProbit)
+probitmfx(formula = Q6QOV ~ Q2Age + Q3Distance + Q4Trips +  Q14BP 
+          +Q17Understanding+ +Q18Consequentiality + Q19Experts +Q20Education+ 
+            +Q21Employment +  Q22Income,data = Pilot_Understanding,robust = TRUE)
 confint(QOVProbit)
 wald.test(b = coef(QOVProbit), Sigma = vcov(QOVProbit), Terms=2)
+
+
+
+##########################################################################
+############### CVM: DChoice package                  #####################
+##########################################################################
+
+if (!requireNamespace("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+
+BiocManager::install("Icens")
+install.packages("interval")
+install.packages("DCchoice")
+library(DCchoice)
+
+
+QOV1 <- as.integer(rep(5,nrow(Pilot_Understanding)))
+QOV2 <- as.integer(rep(10,nrow(Pilot_Understanding)))
+
+
+Pilot_Adjusted <- data.frame(as.integer(rep(5,nrow(Pilot_Understanding))),
+                             Pilot_Understanding$Q6QOV,
+                             Pilot_Understanding$Q1Gender,
+                             Pilot_Understanding$Q2Age,
+                             Pilot_Understanding$Q22Income)
+colnames(Pilot_Adjusted) <- c("bid1","answers","sex","age","income")
+CVM_SB <- sbchoice(answers ~ sex + age + income | log(Pilot_Adjusted$bid1), data = Pilot_Adjusted)
+summary(CVM_SB)
+krCI(CVM_SB)
+bootCI(CVM_SB)
+NPts <- turnbull.sb(answers ~ bid1, data = Pilot_Adjusted)
+summary(NPts)
+plot(NPts)
+
+
+data(NaturalPark, package = "Ecdat")
+## The variable answers are converted into a format that is suitable for
+## the function sbchoice() as follows:
+NaturalPark$R1 <- ifelse(substr(NaturalPark$answers, 1, 1) == "y", 1, 0)
+NaturalPark$R2 <- ifelse(substr(NaturalPark$answers, 2, 2) == "y", 1, 0)
+## We assume that the error distribution in the model is a log-logistic;
+## therefore, the bid variables bid1 is converted into LBD1 as follows:
+NaturalPark$LBD1 <- log(NaturalPark$bid1)
+## The utility difference function is assumed to contain covariates
+## (sex, age, and income) as well as the bid variable (LBD1) as follows
+## (R2 is not used because of single-bounded dichotomous choice CV format):
+fmsb <- R1 ~ sex + age + income | LBD1
+## Not run:
+## The formula may be alternatively defined as
+fmsb <- R1 ~ sex + age + income | log(bid1)
+## End(Not run)
+## The function sbchoice() with the function fmsb and the data frame NP
+## is executed as follows:
+NPsb <- sbchoice(R1 ~ sex + age + income | log(bid1), data = NaturalPark)
+NPsb
+NPsbs <- summary(NPsb)
+NPsbs
+## The WTP of a female with age = 5 and income = 3 is calculated
+## using function krCI() or bootCI() as follows:
+krCI(NPsb, individual = data.frame(sex = "female", age = 5, income = 3))
+bootCI(NPsb, individual = data.frame(sex = "female", age = 5, income = 3))
+update(NPsb, .~. - age - income |.)
+head(predict(NPsb, type = "utility"))
+head(predict(NPsb, type = "probability"))
+newdata = data.frame(sex = "female", age = 5, income = 3, LBD1 = log(10))
+colnames(newdata) <- c("sex","age","income","bid1")
+predict(NPsb, type = "utility",newdata)
+predict(NPsb, type = "probability",newdata)
+plot(NPsb)
+## The range of bid can be limited (e.g., [log(10), log(20)]):
+plot(NPsb, bid = c(log(10), log(20)))
+NPts <- turnbull.sb(R1 ~ bid1, data = NaturalPark)
+summary(NPts)
+plot(NPts)
+
+
+
+
+
+
+
 
 ##########################################################################
 ############### DCE: APOLLO package                  #####################
