@@ -11,9 +11,7 @@
 
 ##########################################################################
 ############### Current Issues:                             ##############
-############### -- Correct APOLLO MXL/HCM                       ########## 
-############### -- Is the GMNL package worthwhile?              ##########
-############### -- Fix the MXL and report in full               ##########
+############### -- Fix MXL                                  ##############
 ##########################################################################
 
 
@@ -25,7 +23,6 @@
 install.packages("dplyr") # Useful later for data manipulation
 install.packages("mlogit")
 install.packages("gmnl")
-install.packages("apollo")
 rm(list = ls())
 ############ Importing data:
 
@@ -74,14 +71,15 @@ Pilot2$Q21Employment[Pilot2$Q21Employment == 1] <-0 #Change NEET to zero
 Pilot2$Q21Employment[Pilot2$Q21Employment == 2] <-1 #Change Part to 1
 Pilot2$Q21Employment[Pilot2$Q21Employment == 4] <-2 #Self stays same so student changes to 2
 Pilot2$Q21Employment[Pilot2$Q21Employment == 5] <-4 #Put full back as highest value
-Pilot2$Q22Income[Pilot2$Q22Income == 7] <-0.5 #The only wrong assignment of Employment was the 500-1000 level which it put last?
-Pilot2$Q22Income[Pilot2$Q22Income == 6] <-7
-Pilot2$Q22Income[Pilot2$Q22Income == 5] <-6
-Pilot2$Q22Income[Pilot2$Q22Income == 4] <-5
-Pilot2$Q22Income[Pilot2$Q22Income == 3] <-4
-Pilot2$Q22Income[Pilot2$Q22Income == 2] <-3
-Pilot2$Q22Income[Pilot2$Q22Income == 1] <-2
-Pilot2$Q22Income[Pilot2$Q22Income == 0.5] <-1
+Pilot2$Q22Income[Pilot2$Q22Income == 7] <- 750.0 #The only wrong assignment of Employment was the 500-1000 level which it put last?
+Pilot2$Q22Income[Pilot2$Q22Income == 6] <- 5000.0
+Pilot2$Q22Income[Pilot2$Q22Income == 5] <- 3500.0
+Pilot2$Q22Income[Pilot2$Q22Income == 4] <- 2750.0
+Pilot2$Q22Income[Pilot2$Q22Income == 3] <- 2250.0
+Pilot2$Q22Income[Pilot2$Q22Income == 2] <- 1750.0
+Pilot2$Q22Income[Pilot2$Q22Income == 1] <- 1250.0
+Pilot2$Q22Income[Pilot2$Q22Income == 0] <- 250.0
+Pilot2$Q22Income[Pilot2$Q22Income == 8] <- mean(Pilot2$Q22Income)
 
 SpecificChoices <- data.frame("Effectiveness.ALT" =c(0,0,0), 
                               "Env.ALT" =c(90,40,40),
@@ -137,8 +135,8 @@ Pilot_Dominated <- Test_Long[!Test_Long$ID %in% c(Test_Long$ID[ ((Test_Long$Task
 Pilot_Understanding <- Pilot_Dominated[!Pilot_Dominated$ID %in% c( unique(Pilot_Dominated$ID[Pilot_Dominated$Q23Survey <= 5])),]
 Pilot_Cons <- Pilot_Understanding[!Pilot_Understanding$ID %in% c( unique(Pilot_Understanding$ID[Pilot_Understanding$Q18Consequentiality == 0])),]
 # Test_Long <- Pilot_Cons
-
-
+# write.csv(x = Pilot_Understanding ,"H:/PhDPilotSurvey/Pilot_Understanding.csv")
+# Pilot_Understanding$Choice <- as.numeric(Pilot_Understanding$Choice)
 
 ####################################################################################
 ############### Section 3: Descriptive                    ##########################
@@ -147,8 +145,9 @@ Pilot_Cons <- Pilot_Understanding[!Pilot_Understanding$ID %in% c( unique(Pilot_U
 
 
 library(lattice)
+# Plot income versus precaution by gender
 xyplot(Q5CVM1~Q6QOV|as.factor(Pilot_Understanding$Q1Gender), data = Pilot_Understanding,type=c("p","r","g"), col="dark blue", col.line="black")
-
+xyplot(Q6QOV~Q22Income|as.factor(Pilot_Understanding$Q1Gender), data = Pilot_Understanding,type=c("p","r","g"), col="dark blue", col.line="black")
 
 
 
