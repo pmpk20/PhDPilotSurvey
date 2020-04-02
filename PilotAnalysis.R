@@ -23,6 +23,7 @@
 install.packages("dplyr") # Useful later for data manipulation
 install.packages("mlogit")
 install.packages("gmnl")
+install.packages("stargazer")
 rm(list = ls())
 ############ Importing data:
 
@@ -48,8 +49,10 @@ for (i in colnames(Pilot)){
   if (is.factor(Pilot[[i]]) == TRUE){
     Pilot2[[i]] <- as.numeric(Pilot[[i]])-1
   }
-}
+} # Here I make all the columns factors for ease of analysis.
 
+
+# This block updates the values from the loop above to make more sense. 
 Pilot2$Q3Distance[Pilot2$Q3Distance == 1] <- 4
 Pilot2$Q3Distance[Pilot2$Q3Distance == 0] <- 1
 Pilot2$Q6QOV <- t(t(1-Pilot2$Q6QOV)) # Change the QOV coding so 1 is precaution
@@ -81,11 +84,24 @@ Pilot2$Q22Income[Pilot2$Q22Income == 1] <- 1250.0
 Pilot2$Q22Income[Pilot2$Q22Income == 0] <- 250.0
 Pilot2$Q22Income[Pilot2$Q22Income == 8] <- mean(Pilot2$Q22Income)
 
+# Can change the age categories:
+# levels(Pilot$Q2Age): 21.5, 32.5, 47.5, 63
+Pilot2$Q2Age[Pilot2$Q2Age == 0] <- 21.5
+Pilot2$Q2Age[Pilot2$Q2Age == 1] <- 32.5
+Pilot2$Q2Age[Pilot2$Q2Age == 2] <- 47.5
+Pilot2$Q2Age[Pilot2$Q2Age == 3] <- 63
+Pilot2$Q3Distance[Pilot2$Q3Distance == 1] <- 12.5
+Pilot2$Q3Distance[Pilot2$Q3Distance == 2] <- 38
+Pilot2$Q3Distance[Pilot2$Q3Distance == 3] <- 75
+Pilot2$Q3Distance[Pilot2$Q3Distance == 4] <- 100
+
+# I make a vector of the alternatives levels from the CE
 SpecificChoices <- data.frame("Effectiveness.ALT" =c(0,0,0), 
                               "Env.ALT" =c(90,40,40),
                               "Price.ALT" =c(0,1,1),
                               "Health.ALT" =c(0,0.1, 0.6))
 
+# I make a vector of the status quo levels from the CE
 SQChoices <- data.frame("Effectiveness.SQ" =c(0,0,0), 
                               "Env.SQ" =c(0,0,0),
                               "Price.SQ" =c(0,0,0),
@@ -117,8 +133,8 @@ colnames(Test) <- c("ID","Task","Q1Gender", "Q2Age", "Q3Distance", "Q4Trips","Q5
 Tests <- data.frame(Test[,1:2],Test$Choice,Test[,24:31])
 # Takes the core elements of the TEST data frame
 
-Test$av_ALT <- rep(1,nrow(Test))
-Test$av_SQ <- rep(1,nrow(Test))
+Test$av_ALT <- rep(1,nrow(Test)) # Add a vector of ones to show that the alternative choice is always available to respondents.
+Test$av_SQ <- rep(1,nrow(Test)) # Add a vector of ones to show that the status quo is always available to respondents as consistent with theory.
 Tests <- Test
 Test$Choice[Test$Choice == 0] <- "SQ"  ## Necessary here to change numeric to string
 Test$Choice[Test$Choice == 1] <- "ALT" ## The MFORMULA looks for _SQ or _ALT so choice must be SQ or ALT
@@ -132,7 +148,9 @@ Test_Long <- mlogit.data(Test, shape = "wide", choice = "Choice",
 
 ## To trim the sample: 
 Pilot_Dominated <- Test_Long[!Test_Long$ID %in% c(Test_Long$ID[ ((Test_Long$Task == 1) & (Test_Long$Choice ==0) & (grepl("SQ",rownames(Test_Long),fixed = TRUE) == FALSE)) ]),]
+# Pilot_Dominated removes those who failed the dominance test.
 Pilot_Understanding <- Pilot_Dominated[!Pilot_Dominated$ID %in% c( unique(Pilot_Dominated$ID[Pilot_Dominated$Q23Survey <= 5])),]
+# Pilot_Understanding removes those who reported low understanding.
 Pilot_Cons <- Pilot_Understanding[!Pilot_Understanding$ID %in% c( unique(Pilot_Understanding$ID[Pilot_Understanding$Q18Consequentiality == 0])),]
 # Test_Long <- Pilot_Cons
 # write.csv(x = Pilot_Understanding ,"H:/PhDPilotSurvey/Pilot_Understanding.csv")
@@ -170,21 +188,27 @@ Base_MNL <- mlogit(Choice ~  Price + Health,
                    alt.subset = c("SQ","ALT"),reflevel = "SQ") ##Estimating a simple model first
 summary(Base_MNL) ## Estimates a simplistic mlogit model before adding in individual-specifics
 
+
 ## Full MNL:
 Pilot_MNL <- mlogit(Choice ~ Price + Health | 
                       Q1Gender + Q2Age + Q3Distance
                     + Q4Trips + Q6QOV 
                     + Q14BP + Q16Charity 
-                    + Q17Understanding+ Q18Consequentiality
+                    + Q17Understanding
                     + Q19Experts +Q20Education+ Q21Employment
-                    +  Q22Income+Q23Survey, 
+                    +  Q22Income, 
                     Pilot_Understanding, alt.subset = c("SQ", "ALT"), 
                     reflevel = "SQ") ## Estimating a much larger MNL model with all the independent variables. 
 summary(Pilot_MNL) ## Summarises the MNL output
 ## key things to change include the placing of the |. 
 
+library(stargazer)
+stargazer(summary(Pilot_MNL)$CoefTable, title = "PilotMNL", align = TRUE,report="p*")
+# The stargazer package allows me to export model summaries to LaTeX code.
+# Problem is it won't export summary(Object) for mlogit objects - only the coeftable which misses out p value stars.
+ 
 Pilot_MNLa <- mlogit(Choice ~ Price + Health | 
-                      Q1Gender + Q14BP +Q18Consequentiality
+                      Q1Gender + Q14BP 
                     + Q19Experts +Q21Employment, 
                     Pilot_Understanding, alt.subset = c("SQ", "ALT"), 
                     reflevel = "SQ") ## Estimating a much larger MNL model with all the independent variables. 
@@ -213,14 +237,16 @@ summary(MIXLuncorrelated)
 MXLFull <- mlogit(
   Choice ~  Price + Health|  Q1Gender + Q2Age + 
     Q3Distance + Q4Trips + Q6QOV+ Q14BP +
-    Q16Charity + Q17Understanding+ 
-    Q18Consequentiality + Q19Experts +Q20Education+ 
-    Q21Employment +  Q22Income+Q23Survey,
-  Test_Long, rpar=c(Heh="n"),R=10,correlation = FALSE,
-  halton=NA,method="bhhh",panel=TRUE,seed=123)
+    Q16Charity + Q17Understanding
+  + Q19Experts +Q20Education+ 
+    Q21Employment +  Q22Income,
+  Pilot_Understanding, rpar=c(Price="ln"),
+  R=10,correlation = FALSE,
+  reflevel="SQ",halton=NA,method="bhhh",panel=TRUE,seed=123)
 summary(MXLFull)
 # Can remove intercept by replacing "Health | Q1Gender" with "Health | +0 + Q1Gender"  
 
+stargazer(summary(MXLFull)$CoefTable, title = "MXLFull", align = TRUE,report="p*")
 
 ##########################################################################
 ############### Evaluation                           #####################
@@ -341,17 +367,15 @@ summary(gmnl(formula =
 ########### Mixed Logit in GMNL
 GMNL_MXLDefault <- gmnl(Choice ~  Price + Health| 1| 0 | Q1Gender + Q2Age + 
                Q3Distance + Q4Trips + Q6QOV+  Q14BP + 
-               Q16Charity + Q17Understanding+ 
-               Q18Consequentiality + Q19Experts +Q20Education+ 
-               Q21Employment +  Q22Income+Q23Survey,
-             data = Test_Long,
+               Q16Charity + Q17Understanding
+               + Q19Experts +Q20Education+ 
+               Q21Employment +  Q22Income,
+             data = Pilot_Understanding,
              model = "mixl",
-             ranp = c( Price = "n", Heh = "n"),
-             mvar = list(Price = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey"),
-                         Heh = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey")),
+             ranp = c( Price = "ln", Heh = "n"),
+             mvar = list(Price = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q19Experts","Q20Education","Q21Employment","Q22Income")),
              R = 10,
-             haltons = list("primes"= c(2, 17),
-                            "drop" = rep(19, 2))
+             haltons = NULL
              ,seed = 123,reflevel = "SQ")
 summary(GMNL_MXLDefault)
 plot(GMNL_MXLDefault, par = "Heh", effect = "wtp", type = "density", col = "grey",wrt="Price")
@@ -719,6 +743,8 @@ ML_idk <- mlogit(formula = Choice ~ Price + Health |Q16Charity,
                  R = 10, haltons =NULL,
                  method = "bfgs",correlation = FALSE)
 plot(ML_idk,par = "Heh",norm = "Price",type = "density")
+# Use the effect.gmnl method to report individual WTP
+# The WTP.gmnl command reports the normal method.
 summary(effect.gmnl(GMNL_MXLidk, par = "Heh", effect = "wtp", wrt = "Price")$mean)
 
 
@@ -789,11 +815,10 @@ summary(CVMProbit)
 confint(CVMProbit)
 wald.test(b = coef(CVMProbit), Sigma = vcov(CVMProbit), Terms=2)
 
-probitmfx(formula = Q5CVM1 ~ Q1Gender + Q2Age + 
+CVMProbit <- probitmfx(formula = Q5CVM1 ~ Q1Gender + Q2Age + 
             Q3Distance + Q4Trips + Q6QOV+  Q14BP + 
-            Q16Charity + Q17Understanding+ 
-            Q18Consequentiality + Q19Experts +Q20Education+ 
-            Q21Employment +  Q22Income+Q23Survey,data = Pilot_Understanding,robust = TRUE)
+            Q16Charity + Q17Understanding + Q19Experts +Q20Education+ 
+            Q21Employment +  Q22Income,data = Pilot_Understanding,robust = TRUE)
 
 ##########################################################################
 ############### QOV Probit                           #####################
