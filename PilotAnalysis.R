@@ -160,13 +160,14 @@ Pilot_Cons <- Pilot_Understanding[!Pilot_Understanding$ID %in% c( unique(Pilot_U
 ############### Section 3: Descriptive                    ##########################
 ####################################################################################
 
-
-
 library(lattice)
 # Plot income versus precaution by gender
-xyplot(Q5CVM1~Q6QOV|as.factor(Pilot_Understanding$Q1Gender), data = Pilot_Understanding,type=c("p","r","g"), col="dark blue", col.line="black")
-xyplot(Q6QOV~Q22Income|as.factor(Pilot_Understanding$Q1Gender), data = Pilot_Understanding,type=c("p","r","g"), col="dark blue", col.line="black")
+P1 <- xyplot(Q6QOV~Q22Income|as.factor(Pilot_Understanding$Q16Charity), data = Pilot_Understanding,type=c("p","r","g"), col="dark blue", col.line="black")
+P2 <- xyplot(Q6QOV~Q22Income|as.factor(Pilot_Understanding$Q14BP), data = Pilot_Understanding,type=c("p","r","g"), col="dark blue", col.line="black")
 
+print(P2, position=c(0, 0, 1, .65), more=TRUE)
+print(P1, position=c(0, 0.4, 1, 1))
+# These are the charity and BP plots used in the descriptive graphics section of the pilot report.
 
 
 ##########################################################################
@@ -176,20 +177,19 @@ xyplot(Q6QOV~Q22Income|as.factor(Pilot_Understanding$Q1Gender), data = Pilot_Und
 ##########################################################################
 
 
-
-
-
 ##########################################################################
 ############### Estimation                           #####################
 
 ########### Multinomial Logit:
+library(mlogit)
+# I first estimate a basic no SD or attitude variables MNL.
 Base_MNL <- mlogit(Choice ~  Price + Health, 
                    Pilot_Understanding,
                    alt.subset = c("SQ","ALT"),reflevel = "SQ") ##Estimating a simple model first
 summary(Base_MNL) ## Estimates a simplistic mlogit model before adding in individual-specifics
 
 
-## Full MNL:
+## Full MNL with all SD and Attitudinal variables.
 Pilot_MNL <- mlogit(Choice ~ Price + Health | 
                       Q1Gender + Q2Age + Q3Distance
                     + Q4Trips + Q6QOV 
@@ -206,33 +206,27 @@ library(stargazer)
 stargazer(summary(Pilot_MNL)$CoefTable, title = "PilotMNL", align = TRUE,report="p*")
 # The stargazer package allows me to export model summaries to LaTeX code.
 # Problem is it won't export summary(Object) for mlogit objects - only the coeftable which misses out p value stars.
- 
-Pilot_MNLa <- mlogit(Choice ~ Price + Health | 
-                      Q1Gender + Q14BP 
-                    + Q19Experts +Q21Employment, 
-                    Pilot_Understanding, alt.subset = c("SQ", "ALT"), 
-                    reflevel = "SQ") ## Estimating a much larger MNL model with all the independent variables. 
-summary(Pilot_MNLa)
 
 ########### Mixed Logit:
-MIXLcorrelated <- mlogit(Choice~Price+Accumulation|0,
-                         Test_Long,
-                         rpar=c(Price="n",
-                                Accumulation="n"),
-                         R=600,
-                         halton=NULL,
-                         print.level=0,
-                         panel=TRUE,correlation = TRUE)
-summary(MIXLcorrelated)
-MIXLuncorrelated <- mlogit(Choice~Price+Accumulation|0,
-                           Test_Long,
-                           rpar=c(Price="n",
-                                  Accumulation="n"),
-                           R=600,
-                           halton=NULL,
-                           print.level=0,
-                           panel=TRUE,correlation = FALSE,seed=123,start=as.vector(rep(0,4)))
-summary(MIXLuncorrelated)
+# MIXLcorrelated <- mlogit(Choice~Price+Accumulation|0,
+#                          Test_Long,
+#                          rpar=c(Price="n",
+#                                 Accumulation="n"),
+#                          R=600,
+#                          halton=NULL,
+#                          print.level=0,
+#                          panel=TRUE,correlation = TRUE)
+# summary(MIXLcorrelated)
+# MIXLuncorrelated <- mlogit(Choice~Price+Accumulation|0,
+#                            Test_Long,
+#                            rpar=c(Price="n",
+#                                   Accumulation="n"),
+#                            R=600,
+#                            halton=NULL,
+#                            print.level=0,
+#                            panel=TRUE,correlation = FALSE,seed=123,start=as.vector(rep(0,4)))
+# summary(MIXLuncorrelated)
+
 # Estimates the full MXL model with all covariates
 MXLFull <- mlogit(
   Choice ~  Price + Health|  Q1Gender + Q2Age + 
@@ -244,9 +238,38 @@ MXLFull <- mlogit(
   R=10,correlation = FALSE,
   reflevel="SQ",halton=NA,method="bhhh",panel=TRUE,seed=123)
 summary(MXLFull)
+AIC(MXLFull) # 79.83541
+BIC(MXLFull)
 # Can remove intercept by replacing "Health | Q1Gender" with "Health | +0 + Q1Gender"  
 
-stargazer(summary(MXLFull)$CoefTable, title = "MXLFull", align = TRUE,report="p*")
+# MXLNew estimates a smaller model than MXLFull and is a step in the right direction.
+MXLNew <- mlogit(
+  Choice ~  Price + Health|  Q2Age + 
+     + Q14BP +
+    Q16Charity + Q17Understanding
+   +Q20Education+ 
+    Q21Employment +  Q22Income,
+  Pilot_Understanding, rpar=c(Price="ln"),
+  R=10,correlation = FALSE,
+  reflevel="SQ",halton=NA,method="bhhh",panel=TRUE,seed=123)
+summary(MXLNew)
+AIC(MXLNew) # 72.47612
+   
+# MXLNew2 is the best fitting model I have found so far.
+MXLNew2 <- mlogit(
+  Choice ~  Price + Health|  
+    + Q14BP +
+    Q16Charity,
+  Pilot_Understanding, rpar=c(Price="ln"),
+  R=10,correlation = FALSE,
+  reflevel="SQ",halton=NA,method="bhhh",panel=TRUE,seed=123)
+summary(MXLNew2)
+AIC(MXLNew2) # 69.69897
+## haltons = list("primes"= c(2, 17),"drop" = rep(19, 2))
+## Commented out haltons here for speed but can add in and increase R to get the 1000 halton draws used. 
+
+stargazer(summary(MXLNew2)$CoefTable, title = "MXLFull", align = TRUE,report="p*")
+
 
 ##########################################################################
 ############### Evaluation                           #####################
@@ -277,39 +300,153 @@ library(car)
 lh.corr <- linearHypothesis(MIXLcorrelated, c("chol.Price:Accumulation = 0","chol.Price:Price = 0", "chol.Accumulation:Accumulation = 0"))
 wd.corr <- waldtest(MIXLcorrelated, correlation = FALSE)
 sc.corr <- scoretest(MIXLuncorrelated, correlation = TRUE)
-statpval <- function(x){
-  if (inherits(x, "anova"))
-    result <- as.matrix(x)[2, c("Chisq", "Pr(>Chisq)")]
-  if (inherits(x, "htest")) result <- c(x$statistic, x$p.value)
-  names(result) <- c("stat", "p-value")
-  round(result, 3)
-}
-sapply(list(wald = wd.corr, lh = lh.corr, score = sc.corr, lr = lr.corr),
-       statpval)
-
-# Extracts individual-level parameters
-indpar <- fitted(MIXLcorrelated, type = "parameters")
-head(indpar)
-
-Variables <- c('Q1Gender + Q2Age + 
-                 Q3Distance + Q4Trips + Q6QOV+ Q10Action +  
-                 Q11Self + Q12Others + Q13Marine + Q14BP + 
-                 Q16Charity + Q17Understanding+ 
-                 Q18Consequentiality + Q19Experts +Q20Education+ 
-                 Q21Employment +  Q22Income+Q23Survey')
-
-# Testing Pvalues to find a good model
-PV <- data.frame(coef(summary(MXLFull))[,4],coef(summary(MXLFull))[,1] )
-colnames(PV) <- c("PV","Effect")
-PV <- subset(PV,PV <=0.05)
-PV <- data.frame(row.names(PV), PV$PV, PV$Effect)
-colnames(PV) <- c("Variables","PV","Effect")
-barplot(PV$Effect, names.arg = PV$Variables,xlab = "Variables",ylab = "Effect",ylim = c(-2,5),axes = TRUE)
-length(PV$PV)
 
 # Reports MRS in WTP Space 
 rpar(MXLFull,"Health",norm="Price")
 mean(rpar(MXLFull, "Health", norm = "Price"))
+
+############### Clustering
+## Problem: can only use MLOGIT
+library(clusterSEs)
+cluster.bs.mlogit(MXLNew2, Pilot_Understanding, ~ ID, boot.reps=3,seed = 123)
+
+
+############### Bootstrapping
+## Problem: can only use GMNL
+## Question: Does cluster.bs do all this?
+library(boot)
+bs <- function(formula, data, indices) {
+  d <- data[indices,] # allows boot to select sample
+  fit <- gmnl(formula, data, 
+  model = "mixl", ranp = c( Heh = "n"), 
+  R = 10, haltons =NULL,
+  mvar = list(Heh = c("Q16Charity")),
+  method = "bfgs",correlation = FALSE)
+  return(summary(effect.gmnl(fit, par = "Heh", effect = "wtp", wrt = "Price")$mean)[4])
+}
+results <- boot(data=Pilot_Understanding, statistic=bs,
+                R=3, formula= Choice ~ Price + Health | 0   | 0 | Q16Charity)
+results
+plot(results)
+
+# Attempting to rewrite the bootstrapping formula for MLOGIT
+# bs <- function(formula, data, indices) {
+#   d <- data[indices,] # allows boot to select sample
+#   fit <- mlogit(formula, data, 
+#               model = "mixl", ranp = c( Heh = "n"), 
+#               R = 10, haltons =NA,
+#               method = "nr",correlation = FALSE, reflevel="SQ")
+#   return(rpar(fit,"Heh",norm="Price"))
+# }
+# results <- boot(data=Pilot_Understanding, statistic=bs,
+#                 R=3, formula= Choice ~ Price + Health | Q16Charity)
+# results
+
+
+##########################################################################
+############### Latent-Class Models                  #####################
+##########################################################################
+########### Latent-Class Models
+## Here estimating a very basic LCM to understand the model but not used in the pilot report.
+
+LC_GM <- gmnl(Choice ~ Price + Health | 0 |
+                0 | 0 | 1,
+              data = Pilot_Understanding,
+              model = 'lc',
+              panel = TRUE,
+              Q = 2)
+summary(LC_GM)
+
+
+
+##########################################################################
+##########################################################################
+############### CVM                                  #####################
+##########################################################################
+##########################################################################
+
+
+
+
+# Guidance on PROBIT:
+## https://stats.idre.ucla.edu/r/dae/probit-regression/
+# Guidance on MFX:
+## https://cran.r-project.org/web/packages/mfx/vignettes/mfxarticle.pdf
+
+install.packages("aod")
+install.packages("mfx")
+library(mfx)
+require(aod)
+CVMProbit <-glm(Q5CVM1 ~ Q1Gender + Q2Age + 
+                  Q3Distance + Q4Trips + Q6QOV+  Q14BP + 
+                  Q16Charity + Q17Understanding
+                + Q19Experts +Q20Education+ 
+                  Q21Employment +  Q22Income, family = binomial(link = "probit"),data = Pilot_Understanding)
+summary(CVMProbit)
+confint(CVMProbit)
+wald.test(b = coef(CVMProbit), Sigma = vcov(CVMProbit), Terms=2)
+stargazer(CVMProbit, title = "CVMProbit", align = TRUE,report="p*")
+
+
+CVMME <- probitmfx(formula = Q5CVM1 ~ Q1Gender + Q2Age + 
+            Q3Distance + Q4Trips + Q6QOV+  Q14BP + 
+            Q16Charity + Q17Understanding + Q19Experts +Q20Education+ 
+            Q21Employment +  Q22Income,data = Pilot_Understanding,robust = TRUE)
+
+
+##########################################################################
+############### QOV Probit                           #####################
+
+
+QOVProbit <-glm(Q6QOV ~ Q1Gender + Q2Age + 
+                  Q3Distance + Q4Trips + Q6QOV+  Q14BP 
+                   + Q16Charity+ Q17Understanding+ 
+                    Q19Experts +Q20Education+ 
+                  Q21Employment +  Q22Income, family = binomial(link = "probit"),data = Pilot_Understanding)
+summary(QOVProbit)
+QOVME <- probitmfx(formula = Q6QOV ~ Q1Gender + Q2Age + 
+                     Q3Distance + Q4Trips +  Q14BP 
+          +Q16Charity + Q17Understanding + Q19Experts +Q20Education+ 
+            +Q21Employment +  Q22Income,data = Pilot_Understanding,robust = TRUE)
+confint(QOVProbit)
+wald.test(b = coef(QOVProbit), Sigma = vcov(QOVProbit), Terms=2)
+
+
+##########################################################################
+############### CVM: DChoice package                  #####################
+
+if (!requireNamespace("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+
+BiocManager::install("Icens")
+install.packages("interval")
+install.packages("DCchoice")
+library(DCchoice)
+
+
+QOV1 <- as.integer(rep(5,nrow(Pilot_Understanding)))
+QOV2 <- as.integer(rep(10,nrow(Pilot_Understanding)))
+
+
+Pilot_Adjusted <- data.frame(as.integer(rep(5,nrow(Pilot_Understanding))),
+                             Pilot_Understanding$Q6QOV,
+                             Pilot_Understanding$Q1Gender,
+                             Pilot_Understanding$Q2Age,
+                             Pilot_Understanding$Q22Income)
+colnames(Pilot_Adjusted) <- c("bid1","answers","sex","age","income")
+CVM_SB <- sbchoice(answers ~ sex + age + income | log(Pilot_Adjusted$bid1), data = Pilot_Adjusted)
+summary(CVM_SB)
+krCI(CVM_SB)
+bootCI(CVM_SB)
+NPts <- turnbull.sb(answers ~ bid1, data = Pilot_Adjusted)
+summary(NPts)
+plot(NPts)
+
+
+##########################################################################
+############### The following code is experimental and not used  #####################
+##########################################################################
+
 
 
 
@@ -327,23 +464,23 @@ library(gmnl)
 # Multinomial logits
 MNL_ML <- mlogit(Choice ~  Price + Health | Q1Gender + Q2Age
                  + Q3Distance
+                 + Q4Trips + Q6QOV 
+                 + Q14BP + Q16Charity 
+                 + Q17Understanding+ Q18Consequentiality
+                 + Q19Experts +Q20Education+ Q21Employment
+                 +  Q22Income+Q23Survey, 
+                 Pilot_Dominated,
+                 alt.subset = c("SQ","ALT"),reflevel = "SQ")
+summary(MNL_ML)
+MNL_GM <- gmnl(Choice ~  Price + Health | Q1Gender + Q2Age
+               + Q3Distance
                + Q4Trips + Q6QOV 
                + Q14BP + Q16Charity 
                + Q17Understanding+ Q18Consequentiality
                + Q19Experts +Q20Education+ Q21Employment
-               +  Q22Income+Q23Survey, 
-               Pilot_Dominated,
-                   alt.subset = c("SQ","ALT"),reflevel = "SQ")
-summary(MNL_ML)
-MNL_GM <- gmnl(Choice ~  Price + Health | Q1Gender + Q2Age
-               + Q3Distance
-             + Q4Trips + Q6QOV 
-             + Q14BP + Q16Charity 
-             + Q17Understanding+ Q18Consequentiality
-             + Q19Experts +Q20Education+ Q21Employment
-             +  Q22Income+Q23Survey,
-             data = Pilot_Dominated,
-             model = "mnl",reflevel = "SQ",alt.subset = c("SQ","ALT"))
+               +  Q22Income+Q23Survey,
+               data = Pilot_Dominated,
+               model = "mnl",reflevel = "SQ",alt.subset = c("SQ","ALT"))
 summary(MNL_GM)
 wtp.gmnl(MNL_GM,"Price",3)
 
@@ -366,51 +503,51 @@ summary(gmnl(formula =
 
 ########### Mixed Logit in GMNL
 GMNL_MXLDefault <- gmnl(Choice ~  Price + Health| 1| 0 | Q1Gender + Q2Age + 
-               Q3Distance + Q4Trips + Q6QOV+  Q14BP + 
-               Q16Charity + Q17Understanding
-               + Q19Experts +Q20Education+ 
-               Q21Employment +  Q22Income,
-             data = Pilot_Understanding,
-             model = "mixl",
-             ranp = c( Price = "ln", Heh = "n"),
-             mvar = list(Price = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q19Experts","Q20Education","Q21Employment","Q22Income")),
-             R = 10,
-             haltons = NULL
-             ,seed = 123,reflevel = "SQ")
+                          Q3Distance + Q4Trips + Q6QOV+  Q14BP + 
+                          Q16Charity + Q17Understanding
+                        + Q19Experts +Q20Education+ 
+                          Q21Employment +  Q22Income,
+                        data = Pilot_Understanding,
+                        model = "mixl",
+                        ranp = c( Price = "ln", Heh = "n"),
+                        mvar = list(Price = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q19Experts","Q20Education","Q21Employment","Q22Income")),
+                        R = 10,
+                        haltons = NULL
+                        ,seed = 123,reflevel = "SQ")
 summary(GMNL_MXLDefault)
 plot(GMNL_MXLDefault, par = "Heh", effect = "wtp", type = "density", col = "grey",wrt="Price")
 
 # Mixed logit with Panel set to TRUE
 GMNL_MXLPanel <- gmnl(Choice ~  Price + Health| 1| 0 | Q1Gender + Q2Age + 
-                 Q3Distance + Q4Trips + Q6QOV+  Q14BP + 
-                 Q16Charity + Q17Understanding+ 
-                 Q18Consequentiality + Q19Experts +Q20Education+ 
-                 Q21Employment +  Q22Income+Q23Survey,
-               data = Test_Long,
-               model = "mixl",
-               ranp = c( Price = "n", Heh = "n"),
-               mvar = list(Price = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey"),
-                           Heh = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey")),
-               R = 10,
-               haltons = list("primes"= c(2, 17),
-                              "drop" = rep(19, 2))
-               ,seed = 123,reflevel = "SQ",panel=TRUE)
+                        Q3Distance + Q4Trips + Q6QOV+  Q14BP + 
+                        Q16Charity + Q17Understanding+ 
+                        Q18Consequentiality + Q19Experts +Q20Education+ 
+                        Q21Employment +  Q22Income+Q23Survey,
+                      data = Test_Long,
+                      model = "mixl",
+                      ranp = c( Price = "n", Heh = "n"),
+                      mvar = list(Price = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey"),
+                                  Heh = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey")),
+                      R = 10,
+                      haltons = list("primes"= c(2, 17),
+                                     "drop" = rep(19, 2))
+                      ,seed = 123,reflevel = "SQ",panel=TRUE)
 
 # Mixed logit with Correlation set to TRUE
 GMNL_MXLCorr <- gmnl(Choice ~  Price + Health| 1| 0 | Q1Gender + Q2Age + 
-                 Q3Distance + Q4Trips + Q6QOV+  Q14BP + 
-                 Q16Charity + Q17Understanding+ 
-                 Q18Consequentiality + Q19Experts +Q20Education+ 
-                 Q21Employment +  Q22Income+Q23Survey,
-               data = Test_Long,
-               model = "mixl",
-               ranp = c( Price = "n", Heh = "n"),
-               mvar = list(Price = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey"),
-                           Heh = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey")),
-               R = 10,
-               haltons = list("primes"= c(2, 17),
-                              "drop" = rep(19, 2))
-               ,seed = 123,reflevel = "SQ", correlation = TRUE)
+                       Q3Distance + Q4Trips + Q6QOV+  Q14BP + 
+                       Q16Charity + Q17Understanding+ 
+                       Q18Consequentiality + Q19Experts +Q20Education+ 
+                       Q21Employment +  Q22Income+Q23Survey,
+                     data = Test_Long,
+                     model = "mixl",
+                     ranp = c( Price = "n", Heh = "n"),
+                     mvar = list(Price = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey"),
+                                 Heh = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey")),
+                     R = 10,
+                     haltons = list("primes"= c(2, 17),
+                                    "drop" = rep(19, 2))
+                     ,seed = 123,reflevel = "SQ", correlation = TRUE)
 
 # Mixed logit with Correlation AND Panel set to TRUE
 GMNL_MXLBoth <- gmnl(Choice ~  Price + Health| 1| 0 | Q1Gender + Q2Age + 
@@ -430,19 +567,19 @@ GMNL_MXLBoth <- gmnl(Choice ~  Price + Health| 1| 0 | Q1Gender + Q2Age +
 
 # Mixed logit: log-normal distribution
 GMNL_MXLln <- gmnl(Choice ~  Price + Health| 1| 0 | Q1Gender + Q2Age + 
-               Q3Distance + Q4Trips + Q6QOV+  Q14BP + 
-               Q16Charity + Q17Understanding+ 
-               Q18Consequentiality + Q19Experts +Q20Education+ 
-               Q21Employment +  Q22Income+Q23Survey,
-             data = Test_Long,
-             model = "mixl",
-             ranp = c( Price = "ln", Heh = "ln"),
-             mvar = list(Price = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey"),
-                         Heh = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey")),
-             R = 10,
-             haltons = list("primes"= c(2, 17),
-                            "drop" = rep(19, 2))
-             ,seed = 123,reflevel = "SQ")
+                     Q3Distance + Q4Trips + Q6QOV+  Q14BP + 
+                     Q16Charity + Q17Understanding+ 
+                     Q18Consequentiality + Q19Experts +Q20Education+ 
+                     Q21Employment +  Q22Income+Q23Survey,
+                   data = Test_Long,
+                   model = "mixl",
+                   ranp = c( Price = "ln", Heh = "ln"),
+                   mvar = list(Price = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey"),
+                               Heh = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey")),
+                   R = 10,
+                   haltons = list("primes"= c(2, 17),
+                                  "drop" = rep(19, 2))
+                   ,seed = 123,reflevel = "SQ")
 
 # Mixed logit: truncated normal distribution
 GMNL_MXLcn <- gmnl(Choice ~  Price + Health| 1| 0 | Q1Gender + Q2Age + 
@@ -462,35 +599,35 @@ GMNL_MXLcn <- gmnl(Choice ~  Price + Health| 1| 0 | Q1Gender + Q2Age +
 
 # Mixed logit: uniform distribution
 GMNL_MXLu <- gmnl(Choice ~  Price + Health| 1| 0 | Q1Gender + Q2Age + 
-                     Q3Distance + Q4Trips + Q6QOV+  Q14BP + 
-                     Q16Charity + Q17Understanding+ 
-                     Q18Consequentiality + Q19Experts +Q20Education+ 
-                     Q21Employment +  Q22Income+Q23Survey,
-                   data = Test_Long,
-                   model = "mixl",
-                   ranp = c( Price = "u", Heh = "u"),
-                   mvar = list(Price = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey"),
-                               Heh = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey")),
-                   R = 10,
-                   haltons = list("primes"= c(2, 17),
-                                  "drop" = rep(19, 2))
-                   ,seed = 123,reflevel = "SQ")
+                    Q3Distance + Q4Trips + Q6QOV+  Q14BP + 
+                    Q16Charity + Q17Understanding+ 
+                    Q18Consequentiality + Q19Experts +Q20Education+ 
+                    Q21Employment +  Q22Income+Q23Survey,
+                  data = Test_Long,
+                  model = "mixl",
+                  ranp = c( Price = "u", Heh = "u"),
+                  mvar = list(Price = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey"),
+                              Heh = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey")),
+                  R = 10,
+                  haltons = list("primes"= c(2, 17),
+                                 "drop" = rep(19, 2))
+                  ,seed = 123,reflevel = "SQ")
 
 # Mixed logit: triangular distribution
 GMNL_MXLt <- gmnl(Choice ~  Price + Health| 1| 0 | Q1Gender + Q2Age + 
-                     Q3Distance + Q4Trips + Q6QOV+  Q14BP + 
-                     Q16Charity + Q17Understanding+ 
-                     Q18Consequentiality + Q19Experts +Q20Education+ 
-                     Q21Employment +  Q22Income+Q23Survey,
-                   data = Test_Long,
-                   model = "mixl",
-                   ranp = c( Price = "t", Heh = "t"),
-                   mvar = list(Price = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey"),
-                               Heh = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey")),
-                   R = 10,
-                   haltons = list("primes"= c(2, 17),
-                                  "drop" = rep(19, 2))
-                   ,seed = 123,reflevel = "SQ")
+                    Q3Distance + Q4Trips + Q6QOV+  Q14BP + 
+                    Q16Charity + Q17Understanding+ 
+                    Q18Consequentiality + Q19Experts +Q20Education+ 
+                    Q21Employment +  Q22Income+Q23Survey,
+                  data = Test_Long,
+                  model = "mixl",
+                  ranp = c( Price = "t", Heh = "t"),
+                  mvar = list(Price = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey"),
+                              Heh = c("Q1Gender","Q2Age","Q3Distance","Q4Trips","Q6QOV","Q14BP","Q16Charity","Q17Understanding","Q18Consequentiality","Q19Experts","Q20Education","Q21Employment","Q22Income","Q23Survey")),
+                  R = 10,
+                  haltons = list("primes"= c(2, 17),
+                                 "drop" = rep(19, 2))
+                  ,seed = 123,reflevel = "SQ")
 
 # Mixed logit: Johnston distribution
 GMNL_MXLsb <- gmnl(Choice ~  Price + Health| 1| 0 | Q1Gender + Q2Age + 
@@ -534,193 +671,13 @@ colnames(BICs) <- c("BIC")
 BICs <- data.frame(BICs[order(BICs),])
 
 
-########### Best model search
-MXR_Gender <- gmnl(formula = Choice ~ Price + Health |
-                      0   | 0 |Q1Gender, 
-                    data = Pilot_Understanding, 
-                    model = "mixl", ranp = c( Heh = "n"), 
-                    R = 10, haltons =NULL,
-                    mvar = list(Heh = c("Q1Gender")),
-                    method = "bfgs",correlation = FALSE)
-MXR_Age <- gmnl(formula = Choice ~ Price + Health |
-                      0   | 0 |Q2Age, 
-                    data = Pilot_Understanding, 
-                    model = "mixl", ranp = c( Heh = "n"), 
-                    R = 10, haltons =NULL,
-                    mvar = list(Heh = c("Q2Age")),
-                    method = "bfgs",correlation = FALSE)
-MXR_Distance <- gmnl(formula = Choice ~ Price + Health |
-                      0   | 0 |Q3Distance, 
-                    data = Pilot_Understanding, 
-                    model = "mixl", ranp = c( Heh = "n"), 
-                    R = 10, haltons =NULL,
-                    mvar = list(Heh = c("Q3Distance")),
-                    method = "bfgs",correlation = FALSE)
-MXR_Trips <- gmnl(formula = Choice ~ Price + Health |
-                       0   | 0 |Q4Trips, 
-                     data = Pilot_Understanding, 
-                     model = "mixl", ranp = c( Heh = "n"), 
-                     R = 10, haltons =NULL,
-                     mvar = list(Heh = c("Q4Trips")),
-                     method = "bfgs",correlation = FALSE)
-MXR_Action <- gmnl(formula = Choice ~ Price + Health |
-                    0   | 0 |Q10Action, 
-                  data = Pilot_Understanding, 
-                  model = "mixl", ranp = c( Heh = "n"), 
-                  R = 10, haltons =NULL,
-                  mvar = list(Heh = c("Q10Action")),
-                  method = "bfgs",correlation = FALSE)
-MXR_Self <- gmnl(formula = Choice ~ Price + Health |
-                    0   | 0 |Q11Self, 
-                  data = Pilot_Understanding, 
-                  model = "mixl", ranp = c( Heh = "n"), 
-                  R = 10, haltons =NULL,
-                  mvar = list(Heh = c("Q11Self")),
-                  method = "bfgs",correlation = FALSE)
-MXR_Others <- gmnl(formula = Choice ~ Price + Health |
-                   0   | 0 |Q12Others, 
-                 data = Pilot_Understanding, 
-                 model = "mixl", ranp = c( Heh = "n"), 
-                 R = 10, haltons =NULL,
-                 mvar = list(Heh = c("Q12Others")),
-                 method = "bfgs",correlation = FALSE)
-MXR_Marine <- gmnl(formula = Choice ~ Price + Health |
-                   0   | 0 |Q13Marine, 
-                 data = Pilot_Understanding, 
-                 model = "mixl", ranp = c( Heh = "n"), 
-                 R = 10, haltons =NULL,
-                 mvar = list(Heh = c("Q13Marine")),
-                 method = "bfgs",correlation = FALSE)
-MXR_BP <- gmnl(formula = Choice ~ Price + Health |
-                     0   | 0 |Q14BP, 
-                   data = Pilot_Understanding, 
-                   model = "mixl", ranp = c( Heh = "n"), 
-                   R = 10, haltons =NULL,
-                   mvar = list(Heh = c("Q14BP")),
-                   method = "bfgs",correlation = FALSE)
-MXR_Charity <- gmnl(formula = Choice ~ Price + Health |
-                     0   | 0 |Q16Charity, 
-                   data = Pilot_Understanding, 
-                   model = "mixl", ranp = c( Heh = "n"), 
-                   R = 10, haltons =NULL,
-                   mvar = list(Heh = c("Q16Charity")),
-                   method = "bfgs",correlation = FALSE)
-MXR_understanding <- gmnl(formula = Choice ~ Price + Health |
-                      0   | 0 |Q17Understanding, 
-                    data = Pilot_Understanding, 
-                    model = "mixl", ranp = c( Heh = "n"), 
-                    R = 10, haltons =NULL,
-                    mvar = list(Heh = c("Q17Understanding")),
-                    method = "bfgs",correlation = FALSE)
-MXR_Consequentiality <- gmnl(formula = Choice ~ Price + Health |
-                      0   | 0 |Q18Consequentiality, 
-                    data = Pilot_Understanding, 
-                    model = "mixl", ranp = c( Heh = "n"), 
-                    R = 10, haltons =NULL,
-                    mvar = list(Heh = c("Q18Consequentiality")),
-                    method = "bfgs",correlation = FALSE)
-MXR_Q19Experts <- gmnl(formula = Choice ~ Price + Health |
-                               0   | 0 |Q19Experts, 
-                             data = Pilot_Understanding, 
-                             model = "mixl", ranp = c( Heh = "n"), 
-                             R = 10, haltons =NULL,
-                             mvar = list(Heh = c("Q19Experts")),
-                             method = "bfgs",correlation = FALSE)
-MXR_Q20Education <- gmnl(formula = Choice ~ Price + Health |
-                               0   | 0 |Q20Education, 
-                             data = Pilot_Understanding, 
-                             model = "mixl", ranp = c( Heh = "n"), 
-                             R = 10, haltons =NULL,
-                             mvar = list(Heh = c("Q20Education")),
-                             method = "bfgs",correlation = FALSE)
-MXR_Q22Income <- gmnl(formula = Choice ~ Price + Health |
-                               0   | 0 |Q22Income, 
-                             data = Pilot_Understanding, 
-                             model = "mixl", ranp = c( Heh = "n"), 
-                             R = 10, haltons =NULL,
-                             mvar = list(Heh = c("Q22Income")),
-                             method = "bfgs",correlation = FALSE)
-AICs <- t(data.frame("AIC(MXR_Gender)" = c(AIC(MXR_Gender)),
-                     "AIC(MXR_Age)" = c(AIC(MXR_Age)),
-                     "AIC(MXR_Distance)" = c(AIC(MXR_Distance)),
-                     "AIC(MXR_Trips)" = c(AIC(MXR_Trips)),
-                     "AIC(MXR_Action)" = c(AIC(MXR_Action)),
-                     "AIC(MXR_Self)" = c(AIC(MXR_Self)),
-                     "AIC(MXR_Others)" = c(AIC(MXR_Others)),
-                     "AIC(MXR_Marine)" = c(AIC(MXR_Marine)),
-                     "AIC(MXR_BP)" = c(AIC(MXR_BP)),
-                     "AIC(MXR_Charity)" = c(AIC(MXR_Charity)),
-                     "AIC(MXR_understanding)" = c(AIC(MXR_understanding)),
-                     "AIC(MXR_Consequentiality)" = c(AIC(MXR_Consequentiality)),
-                     "AIC(MXR_Q19Experts)" = c(AIC(MXR_Q19Experts)),
-                     "AIC(MXR_Q20Education)" = c(AIC(MXR_Q20Education)),
-                     "AIC(MXR_Q22Income)" = c(AIC(MXR_Q22Income))))
-colnames(AICs) <- c("AIC")
-AICs <- data.frame(AICs[order(AICs),])
-BICs <- t(data.frame("BIC(MXR_Gender)" = c(BIC(MXR_Gender)),
-                     "BIC(MXR_Age)" = c(BIC(MXR_Age)),
-                     "BIC(MXR_Distance)" = c(BIC(MXR_Distance)),
-                     "BIC(MXR_Trips)" = c(BIC(MXR_Trips)),
-                     "BIC(MXR_Action)" = c(BIC(MXR_Action)),
-                     "BIC(MXR_Self)" = c(BIC(MXR_Self)),
-                     "BIC(MXR_Others)" = c(BIC(MXR_Others)),
-                     "BIC(MXR_Marine)" = c(BIC(MXR_Marine)),
-                     "BIC(MXR_BP)" = c(BIC(MXR_BP)),
-                     "BIC(MXR_Charity)" = c(BIC(MXR_Charity)),
-                     "BIC(MXR_understanding)" = c(BIC(MXR_understanding)),
-                     "BIC(MXR_Consequentiality)" = c(BIC(MXR_Consequentiality)),
-                     "BIC(MXR_Q19Experts)" = c(BIC(MXR_Q19Experts)),
-                     "BIC(MXR_Q20Education)" = c(BIC(MXR_Q20Education)),
-                     "BIC(MXR_Q22Income)" = c(BIC(MXR_Q22Income))))
-colnames(BICs) <- c("BIC")
-BICs <- data.frame(BICs[order(BICs),])
-Peez <- t(data.frame("MXR_Gender"  = c(getSummary.gmnl(MXR_Gender)$coef[,4]),
-                     "MXR_Age"     = c(getSummary.gmnl(MXR_Age)$coef[,4]),
-                     "MXR_Distance"= c(getSummary.gmnl(MXR_Distance)$coef[,4]),
-                     "MXR_Trips"   = c(getSummary.gmnl(MXR_Trips)$coef[,4]),
-                     "MXR_Action"  = c(getSummary.gmnl(MXR_Action)$coef[,4]),
-                     "MXR_Self"    = c(getSummary.gmnl(MXR_Self)$coef[,4]),
-                     "MXR_Others"  = c(getSummary.gmnl(MXR_Others)$coef[,4]),
-                     "MXR_Marine"  = c(getSummary.gmnl(MXR_Marine)$coef[,4]),
-                     "MXR_BP"      = c(getSummary.gmnl(MXR_BP)$coef[,4]),
-                     "MXR_Charity" = c(getSummary.gmnl(MXR_Charity)$coef[,4]),
-                     "MXR_understanding"    = c(getSummary.gmnl(MXR_understanding)$coef[,4]),
-                     "MXR_Consequentiality" = c(getSummary.gmnl(MXR_Consequentiality)$coef[,4]),
-                     "MXR_Q19Experts"       = c(getSummary.gmnl(MXR_Q19Experts)$coef[,4]),
-                     "MXR_Q20Education"     = c(getSummary.gmnl(MXR_Q20Education)$coef[,4]),
-                     "MXR_Q22Income"        = c(getSummary.gmnl(MXR_Q22Income)$coef[,4])))
-Peez <- cbind(Peez,data.frame(rowSums(Peez)))
-colnames(Peez) <- c("Price","Health","Health*Gender","SD*Health","Score")
-Peez <- data.frame(Peez[order(Peez[,5]),])
-LLik <- t(data.frame("MXR_Gender"  = c(getSummary.gmnl(MXR_Gender)$sumstat[1]),
-                     "MXR_Age"     = c(getSummary.gmnl(MXR_Age)$sumstat[1]),
-                     "MXR_Distance"= c(getSummary.gmnl(MXR_Distance)$sumstat[1]),
-                     "MXR_Trips"   = c(getSummary.gmnl(MXR_Trips)$sumstat[1]),
-                     "MXR_Action"  = c(getSummary.gmnl(MXR_Action)$sumstat[1]),
-                     "MXR_Self"    = c(getSummary.gmnl(MXR_Self)$sumstat[1]),
-                     "MXR_Others"  = c(getSummary.gmnl(MXR_Others)$sumstat[1]),
-                     "MXR_Marine"  = c(getSummary.gmnl(MXR_Marine)$sumstat[1]),
-                     "MXR_BP"      = c(getSummary.gmnl(MXR_BP)$sumstat[1]),
-                     "MXR_Charity" = c(getSummary.gmnl(MXR_Charity)$sumstat[1]),
-                     "MXR_understanding"    = c(getSummary.gmnl(MXR_understanding)$sumstat[1]),
-                     "MXR_Consequentiality" = c(getSummary.gmnl(MXR_Consequentiality)$sumstat[1]),
-                     "MXR_Q19Experts"       = c(getSummary.gmnl(MXR_Q19Experts)$sumstat[1]),
-                     "MXR_Q20Education"     = c(getSummary.gmnl(MXR_Q20Education)$sumstat[1]),
-                     "MXR_Q22Income"        = c(getSummary.gmnl(MXR_Q22Income)$sumstat[1])))
-LLik <- data.frame(LLik[order(LLik,decreasing = TRUE),])
-OverallModels <- data.frame(AICs[,1]+BICs[,1]+Peez[,5]+LLik[,1])
-OverallModels <- data.frame(OverallModels[order(OverallModels,decreasing = FALSE),,drop=FALSE])
-
-
-
-
 GMNL_MXLidk <- gmnl(formula = Choice ~ Price + Health |
                       0   | 0 |Q16Charity, 
-                      data = Pilot_Understanding, 
-                      model = "mixl", ranp = c( Heh = "n"), 
-                      R = 10, haltons =NULL,
-                      mvar = list(Heh = c("Q16Charity")),
-                      method = "bfgs",correlation = FALSE)
+                    data = Pilot_Understanding, 
+                    model = "mixl", ranp = c( Heh = "n"), 
+                    R = 10, haltons =NULL,
+                    mvar = list(Heh = c("Q16Charity")),
+                    method = "bfgs",correlation = FALSE)
 summary(GMNL_MXLidk)
 AIC(GMNL_MXLidk)
 BIC(GMNL_MXLidk)
@@ -729,189 +686,6 @@ plot(GMNL_MXLidk,
      type = "density", col = "grey",wrt="Price")
 wtp.gmnl(GMNL_MXLidk,"Price",3)
 summary(effect.gmnl(GMNL_MXLidk, par = "Heh", effect = "wtp", wrt = "Price")$mean)
-
-
-## scoretest
-## hmftest
-## waldtest
-## haltons = list("primes"= c(2, 17),"drop" = rep(19, 2))
-## panel = FALSE by default, correlation = FALSE by default
-
-ML_idk <- mlogit(formula = Choice ~ Price + Health |Q16Charity, 
-                 data = Pilot_Understanding, 
-                 model = "mixl", ranp = c( Heh = "n"), 
-                 R = 10, haltons =NULL,
-                 method = "bfgs",correlation = FALSE)
-plot(ML_idk,par = "Heh",norm = "Price",type = "density")
-# Use the effect.gmnl method to report individual WTP
-# The WTP.gmnl command reports the normal method.
-summary(effect.gmnl(GMNL_MXLidk, par = "Heh", effect = "wtp", wrt = "Price")$mean)
-
-
-
-##########################################################################
-############### Bootstrapping
-## Problem: can only use GMNL
-library(boot)
-bs <- function(formula, data, indices) {
-  d <- data[indices,] # allows boot to select sample
-  fit <- gmnl(formula, data, 
-  model = "mixl", ranp = c( Heh = "n"), 
-  R = 10, haltons =NULL,
-  mvar = list(Heh = c("Q16Charity")),
-  method = "bfgs",correlation = FALSE)
-  return(summary(effect.gmnl(fit, par = "Heh", effect = "wtp", wrt = "Price")$mean)[4])
-}
-results <- boot(data=Pilot_Understanding, statistic=bs,
-                R=3, formula= Choice ~ Price + Health | 0   | 0 | Q16Charity)
-results
-plot(results)
-
-
-##########################################################################
-############### Clustering
-## Problem: can only use MLOGIT
-cluster.bs.mlogit(ML_idk, Pilot_Understanding, ~ ID, boot.reps=3)
-
-
-##########################################################################
-############### Latent-Class Models                  #####################
-##########################################################################
-########### Latent-Class Models
-LC_GM <- gmnl(Choice ~ Price + Health | 0 |
-                0 | 0 | 1,
-              data = Pilot_Understanding,
-              model = 'lc',
-              panel = TRUE,
-              Q = 2)
-summary(LC_GM)
-
-
-
-##########################################################################
-##########################################################################
-############### CVM                                  #####################
-##########################################################################
-##########################################################################
-
-
-
-
-# Guidance on PROBIT:
-## https://stats.idre.ucla.edu/r/dae/probit-regression/
-# Guidance on MFX:
-## https://cran.r-project.org/web/packages/mfx/vignettes/mfxarticle.pdf
-
-install.packages("aod")
-install.packages("mfx")
-library(mfx)
-require(aod)
-CVMProbit <-glm(Q5CVM1 ~ Q1Gender + Q2Age + 
-                  Q3Distance + Q4Trips + Q6QOV+  Q14BP + 
-                  Q16Charity + Q17Understanding+ 
-                  Q18Consequentiality + Q19Experts +Q20Education+ 
-                  Q21Employment +  Q22Income+Q23Survey, family = binomial(link = "probit"),data = Pilot_Understanding)
-summary(CVMProbit)
-confint(CVMProbit)
-wald.test(b = coef(CVMProbit), Sigma = vcov(CVMProbit), Terms=2)
-
-CVMProbit <- probitmfx(formula = Q5CVM1 ~ Q1Gender + Q2Age + 
-            Q3Distance + Q4Trips + Q6QOV+  Q14BP + 
-            Q16Charity + Q17Understanding + Q19Experts +Q20Education+ 
-            Q21Employment +  Q22Income,data = Pilot_Understanding,robust = TRUE)
-
-##########################################################################
-############### QOV Probit                           #####################
-##########################################################################
-
-QOVProbit <-glm(Q6QOV ~ Q2Age + 
-                  Q3Distance + Q4Trips + Q6QOV+  Q14BP 
-                   + Q17Understanding+ 
-                  Q18Consequentiality + Q19Experts +Q20Education+ 
-                  Q21Employment +  Q22Income, family = binomial(link = "probit"),data = Pilot_Understanding)
-summary(QOVProbit)
-probitmfx(formula = Q6QOV ~ Q2Age + Q3Distance + Q4Trips +  Q14BP 
-          +Q17Understanding+ +Q18Consequentiality + Q19Experts +Q20Education+ 
-            +Q21Employment +  Q22Income,data = Pilot_Understanding,robust = TRUE)
-confint(QOVProbit)
-wald.test(b = coef(QOVProbit), Sigma = vcov(QOVProbit), Terms=2)
-
-
-
-##########################################################################
-############### CVM: DChoice package                  #####################
-##########################################################################
-
-if (!requireNamespace("BiocManager", quietly = TRUE))
-  install.packages("BiocManager")
-
-BiocManager::install("Icens")
-install.packages("interval")
-install.packages("DCchoice")
-library(DCchoice)
-
-
-QOV1 <- as.integer(rep(5,nrow(Pilot_Understanding)))
-QOV2 <- as.integer(rep(10,nrow(Pilot_Understanding)))
-
-
-Pilot_Adjusted <- data.frame(as.integer(rep(5,nrow(Pilot_Understanding))),
-                             Pilot_Understanding$Q6QOV,
-                             Pilot_Understanding$Q1Gender,
-                             Pilot_Understanding$Q2Age,
-                             Pilot_Understanding$Q22Income)
-colnames(Pilot_Adjusted) <- c("bid1","answers","sex","age","income")
-CVM_SB <- sbchoice(answers ~ sex + age + income | log(Pilot_Adjusted$bid1), data = Pilot_Adjusted)
-summary(CVM_SB)
-krCI(CVM_SB)
-bootCI(CVM_SB)
-NPts <- turnbull.sb(answers ~ bid1, data = Pilot_Adjusted)
-summary(NPts)
-plot(NPts)
-
-
-data(NaturalPark, package = "Ecdat")
-## The variable answers are converted into a format that is suitable for
-## the function sbchoice() as follows:
-NaturalPark$R1 <- ifelse(substr(NaturalPark$answers, 1, 1) == "y", 1, 0)
-NaturalPark$R2 <- ifelse(substr(NaturalPark$answers, 2, 2) == "y", 1, 0)
-## We assume that the error distribution in the model is a log-logistic;
-## therefore, the bid variables bid1 is converted into LBD1 as follows:
-NaturalPark$LBD1 <- log(NaturalPark$bid1)
-## The utility difference function is assumed to contain covariates
-## (sex, age, and income) as well as the bid variable (LBD1) as follows
-## (R2 is not used because of single-bounded dichotomous choice CV format):
-fmsb <- R1 ~ sex + age + income | LBD1
-## Not run:
-## The formula may be alternatively defined as
-fmsb <- R1 ~ sex + age + income | log(bid1)
-## End(Not run)
-## The function sbchoice() with the function fmsb and the data frame NP
-## is executed as follows:
-NPsb <- sbchoice(R1 ~ sex + age + income | log(bid1), data = NaturalPark)
-NPsb
-NPsbs <- summary(NPsb)
-NPsbs
-## The WTP of a female with age = 5 and income = 3 is calculated
-## using function krCI() or bootCI() as follows:
-krCI(NPsb, individual = data.frame(sex = "female", age = 5, income = 3))
-bootCI(NPsb, individual = data.frame(sex = "female", age = 5, income = 3))
-update(NPsb, .~. - age - income |.)
-head(predict(NPsb, type = "utility"))
-head(predict(NPsb, type = "probability"))
-newdata = data.frame(sex = "female", age = 5, income = 3, LBD1 = log(10))
-colnames(newdata) <- c("sex","age","income","bid1")
-predict(NPsb, type = "utility",newdata)
-predict(NPsb, type = "probability",newdata)
-plot(NPsb)
-## The range of bid can be limited (e.g., [log(10), log(20)]):
-plot(NPsb, bid = c(log(10), log(20)))
-NPts <- turnbull.sb(R1 ~ bid1, data = NaturalPark)
-summary(NPts)
-plot(NPts)
-
-
-
 
 
 
