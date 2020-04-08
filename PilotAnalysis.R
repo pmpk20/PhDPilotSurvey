@@ -2,18 +2,10 @@
 ####################################################################################
 ############### Introduction: Pilot Data Analysis Script  ##########################
 ####################################################################################
-# Useful links: https://cran.r-project.org/web/packages/support.CEs/support.CEs.pdf
-# https://pdfs.semanticscholar.org/b0fb/05e51e02d4eda914888ae0590dd65b45ff9a.pdf
-# https://rpubs.com/sallychen/313125
-# https://www.sciencedirect.com/science/article/pii/S1098301516302911#bib45
-# https://onlinelibrary.wiley.com/doi/pdf/10.1002/hec.984
-
 
 ##########################################################################
 ############### Current Issues:                             ##############
-############### -- Fix MXL                                  ##############
-##########################################################################
-
+############### -- Estimate LCM                             ##############
 
 ####################################################################################
 ############### Section 1: Import Data  ##########################
@@ -160,15 +152,57 @@ Pilot_Cons <- Pilot_Understanding[!Pilot_Understanding$ID %in% c( unique(Pilot_U
 ############### Section 3: Descriptive                    ##########################
 ####################################################################################
 
-library(lattice)
-# Plot income versus precaution by gender
-P1 <- xyplot(Q6QOV~Q22Income|as.factor(Pilot_Understanding$Q16Charity), data = Pilot_Understanding,type=c("p","r","g"), col="dark blue", col.line="black")
-P2 <- xyplot(Q6QOV~Q22Income|as.factor(Pilot_Understanding$Q14BP), data = Pilot_Understanding,type=c("p","r","g"), col="dark blue", col.line="black")
+Pilot_Understanding <- data.frame(Pilot_Understanding)
+Test_Long <- data.frame(Test_Long)
+Pilot_Understanding$Q14BP[Pilot_Understanding$Q14BP == 0] <- "Not watched"
+Pilot_Understanding$Q14BP[Pilot_Understanding$Q14BP == 1] <- "Watched"
+Pilot_Understanding$Q16Charity[Pilot_Understanding$Q16Charity == 0] <- "No involvement"
+Pilot_Understanding$Q16Charity[Pilot_Understanding$Q16Charity == 1] <- "Donated or joined"
+Test_Long$Q18Consequentiality[Test_Long$Q18Consequentiality == 0] <- "Inconsequential"
+Test_Long$Q18Consequentiality[Test_Long$Q18Consequentiality == 1] <- "Consequential"
 
-print(P2, position=c(0, 0, 1, .65), more=TRUE)
-print(P1, position=c(0, 0.4, 1, 1))
+library(scales)
+library(ggplot2)
+Pilot_Understanding$charity_scale = factor(Pilot_Understanding$Q16Charity, levels=c("No involvement","Donated or joined"))
+P1 <- ggplot(Pilot_Understanding, aes(Q22Income,Q6QOV)) + 
+  geom_point(shape = 1) +
+  facet_grid(~charity_scale) + 
+  geom_smooth(method="lm",se=F) +
+  ggtitle("Relationship between income and precaution by charity involvement.") +
+  theme(plot.title = element_text(hjust = 0.5),
+        plot.margin=unit(c(1,1,-0.5,1),"cm"),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(labels=dollar_format(prefix="£")) +
+  labs(x = "Q22 Monthly Gross Income",y="0=Research, 1=Precautionary")+
+  scale_y_continuous(limits = c(0,1))
+
+P2 <- ggplot(Pilot_Understanding, aes(Q22Income,Q6QOV)) + 
+  geom_point(shape = 1) +
+  facet_grid(~Q14BP) + 
+  geom_smooth(method="lm",se=F) +
+  ggtitle("Relationship between income and precaution by Blue-Planet II") +
+  theme(plot.title = element_text(hjust = 0.5),
+        plot.margin=unit(c(1,1,-0.5,1),"cm"),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(labels=dollar_format(prefix="£")) +
+  labs(x = "Q22 Monthly Gross Income",y="0=Research, 1=Precautionary")+
+  scale_y_continuous(limits = c(0,1))
+
+library(gridExtra)
+grid.arrange(P1, P2 )
+
+
 # These are the charity and BP plots used in the descriptive graphics section of the pilot report.
-
+ggplot(Test_Long, aes(Q22Income,Q5CVM1)) + 
+  geom_point(shape = 1) +
+  facet_grid(~Q18Consequentiality) + 
+  geom_smooth(method="lm",se=F) +
+  ggtitle("Relationship between income and valuations by consequentiality.") +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(labels=dollar_format(prefix="£")) +
+  labs(x = "Q22 Monthly Gross Income",y="Accepting £5 bid.")+
+  scale_y_continuous(limits = c(0,1))
 
 ##########################################################################
 ##########################################################################
