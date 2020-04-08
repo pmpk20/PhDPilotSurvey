@@ -12,7 +12,7 @@
 ####################################################################################
 
 
-install.packages("dplyr") # Useful later for data manipulation
+# install.packages("dplyr") # Useful later for data manipulation
 install.packages("mlogit")
 install.packages("gmnl")
 install.packages("stargazer")
@@ -216,6 +216,13 @@ ggplot(Test_Long, aes(Q22Income,Q5CVM1)) +
 
 ########### Multinomial Logit:
 library(mlogit)
+Test_Long <- mlogit.data(Test, shape = "wide", choice = "Choice",
+                         varying = 24:31, sep = "_", id.var = "ID",
+                         opposite = c("Price", "Effectiveness", "Accumulation", "Health"))
+Pilot_Dominated <- Test_Long[!Test_Long$ID %in% c(Test_Long$ID[ ((Test_Long$Task == 1) & (Test_Long$Choice ==0) & (grepl("SQ",rownames(Test_Long),fixed = TRUE) == FALSE)) ]),]
+Pilot_Understanding <- Pilot_Dominated[!Pilot_Dominated$ID %in% c( unique(Pilot_Dominated$ID[Pilot_Dominated$Q23Survey <= 5])),]
+
+
 # I first estimate a basic no SD or attitude variables MNL.
 Base_MNL <- mlogit(Choice ~  Price + Health, 
                    Pilot_Understanding,
@@ -382,7 +389,8 @@ plot(results)
 ##########################################################################
 ########### Latent-Class Models
 ## Here estimating a very basic LCM to understand the model but not used in the pilot report.
-
+## Explainer: https://rpubs.com/msarrias1986/335556 
+library(gmnl)
 LC_GM <- gmnl(Choice ~ Price + Health | 0 |
                 0 | 0 | 1,
               data = Pilot_Understanding,
@@ -390,7 +398,31 @@ LC_GM <- gmnl(Choice ~ Price + Health | 0 |
               panel = TRUE,
               Q = 2)
 summary(LC_GM)
+AIC(LC_GM) # 75.516
+BIC(LC_GM) # 90.36565
 
+LC_GM3 <- gmnl(Choice ~ Price + Health | 0 |
+                0 | 0 | 1,
+              data = Pilot_Understanding,
+              model = 'lc',
+              panel = TRUE,
+              Q = 3)
+summary(LC_GM3)
+AIC(LC_GM3) # 81.51692
+BIC(LC_GM3) # 105.2754
+
+LC_GM4 <- gmnl(Choice ~ Price + Health | 0 |
+                0 | 0 | 1,
+              data = Pilot_Understanding,
+              model = 'lc',
+              panel = TRUE,
+              Q = 4)
+summary(LC_GM4)
+AIC(LC_GM4) # 87.51657
+BIC(LC_GM4) # 135.0934
+
+# Class proportions:
+exp(coef(LC_GM)["(class)2"]) / (exp(0) + exp(coef(LC_GM)["(class)2"]))
 
 
 ##########################################################################
@@ -500,21 +532,21 @@ MNL_ML <- mlogit(Choice ~  Price + Health | Q1Gender + Q2Age
                  + Q3Distance
                  + Q4Trips + Q6QOV 
                  + Q14BP + Q16Charity 
-                 + Q17Understanding+ Q18Consequentiality
+                 + Q17Understanding
                  + Q19Experts +Q20Education+ Q21Employment
-                 +  Q22Income+Q23Survey, 
-                 Pilot_Dominated,
+                 +  Q22Income, 
+                 Pilot_Understanding,
                  alt.subset = c("SQ","ALT"),reflevel = "SQ")
 summary(MNL_ML)
 MNL_GM <- gmnl(Choice ~  Price + Health | Q1Gender + Q2Age
                + Q3Distance
                + Q4Trips + Q6QOV 
                + Q14BP + Q16Charity 
-               + Q17Understanding+ Q18Consequentiality
+               + Q17Understanding
                + Q19Experts +Q20Education+ Q21Employment
-               +  Q22Income+Q23Survey,
-               data = Pilot_Dominated,
-               model = "mnl",reflevel = "SQ",alt.subset = c("SQ","ALT"))
+               +  Q22Income,
+               data = Pilot_Understanding,
+               model = "mnl",alt.subset = c("SQ","ALT"),reflevel = "SQ")
 summary(MNL_GM)
 wtp.gmnl(MNL_GM,"Price",3)
 
