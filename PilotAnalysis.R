@@ -424,6 +424,31 @@ BIC(LC_GM4) # 135.0934
 # Class proportions:
 exp(coef(LC_GM)["(class)2"]) / (exp(0) + exp(coef(LC_GM)["(class)2"]))
 
+#WTP:
+-coef(LC_GM4)/coef(LC_GM4)["class.4.Price"]
+
+shares <- function(obj){
+  if (!inherits(obj, "gmnl")) stop("The model was not estimated using gmnl")
+  if (obj$model != "lc") stop("The model is not a LC-MNL")
+  bhat <- coef(obj)
+  cons_class <- c(0, bhat[grep("(class)", names(bhat), fixed = TRUE)])
+  Q <- length(cons_class)
+  shares <- exp(cons_class) / sum(exp(cons_class))
+  names(shares) <- paste("share q", 1:Q, sep = "=")  
+  return(shares)
+}
+
+shares(LC_GM)
+
+LC_GM <- gmnl(Choice ~ Price + Health | 0 |
+                0 | 0 | Q1Gender ,
+              data = Pilot_Understanding,
+              model = 'lc',
+              panel = TRUE,
+              Q = 2)
+summary(LC_GM)
+AIC(LC_GM) # 75.516
+BIC(LC_GM) # 90.36565
 
 ##########################################################################
 ##########################################################################
