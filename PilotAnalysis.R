@@ -11,8 +11,6 @@
 ############### Section 1: Import Data  ##########################
 ####################################################################################
 
-
-# install.packages("dplyr") # Useful later for data manipulation
 install.packages("mlogit")
 install.packages("gmnl")
 install.packages("stargazer")
@@ -211,10 +209,7 @@ ggplot(Test_Long, aes(Q22Income,Q5CVM1)) +
 ##########################################################################
 
 
-##########################################################################
-############### Estimation                           #####################
-
-########### Multinomial Logit:
+########### Seting up the data:
 library(mlogit)
 Test_Long <- mlogit.data(Test, shape = "wide", choice = "Choice",
                          varying = 24:31, sep = "_", id.var = "ID",
@@ -223,14 +218,14 @@ Pilot_Dominated <- Test_Long[!Test_Long$ID %in% c(Test_Long$ID[ ((Test_Long$Task
 Pilot_Understanding <- Pilot_Dominated[!Pilot_Dominated$ID %in% c( unique(Pilot_Dominated$ID[Pilot_Dominated$Q23Survey <= 5])),]
 
 
-# I first estimate a basic no SD or attitude variables MNL.
+########### Basic no SD MNL:
 Base_MNL <- mlogit(Choice ~  Price + Health, 
                    Pilot_Understanding,
                    alt.subset = c("SQ","ALT"),reflevel = "SQ") ##Estimating a simple model first
 summary(Base_MNL) ## Estimates a simplistic mlogit model before adding in individual-specifics
 
 
-## Full MNL with all SD and Attitudinal variables.
+########### Full MNL with all SD and Attitudinal variables.
 Pilot_MNL <- mlogit(Choice ~ Price + Health | 
                       Q1Gender + Q2Age + Q3Distance
                     + Q4Trips + Q6QOV 
@@ -243,10 +238,6 @@ Pilot_MNL <- mlogit(Choice ~ Price + Health |
 summary(Pilot_MNL) ## Summarises the MNL output
 ## key things to change include the placing of the |. 
 
-library(stargazer)
-stargazer(summary(Pilot_MNL)$CoefTable, title = "PilotMNL", align = TRUE,report="p*")
-# The stargazer package allows me to export model summaries to LaTeX code.
-# Problem is it won't export summary(Object) for mlogit objects - only the coeftable which misses out p value stars.
 
 ########### Mixed Logit:
 # MIXLcorrelated <- mlogit(Choice~Price+Accumulation|0,
@@ -268,7 +259,8 @@ stargazer(summary(Pilot_MNL)$CoefTable, title = "PilotMNL", align = TRUE,report=
 #                            panel=TRUE,correlation = FALSE,seed=123,start=as.vector(rep(0,4)))
 # summary(MIXLuncorrelated)
 
-# Estimates the full MXL model with all covariates
+
+############### Estimates the full MXL model with all covariates
 MXLFull <- mlogit(
   Choice ~  Price + Health|  Q1Gender + Q2Age + 
     Q3Distance + Q4Trips + Q6QOV+ Q14BP +
@@ -283,7 +275,8 @@ AIC(MXLFull) # 79.83541
 BIC(MXLFull)
 # Can remove intercept by replacing "Health | Q1Gender" with "Health | +0 + Q1Gender"  
 
-# MXLNew estimates a smaller model than MXLFull and is a step in the right direction.
+
+############### MXLNew estimates a smaller model than MXLFull and is a step in the right direction.
 MXLNew <- mlogit(
   Choice ~  Price + Health|  Q2Age + 
      + Q14BP +
@@ -295,56 +288,59 @@ MXLNew <- mlogit(
   reflevel="SQ",halton=NA,method="bhhh",panel=TRUE,seed=123)
 summary(MXLNew)
 AIC(MXLNew) # 72.47612
+
    
-# MXLNew2 is the best fitting model I have found so far.
+############### Best-fitting MXL model:
 MXLNew2 <- mlogit(
   Choice ~  Price + Health|  
-    + Q14BP +
+    Q14BP +
     Q16Charity,
   Pilot_Understanding, rpar=c(Price="ln"),
-  R=10,correlation = FALSE,
+  R=1000,correlation = FALSE,
   reflevel="SQ",halton=NA,method="bhhh",panel=TRUE,seed=123)
 summary(MXLNew2)
 AIC(MXLNew2) # 69.69897
+# Time: 1m5s
 ## haltons = list("primes"= c(2, 17),"drop" = rep(19, 2))
-## Commented out haltons here for speed but can add in and increase R to get the 1000 halton draws used. 
+## NA is a default list of primes for the draws but can specify primes with the above.
+#  Commented out haltons here for speed but can add in and increase R to get the 1000 halton draws used. 
 
+
+############### LaTeX code export:
+library(stargazer)
+stargazer(summary(Pilot_MNL)$CoefTable, title = "PilotMNL", align = TRUE,report="p*")
 stargazer(summary(MXLNew2)$CoefTable, title = "MXLFull", align = TRUE,report="p*")
+# The stargazer package allows me to export model summaries to LaTeX code.
+# Problem is it won't export summary(Object) for mlogit objects - only the coeftable which misses out p value stars.
 
 
-##########################################################################
-############### Evaluation                           #####################
-
-
-# Likelihood ratio test for models
+############### Model testing with Likelihood-Ratio and Wald tests.
 lrtest(Base_MNL , Pilot_MNL) ## Likelihood Ratio test
+lr.corr <- lrtest(MXLFull, MXLNew2)
+wd.corr <- waldtest(MXLNew2, correlation = FALSE)
 
-# Marginal Effects
-effects(Pilot_MNL, covariate = "Price", type = "rr") # Covariate change in column of ALT leads to adjacent column change in probability of selecting that option.
+
+############### Marginal Effects
+effects(Pilot_MNL, covariate = "Price", type = "ar") # Covariate change in column of ALT leads to adjacent column change in probability of selecting that option.
 ## i.e. changing the price of the ALT leads to a effects(M2, covariate = "Price", type = "rr")[2] change in the probability of selecting the ALT option.
 
-# P values
-coef(summary(Pilot_MNL))[,4] ##Returns P Values
-PV <- data.frame(coef(summary(Pilot_MNL))[,4],coef(summary(Pilot_MNL))[,1] )
-colnames(PV) <- c("PV","Effect")
-PV <- subset(PV,PV <=0.05)
-PV <- data.frame(row.names(PV), PV$PV, PV$Effect)
-colnames(PV) <- c("Variables","PV","Effect")
-barplot(PV$Effect, names.arg = PV$Variables,xlab = "Variables",ylab = "Effect",ylim = c(-2,5),axes = TRUE)
 
-# WTP and MRS calculations:
-coef(Pilot_MNL)["Heh"]/coef(Pilot_MNL)["Price"] ## For some reason, "Health" comes up as "Heh" ??
+############### Willingness-To-Pay
+rpar(MXLNew2,"Health",norm="Price")
+mean(rpar(MXLNew2, "Health", norm = "Price"))
+coef(MXLNew2)/coef(MXLNew2)["Price"] ## For some reason, "Health" comes up as "Heh" ??
 
-# Tests of the MXL models
-lr.corr <- lrtest(MIXLcorrelated, MIXLuncorrelated)
-library(car)
-lh.corr <- linearHypothesis(MIXLcorrelated, c("chol.Price:Accumulation = 0","chol.Price:Price = 0", "chol.Accumulation:Accumulation = 0"))
-wd.corr <- waldtest(MIXLcorrelated, correlation = FALSE)
-sc.corr <- scoretest(MIXLuncorrelated, correlation = TRUE)
 
-# Reports MRS in WTP Space 
-rpar(MXLFull,"Health",norm="Price")
-mean(rpar(MXLFull, "Health", norm = "Price"))
+############### Consumer Surplus
+## 10% change in price and health
+Pilot_Understanding_CS1 <- Pilot_Understanding
+Pilot_Understanding_CS1$Price <- Pilot_Understanding_CS1$Price * 1.1
+Pilot_Understanding_CS1$Health <- Pilot_Understanding_CS1$Health * 0.9
+Va1 <- logsum(MXLNew2)
+Va0 <- logsum(MXLNew2,data = Pilot_Understanding_CS1)
+surplus <- - (Va1 - Va0) / coef(MXLNew2)["Price"]
+summary(surplus)
+
 
 ############### Clustering
 ## Problem: can only use MLOGIT
@@ -353,35 +349,23 @@ cluster.bs.mlogit(MXLNew2, Pilot_Understanding, ~ ID, boot.reps=3,seed = 123)
 
 
 ############### Bootstrapping
-## Problem: can only use GMNL
 ## Question: Does cluster.bs do all this?
-library(boot)
 bs <- function(formula, data, indices) {
   d <- data[indices,] # allows boot to select sample
-  fit <- gmnl(formula, data, 
-  model = "mixl", ranp = c( Heh = "n"), 
-  R = 10, haltons =NULL,
-  mvar = list(Heh = c("Q16Charity")),
-  method = "bfgs",correlation = FALSE)
-  return(summary(effect.gmnl(fit, par = "Heh", effect = "wtp", wrt = "Price")$mean)[4])
-}
-results <- boot(data=Pilot_Understanding, statistic=bs,
-                R=3, formula= Choice ~ Price + Health | 0   | 0 | Q16Charity)
-results
-plot(results)
+  fit <- mlogit(formula, data,
+                rpar = c(Price = "ln"),
+                R = 10, correlation = FALSE,
+                reflevel="SQ", halton =NA,
+                method = "bhhh",panel=TRUE,seed=123)
+  return(summary(fit))
+}   
 
-# Attempting to rewrite the bootstrapping formula for MLOGIT
-# bs <- function(formula, data, indices) {
-#   d <- data[indices,] # allows boot to select sample
-#   fit <- mlogit(formula, data, 
-#               model = "mixl", ranp = c( Heh = "n"), 
-#               R = 10, haltons =NA,
-#               method = "nr",correlation = FALSE, reflevel="SQ")
-#   return(rpar(fit,"Heh",norm="Price"))
-# }
-# results <- boot(data=Pilot_Understanding, statistic=bs,
-#                 R=3, formula= Choice ~ Price + Health | Q16Charity)
-# results
+results <- boot(data=Pilot_Understanding, statistic=bs,
+                R=3, formula= Choice ~ Price + Health | Q16Charity)
+results
+
+## Other formulas to bootstrap:
+# rpar(fit,"Heh",norm="Price")
 
 
 ##########################################################################
@@ -421,12 +405,8 @@ summary(LC_GM4)
 AIC(LC_GM4) # 87.51657
 BIC(LC_GM4) # 135.0934
 
-# Class proportions:
+## Class proportions:
 exp(coef(LC_GM)["(class)2"]) / (exp(0) + exp(coef(LC_GM)["(class)2"]))
-
-#WTP:
--coef(LC_GM4)/coef(LC_GM4)["class.4.Price"]
-
 shares <- function(obj){
   if (!inherits(obj, "gmnl")) stop("The model was not estimated using gmnl")
   if (obj$model != "lc") stop("The model is not a LC-MNL")
@@ -440,6 +420,10 @@ shares <- function(obj){
 
 shares(LC_GM)
 
+## WTP:
+-coef(LC_GM4)/coef(LC_GM4)["class.4.Price"]
+
+## Final LCM model
 LC_GM <- gmnl(Choice ~ Price + Health | 0 |
                 0 | 0 | Q1Gender ,
               data = Pilot_Understanding,
@@ -450,15 +434,13 @@ summary(LC_GM)
 AIC(LC_GM) # 75.516
 BIC(LC_GM) # 90.36565
 
+
+
 ##########################################################################
 ##########################################################################
 ############### CVM                                  #####################
 ##########################################################################
 ##########################################################################
-
-
-
-
 # Guidance on PROBIT:
 ## https://stats.idre.ucla.edu/r/dae/probit-regression/
 # Guidance on MFX:
@@ -779,6 +761,22 @@ wtp.gmnl(GMNL_MXLidk,"Price",3)
 summary(effect.gmnl(GMNL_MXLidk, par = "Heh", effect = "wtp", wrt = "Price")$mean)
 
 
+library(boot)
+bs <- function(formula, data, indices) {
+  d <- data[indices,] # allows boot to select sample
+  
+  fit <- gmnl(formula, data, 
+              model = "mixl", ranp = c( Heh = "n"), 
+              R = 10, haltons =NULL,
+              mvar = list(Heh = c("Q16Charity")),
+              method = "bfgs",correlation = FALSE)
+  
+  return(summary(effect.gmnl(fit, par = "Heh", effect = "wtp", wrt = "Price")$mean)[4])
+}
+results <- boot(data=Pilot_Understanding, statistic=bs,
+                R=3, formula= Choice ~ Price + Health | 0   | 0 | Q16Charity)
+results
+plot(results)
 
 
 
