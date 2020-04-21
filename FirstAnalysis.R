@@ -204,10 +204,6 @@ for (i in colnames(FirstSurvey2)){
   }
 } ## Aim of the function is to express all variables in the FirstSurvey data as factors
 
-##########################################################  
-####### CE
-##########################################################  
-
 data.frame(FirstSurvey2$Q9Performance,FirstSurvey2$Q9Emission,FirstSurvey2$Q9Price)
 data.frame(FirstSurvey2$Q10Performance,FirstSurvey2$Q10Emission,FirstSurvey2$Q10Price)
 data.frame(FirstSurvey2$Q11Performance,FirstSurvey2$Q11Emission,FirstSurvey2$Q11Price)
@@ -216,17 +212,37 @@ SQChoices <- data.frame("Performance" =c(0,0,0),
                         "Emission" =c(0,0,0),
                         "Price" =c(0,0,0))
 
-
+library(dplyr)
 First <- cbind(slice(.data = FirstSurvey2,rep(1:n(), each = 4)),slice(.data = SQChoices,rep(1:n(), times = 4)))
 # So TEST is a dataframe that transforms the FirstSurvey data into an appropriate format for the estimation.
 # The code repeats each row of the FirstSurvey data for each choice the respondent made. Therefore, each respondent now has three rows one for Q7, Q8, Q9.
 
-Choices <- data.frame(Choice = c(t(data.frame(rep(FirstSurvey2[,35:38], times=1)))[,]))
+Price_B <- data.frame(Price_B = 
+             c(t(data.frame(rep(data.frame(FirstSurvey2["Q9Price"],
+                                           FirstSurvey2["Q10Price"],
+                                           FirstSurvey2["Q11Price"],
+                                           FirstSurvey2["Q12Price"]),
+                                times=1)))[,]))
+Performance_B <- data.frame(Performance_B = 
+             c(t(data.frame(rep(data.frame(FirstSurvey2["Q9Performance"],
+                                           FirstSurvey2["Q10Performance"],
+                                           FirstSurvey2["Q11Performance"],
+                                           FirstSurvey2["Q12Performance"]),
+                                times=1)))[,]))
+Emission_B <- data.frame(Emission_B = 
+             c(t(data.frame(rep(data.frame(FirstSurvey2["Q9Emission"],
+                                           FirstSurvey2["Q10Emission"],
+                                           FirstSurvey2["Q11Emission"],
+                                           FirstSurvey2["Q12Emission"]),
+                                times=1)))[,]))
+
+Choices <- data.frame(Choice = c(t(
+  data.frame(rep(FirstSurvey2[,35:38], times=1)))[,]))
 # Forces the responses to Q7, Q8, Q9 from FirstSurvey to be in one long column. Each respondent has three rows.
 
-First <- data.frame(First[,1:13],First[,18],First[,20:22],First[,24:26],First[,28:30],First[,32:34],
+First <- data.frame(First[,1:13],First[,18],Price_B, Performance_B, Emission_B,
                     First[,55:57],Choices, First[,19],First[,23],First[,27],
-                    First[,31],First[,35:54],
+                    First[,31],First[,39:54],
                    rep(1:4,times=nrow(FirstSurvey2)))
 # Combines and reorders the TEST dataframe. Use View(Test) to see that this dataframe combines the choice sets, responses, and respondent data.
 
@@ -234,38 +250,117 @@ colnames(First) <- c("ID","Order","Q1Gender","Q2Age","Q3Distance","Q4Trips",
                            "Q5Knowledge","Q6Bid","Q7Bid","Q6ResearchResponse",
                            "Q6ResearchCertainty","Q7TreatmentResponse",
                            "Q7TreatmentCertainty","Q8DominatedTest",
-                           "Q9Performance_B","Q9Emission_B","Q9Price_B",
-                           "Q10Performance_B","Q10Emission_B","Q10Price_B",
-                           "Q11Performance_B","Q11Emission_B","Q11Price_B",
-                           "Q12Performance_B","Q12Emission_B","Q12Price_B",
+                     "Price_B","Performance_B","Emission_B", 
                           "Performance_A","Emission_A","Price_A","Choice",
-                    "Q9Block","Q10Block","Q11Block","Q12Block",
-                           "Q9Choice","Q10Choice","Q11Choice","Q12Choice","Q12CECertainty",
+                    "Q9Block","Q10Block","Q11Block","Q12Block","Q12CECertainty",
                            "Q13CurrentThreatToSelf","Q14FutureThreatToSelf","Q15ThreatToEnvironment",
                            "Q16BP","Q18Charity","Q19Knowledge","Q20Consequentiality",
                            "Q21Experts","Q22Education","Q23Employment",
                            "Q24RonaImpact","Q24AIncome","Q25Understanding","Q7Bid2","Q7Response2",
                            "Task")  
 
-First <- data.frame(First[,1:7],First[,15:17],First[,27:30])
-colnames(First) <- c("ID","Order","Q1Gender","Q2Age","Q3Distance","Q4Trips",
-                     "Q5Knowledge",
-                     "Performance_B","Emission_B","Price_B",
-                     "Performance_A","Emission_A","Price_A","Choice")
+# First <- data.frame(First[,1:7],First[,15:17],First[,27:30])
+# colnames(First) <- c("ID","Order","Q1Gender","Q2Age","Q3Distance","Q4Trips",
+#                      "Q5Knowledge",
+#                      "Performance_B","Emission_B","Price_B",
+#                      "Performance_A","Emission_A","Price_A","Choice")
 
 First$av_A <- rep(1,nrow(First)) # Add a vector of ones to show that the alternative choice is always available to respondents.
 First$av_B <- rep(1,nrow(First)) # Add a vector of ones to show that the status quo is always available to respondents as consistent with theory.
 First$Choice[First$Choice == 0] <- "A"  ## Necessary here to change numeric to string
 First$Choice[First$Choice == 1] <- "B" ## The MFORMULA looks for _SQ or _ALT so choice must be SQ or ALT
 
+
+##########################################################  
+####### CE
+##########################################################  
+
+
 library(mlogit) #Already have package installed
 Test_Long <- mlogit.data(First, shape = "wide", choice = "Choice",
-              varying = 8:13, sep = "_", id.var = "ID")
+              varying = 15:20, sep = "_", id.var = "ID")
+
+## To trim the sample: 
+First_Dominated <- Test_Long[Test_Long$Q8DominatedTest == 0]
+First_Understanding <- First_Dominated[First_Dominated$Q25Understanding >= 5]
+First_Cons <- First_Understanding[First_Understanding$Q20Consequentiality == 1]
+
+
+##########################################################  
+##########################################################  
+
+
+First_Cons <- data.frame(First_Cons)
+Test_Long <- data.frame(Test_Long)
+First_Cons$Q14BP[First_Cons$Q16BP == 0] <- "Not watched"
+First_Cons$Q14BP[First_Cons$Q16BP == 1] <- "Watched"
+First_Cons$Q14BP[First_Cons$Q16BP == 2] <- "Watched"
+First_Cons$Q18Charity[First_Cons$Q18Charity == 0] <- "No involvement"
+First_Cons$Q18Charity[First_Cons$Q18Charity == 1] <- "Donated or joined"
+Test_Long$Q20Consequentiality[Test_Long$Q20Consequentiality == 0] <- "Inconsequential"
+Test_Long$Q20Consequentiality[Test_Long$Q20Consequentiality == 1] <- "Consequential"
+
+library(scales)
+library(ggplot2)
+First_Cons$charity_scale = factor(First_Cons$Q18Charity, levels=c("No involvement","Donated or joined"))
+P1 <- ggplot(First_Cons, aes(Q3Distance,Q4Trips)) + 
+  geom_point(shape = 1) +
+  facet_grid(~charity_scale) + 
+  geom_smooth(method="lm",se=F) +
+  ggtitle("Relationship between distance and trips by charity involvement.") +
+  theme(plot.title = element_text(hjust = 0.5),
+        plot.margin=unit(c(1,1,-0.5,1),"cm"),
+        axis.title.y = element_text(size = 12)) +
+  labs(x = "Distance",y="Trips")+
+  scale_y_continuous(limits = c(0,1))
+
+P2 <- ggplot(First_Cons, aes(Q3Distance,Q4Trips)) + 
+  geom_point(shape = 1) +
+  facet_grid(~Q16BP) + 
+  geom_smooth(method="lm",se=F) +
+  ggtitle("Relationship between distance and trips by Blue-Planet II") +
+  theme(plot.title = element_text(hjust = 0.5),
+        plot.margin=unit(c(1,1,-0.5,1),"cm"),
+        axis.title.y = element_text(size = 12)) +
+  labs(x = "Distance",y="Trips")+
+  scale_y_continuous(limits = c(0,1))
+
+library(gridExtra)
+grid.arrange(P1, P2 )
+
+
+##########################################################  
+##########################################################  
+
 
 Base_MNL <- mlogit(Choice ~  Price + Performance + Emission, 
                    Test_Long,
                    alt.subset = c("A","B"),reflevel = "A") ##Estimating a simple model first
 summary(Base_MNL) ## Estimates a simplistic mlogit model before adding in individual-specifics
+
+Pilot_MNL <- mlogit(Choice ~ Price + Performance + Emission | 
+                      Q1Gender + Q2Age + Q3Distance
+                    + Q4Trips + Q16BP + Q18Charity 
+                    + Q20Consequentiality
+                    + Q21Experts +Q22Education+ Q23Employment
+                    +  Q24AIncome, 
+                    Test_Long, alt.subset = c("A", "B"), 
+                    reflevel = "A") ## Estimating a much larger MNL model with all the independent variables. 
+summary(Pilot_MNL) ## Summarises the MNL output
+
+MXLFull <- mlogit(
+  Choice ~ Price + Performance + Emission | 
+    Q1Gender + Q2Age + Q3Distance
+  + Q4Trips + Q16BP + Q18Charity 
+  + Q20Consequentiality
+  + Q21Experts +Q22Education+ Q23Employment
+  +  Q24AIncome,
+  Test_Long, rpar=c(Price="ln"),
+  R=10,correlation = FALSE,
+  reflevel="A",halton=NA,method="bhhh",panel=TRUE,seed=123)
+summary(MXLFull)
+AIC(MXLFull) # 79.83541
+BIC(MXLFull)
 
 ##########################################################  
 ####### CVM
