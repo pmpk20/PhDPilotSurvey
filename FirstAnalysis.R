@@ -332,6 +332,14 @@ grid.arrange(P1, P2 )
 ##########################################################  
 ##########################################################  
 
+library(mlogit) #Already have package installed
+Test_Long <- mlogit.data(First, shape = "wide", choice = "Choice",
+                         varying = 15:20, sep = "_", id.var = "ID")
+
+## To trim the sample: 
+First_Dominated <- Test_Long[Test_Long$Q8DominatedTest == 0]
+First_Understanding <- First_Dominated[First_Dominated$Q25Understanding >= 5]
+First_Cons <- First_Understanding[First_Understanding$Q20Consequentiality == 1]
 
 Base_MNL <- mlogit(Choice ~  Price + Performance + Emission, 
                    Test_Long,
@@ -355,12 +363,27 @@ MXLFull <- mlogit(
   + Q20Consequentiality
   + Q21Experts +Q22Education+ Q23Employment
   +  Q24AIncome,
-  Test_Long, rpar=c(Price="ln"),
+  Test_Long, rpar=c(Price="n"),
   R=10,correlation = FALSE,
   reflevel="A",halton=NA,method="bhhh",panel=TRUE,seed=123)
 summary(MXLFull)
 AIC(MXLFull) # 79.83541
 BIC(MXLFull)
+
+coef(MXLFull)/coef(MXLFull)["Price"]
+library(clusterSEs)
+cluster.bs.mlogit(MXLFull, Test_Long, ~ ID, boot.reps=10,seed = 123)
+
+library(gmnl)
+LC_GM <- gmnl(Choice ~ Price + Performance + Emission | 0 |
+                0 | 0 | 1,
+              data = Test_Long,
+              model = 'lc',
+              panel = TRUE,
+              Q = 2)
+summary(LC_GM)
+AIC(LC_GM) # 75.516
+BIC(LC_GM) # 90.36565
 
 ##########################################################  
 ####### CVM
