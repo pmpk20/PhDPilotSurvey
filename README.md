@@ -1,6 +1,8 @@
 # PhDPilotSurvey
-PhDPilotSurvey
+PhD First 100 analysis:
 
 To-Do:
-- Re-estimate MNL and MXL with trimmed sample.
-- Try APOLLO package again for LCM
+- Fix the attributes problem
+- Apply APOLLO package
+- Fix the HCM
+- Train SVM in Python
