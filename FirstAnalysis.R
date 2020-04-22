@@ -259,17 +259,16 @@ colnames(First) <- c("ID","Order","Q1Gender","Q2Age","Q3Distance","Q4Trips",
                            "Q24RonaImpact","Q24AIncome","Q25Understanding","Q7Bid2","Q7Response2",
                            "Task")  
 
-# First <- data.frame(First[,1:7],First[,15:17],First[,27:30])
-# colnames(First) <- c("ID","Order","Q1Gender","Q2Age","Q3Distance","Q4Trips",
-#                      "Q5Knowledge",
-#                      "Performance_B","Emission_B","Price_B",
-#                      "Performance_A","Emission_A","Price_A","Choice")
-
 First$av_A <- rep(1,nrow(First)) # Add a vector of ones to show that the alternative choice is always available to respondents.
 First$av_B <- rep(1,nrow(First)) # Add a vector of ones to show that the status quo is always available to respondents as consistent with theory.
 First$Choice[First$Choice == 0] <- "A"  ## Necessary here to change numeric to string
 First$Choice[First$Choice == 1] <- "B" ## The MFORMULA looks for _SQ or _ALT so choice must be SQ or ALT
 
+# for (i in colnames(First)){
+#   if (is.factor(First[[i]]) == TRUE){
+#     contrasts(First[,i]) <- contr.sum(nlevels(First[,i]))
+#   }
+# } ## Aim of the function is to express all variables in the Pilot data as factors
 
 ##########################################################  
 ####### CE
@@ -342,7 +341,7 @@ First_Understanding <- First_Dominated[First_Dominated$Q25Understanding >= 5]
 First_Cons <- First_Understanding[First_Understanding$Q20Consequentiality == 1]
 
 Base_MNL <- mlogit(Choice ~  Price + Performance + Emission, 
-                   Test_Long,
+                   First_Cons,
                    alt.subset = c("A","B"),reflevel = "A") ##Estimating a simple model first
 summary(Base_MNL) ## Estimates a simplistic mlogit model before adding in individual-specifics
 
@@ -369,12 +368,41 @@ MXLFull <- mlogit(
 summary(MXLFull)
 AIC(MXLFull) # 79.83541
 BIC(MXLFull)
-
 coef(MXLFull)/coef(MXLFull)["Price"]
+
 library(clusterSEs)
 cluster.bs.mlogit(MXLFull, Test_Long, ~ ID, boot.reps=10,seed = 123)
 
 library(gmnl)
+MNL_GM <- gmnl(  Choice ~ Price + Performance + Emission | 
+                   Q1Gender + Q2Age + Q3Distance
+                 + Q4Trips + Q16BP + Q18Charity 
+                 + Q20Consequentiality
+                 + Q21Experts +Q22Education+ Q23Employment
+                 +  Q24AIncome,
+                 data = First_Understanding,
+                 model = "mnl",alt.subset = c("A","B"),reflevel = "A")
+summary(MNL_GM)
+wtp.gmnl(MNL_GM,"Price",3)
+GMNL_MXLDefault <- gmnl(Choice ~ Price + Performance + Emission | 1 | 0|
+                          Q1Gender + Q2Age + Q3Distance
+                        + Q4Trips + Q16BP + Q18Charity 
+                        + Q20Consequentiality
+                        + Q21Experts +Q22Education+ Q23Employment
+                        +  Q24AIncome, data = First_Understanding,
+                        model = "mixl",
+                        ranp = c( Price = "ln"),
+                        mvar = list(Price = c("Q18Charity")),
+                        R = 10,
+                        haltons = NA
+                        ,seed = 123,reflevel = "A")
+summary(GMNL_MXLDefault)
+wtp.gmnl(GMNL_MXLDefault,"Price",3)
+plot(GMNL_MXLDefault, par = "Q18Charity", effect = "wtp", type = "density", col = "grey",wrt="Price")
+
+
+
+
 LC_GM <- gmnl(Choice ~ Price + Performance + Emission | 0 |
                 0 | 0 | 1,
               data = Test_Long,
@@ -437,12 +465,20 @@ install.packages("interval")
 install.packages("DCchoice")
 library(DCchoice)
 
-Research_SB <- sbchoice(Q6ResearchResponse ~ Q1Gender | Q6Bid, data = FirstSurvey2)
+Research_SB <- sbchoice(Q6ResearchResponse ~ Q1Gender + Q2Age + Q3Distance
+                        + Q4Trips + Q16BP + Q18Charity 
+                        + Q20Consequentiality
+                        + Q21Experts +Q22Education+ Q23Employment
+                        +  Q24AIncome | Q6Bid, data = FirstSurvey2,dist="logistic")
 summary(Research_SB)
 krCI(Research_SB)
 bootCI(Research_SB)
 
-Treatment_DB <- dbchoice(Test$Q7TreatmentResponse + Test$Q7Response2 ~ Q1Gender | Test$Q7Bid + Test$Q7Bid2,data = Test)
+Treatment_DB <- dbchoice(Q7TreatmentResponse + Q7Response2 ~ Q1Gender + Q2Age + Q3Distance
+                         + Q4Trips + Q16BP + Q18Charity 
+                         + Q20Consequentiality
+                         + Q21Experts +Q22Education+ Q23Employment
+                         +  Q24AIncome | Q7Bid + Q7Bid2,data = First,dist="logistic")
 summary(Treatment_DB)
 krCI(Treatment_DB)
 bootCI(Treatment_DB)
@@ -451,7 +487,7 @@ ResearchKMT <- turnbull.sb(formula = Q6ResearchResponse ~ Q6Bid,data = FirstSurv
 summary(ResearchKMT)
 plot(ResearchKMT)
 
-TreatmentKMT <- turnbull.db(formula = Test$Q7TreatmentResponse + Test$Q7Response2 ~  Test$Q7Bid + Test$Q7Bid2,data = Test)
+TreatmentKMT <- turnbull.db(formula = Q7TreatmentResponse + Q7Response2 ~  Q7Bid + Q7Bid2,data = FirstSurvey2)
 summary(TreatmentKMT)
 plot(TreatmentKMT)
 
