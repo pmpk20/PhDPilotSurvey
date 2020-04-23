@@ -3,18 +3,14 @@
 ############### Introduction: First 100 Data Analysis Script  ##########################
 ####################################################################################
 
-####################################################################################
-############### Section 1: Import Data  ##########################
-####################################################################################
- 
+
+############ Packages:
 install.packages("mlogit") ## MLOGIT is the best DCE package in R so far.
 install.packages("gmnl") ## Very similar to MLOGIT but more flexibility.
 install.packages("stargazer") ## To export to LaTeX code.
-rm(list = ls()) ## Removes all things in current global environment
-############ Importing data:
-
 setwd("H:/PhDFirstSurveySurvey") ## Sets working directory. This is where my Github repo is cloned to.
 
+############ Setup and manipulation:
 FirstSurvey <- data.frame(read.csv("FirstHundred.csv")) ## Imports from the excel file straight from the survey companies website.
 
 FirstSurvey <- FirstSurvey[ -c(2,4,14,15,16,23,24,26,27,53,54,55,56,57,58,68,69)] ## Drop rows of no importance to the quantitative analysis, namely text responses.
@@ -242,7 +238,7 @@ library(dplyr) ## Essential library for data manipulation
 First <- cbind(slice(.data = FirstSurvey2,rep(1:n(), each = 4)),slice(.data = OptionA,rep(1:n(), times = 4)))
 
 ##  Creating a dataframe with all the levels that the Price attribute took for alternative B in the CE. 
-Price_B <- data.frame(Price_B = 
+DBPrice_B <- data.frame(Price_B = 
              c(t(data.frame(rep(data.frame(FirstSurvey2["Q9Price"],
                                            FirstSurvey2["Q10Price"],
                                            FirstSurvey2["Q11Price"],
@@ -250,7 +246,7 @@ Price_B <- data.frame(Price_B =
                                 times=1)))[,]))
 
 ##  Creating a dataframe with all the levels that the Performance attribute took for alternative B in the CE. 
-Performance_B <- data.frame(Performance_B = 
+DBPerformance_B <- data.frame(Performance_B = 
              c(t(data.frame(rep(data.frame(FirstSurvey2["Q9Performance"],
                                            FirstSurvey2["Q10Performance"],
                                            FirstSurvey2["Q11Performance"],
@@ -258,7 +254,7 @@ Performance_B <- data.frame(Performance_B =
                                 times=1)))[,]))
 
 ##  Creating a dataframe with all the levels that the Emission attribute took for alternative B in the CE. 
-Emission_B <- data.frame(Emission_B = 
+DBEmission_B <- data.frame(Emission_B = 
              c(t(data.frame(rep(data.frame(FirstSurvey2["Q9Emission"],
                                            FirstSurvey2["Q10Emission"],
                                            FirstSurvey2["Q11Emission"],
@@ -271,7 +267,7 @@ Choices <- data.frame(Choice = c(t(
 
 ##  Chopping and reorganising the columns of the First dataframe into a new order which includes the attributes and their levels alongside all the choices in a single vector.
 ### The final argument creates a variable called TASK
-First <- data.frame(First[,1:13],First[,18],Price_B, Performance_B, Emission_B,
+First <- data.frame(First[,1:13],First[,18],DBPrice_B, DBPerformance_B, DBEmission_B,
                     First[,55:57],Choices, First[,19],First[,23],First[,27],
                     First[,31],First[,39:54],
                    rep(1:4,times=nrow(FirstSurvey2)))
@@ -289,11 +285,11 @@ colnames(First) <- c("ID","Order","Q1Gender","Q2Age","Q3Distance","Q4Trips",
                            "Q21Experts","Q22Education","Q23Employment",
                            "Q24RonaImpact","Q24AIncome","Q25Understanding","Q7Bid2","Q7Response2",
                            "Task")  
-
+Firsts <- First
 First$av_A <- rep(1,nrow(First)) # Add a vector of ones to show that the alternative choice is always available to respondents.
 First$av_B <- rep(1,nrow(First)) # Add a vector of ones to show that the status quo is always available to respondents as consistent with theory.
 First$Choice[First$Choice == 0] <- "A"  ## Necessary here to change numeric to string
-First$Choice[First$Choice == 1] <- "B" ## The MFORMULA looks for _SQ or _ALT so choice must be SQ or ALT
+First$Choice[First$Choice == 1] <- "B" ## The MFORMULA looks for _B or _A so choice must be SQ or ALT
 
 # The data manipulation now moves into the CE specific manipulation.
 library(mlogit) 
@@ -338,13 +334,10 @@ First_Long$Q20Consequentiality[First_Long$Q20Consequentiality == 1] <- "Conseque
 library(scales)
 library(ggplot2) 
 
-## Use this way to make a trellis plot which makes comparison between groups easier.
-First_Cons$charity_scale = factor(First_Cons$Q18Charity, levels=c("No involvement","Donated or joined"))
-
 ## Plot 1 (of 2):
-P1 <- ggplot(First_Cons, aes(Q3Distance,Q4Trips)) + 
+P1 <- ggplot(First_Long, aes(Q3Distance,Q4Trips)) + 
   geom_point(shape = 1) +
-  facet_grid(~charity_scale) + 
+  facet_grid(~Q18Charity) + 
   geom_smooth(method="lm",se=F) +
   ggtitle("Relationship between distance and trips by charity involvement.") +
   theme(plot.title = element_text(hjust = 0.5),
@@ -354,7 +347,7 @@ P1 <- ggplot(First_Cons, aes(Q3Distance,Q4Trips)) +
   scale_y_continuous(limits = c(0,1))
 
 ## Plot 2 (of 2):
-P2 <- ggplot(First_Cons, aes(Q3Distance,Q4Trips)) + 
+P2 <- ggplot(First_Long, aes(Q3Distance,Q4Trips)) + 
   geom_point(shape = 1) +
   facet_grid(~Q16BP) + 
   geom_smooth(method="lm",se=F) +
@@ -378,7 +371,7 @@ grid.arrange(P1, P2 )
 ## Have to do the manipulation section again to ignore the changes made in the graphics section
 library(mlogit) #Already have package installed
 First_Long <- mlogit.data(First, shape = "wide", choice = "Choice",
-                         varying = 15:20, sep = "_", id.var = "ID")
+                         varying = 15:20, sep = "_", id.var = "ID", opposite = c("Price"))
 
 ## To trim the sample: 
 First_Dominated <- First_Long[First_Long$Q8DominatedTest == 0]
@@ -395,7 +388,7 @@ summary(Base_MNL) ## Estimates a simplistic mlogit model before adding in indivi
 
 ## The full MNL with all covariates:
 Pilot_MNL <- mlogit(Choice ~ Price + Performance + Emission | 
-                      Order + Q1Gender + Q2Age + Q3Distance
+                      Order + Task + Q1Gender + Q2Age + Q3Distance
                     + Q4Trips + Q16BP + Q18Charity 
                     + Q20Consequentiality
                     + Q21Experts +Q22Education+ Q23Employment
@@ -407,35 +400,37 @@ summary(Pilot_MNL) ## Summarises the MNL output
 ## I then estimate the same specification but with a MIXED LOGIT specification.
 MXLFull <- mlogit(
   Choice ~ Price + Performance + Emission | 
-    Order + Q1Gender + Q2Age + Q3Distance
+    Order + Task + Q1Gender + Q2Age + Q3Distance
   + Q4Trips + Q16BP + Q18Charity 
   + Q20Consequentiality
   + Q21Experts +Q22Education+ Q23Employment
   +  Q24AIncome,
-  First_Long, rpar=c(Price="n"),
+  First_Long, rpar=c(Price="ln"),
   R=10,correlation = FALSE,
   reflevel="A",halton=NA,method="bhhh",panel=TRUE,seed=123)
 summary(MXLFull)
 
 ## Can use AIC and BIC to compare model fits:
-AIC(Pilot_MNL)
-BIC(Pilot_MNL)
-AIC(MXLFull)
-BIC(MXLFull)
-
+AIC(Pilot_MNL): ## 599.57
+BIC(Pilot_MNL): ## NA
+AIC(MXLFull):   ## 539.71
+BIC(MXLFull):   ## NA
+ 
 ## Report WTP crudely: 
-coef(Pilot_MNL)/coef(Pilot_MNL)["Price"]
-coef(MXLFull)/coef(MXLFull)["Price"]
+coef(Pilot_MNL)["Performance"]/coef(Pilot_MNL)["Price"]
+coef(MXLFull)["Performance"]/coef(MXLFull)["Price"]
+coef(Pilot_MNL)["Emission"]/coef(Pilot_MNL)["Price"]
+coef(MXLFull)["Emission"]/coef(MXLFull)["Price"]
 
 ## Clustering and bootstrapping:
 library(clusterSEs)
-cluster.bs.mlogit(MXLFull, First_Long, ~ ID, boot.reps=10,seed = 123)
+CBSM <- cluster.bs.mlogit(MXLFull, First_Long, ~ ID, boot.reps=10,seed = 123)
 
 ## Calculating consumer surplus:
 First_Understanding_CS1 <- First_Understanding
 First_Understanding_CS1$Price <- First_Understanding_CS1$Price * 1.1
-First_Understanding_CS1$Health <- First_Understanding_CS1$Health * 0.9
-Va1 <- logsum(MXLFull)
+First_Understanding_CS1$Performance <- First_Understanding_CS1$Performance * 0.9
+Va1 <- logsum(MXLFull,data=First_Understanding)
 Va0 <- logsum(MXLFull,data = First_Understanding_CS1)
 surplus <- - (Va1 - Va0) / coef(MXLFull)["Price"]
 summary(surplus)
@@ -446,7 +441,7 @@ library(gmnl)
 
 ## Replicating the MNL
 MNL_GM <- gmnl(  Choice ~ Price + Performance + Emission | 
-                   Q1Gender + Q2Age + Q3Distance
+                   Order + Task + Q1Gender + Q2Age + Q3Distance
                  + Q4Trips + Q16BP + Q18Charity 
                  + Q20Consequentiality
                  + Q21Experts +Q22Education+ Q23Employment
@@ -460,7 +455,7 @@ wtp.gmnl(MNL_GM,"Price",3)
 
 ## Replicating the MXL
 GMNL_MXLDefault <- gmnl(Choice ~ Price + Performance + Emission | 1 | 0|
-                          Q1Gender + Q2Age + Q3Distance
+                          Order + Task + Q1Gender + Q2Age + Q3Distance
                         + Q4Trips + Q16BP + Q18Charity 
                         + Q20Consequentiality
                         + Q21Experts +Q22Education+ Q23Employment
@@ -483,16 +478,49 @@ plot(GMNL_MXLDefault, par = "Q18Charity", effect = "wtp", type = "density", col 
 ## Two class model:
 LC_GM <- gmnl(Choice ~ Price + Performance + Emission | 0 |
                 0 | 0 | 1,
-              data = First_Long,
+              data = First_Cons,
               model = 'lc',
               panel = TRUE,
               Q = 2)
 summary(LC_GM)
-AIC(LC_GM) # 75.516
-BIC(LC_GM) # 90.36565
+AIC(LC_GM) ## 194.4641
+BIC(LC_GM) ## 215.9903
+
+## Three class model:
+LC_GM3 <- gmnl(Choice ~ Price + Performance + Emission | 0 |
+                0 | 0 | 1,
+              data = First_Cons,
+              model = 'lc',
+              panel = TRUE,
+              Q = 3)
+summary(LC_GM3)
+AIC(LC_GM3) # 190.1208
+BIC(LC_GM3) # 223.9478
+
+## Four class model:
+LC_GM4 <- gmnl(Choice ~ Price + Performance + Emission | 0 |
+                0 | 0 | 1,
+              data = First_Cons,
+              model = 'lc',
+              panel = TRUE,
+              Q = 4)
+summary(LC_GM4)
+AIC(LC_GM4) # 186.1308
+BIC(LC_GM4) # 232.2584
+
+LC_GM5 <- gmnl(Choice ~ Price + Performance + Emission | 0 |
+                 0 | 0 | 1,
+               data = First_Cons,
+               model = 'lc',
+               panel = TRUE,
+               Q = 5)
+summary(LC_GM5)
+AIC(LC_GM5) # 185.2838
+BIC(LC_GM5) # 243.7121
+
 
 ## Function from https://rpubs.com/msarrias1986/335556 which calculates the share of the sample in each class
-exp(coef(LC_GM)["(class)2"]) / (exp(0) + exp(coef(LC_GM)["(class)2"]))
+exp(coef(LC_GM5)["(class)2"]) / (exp(0) + exp(coef(LC_GM5)["(class)2"]))
 shares <- function(obj){
   if (!inherits(obj, "gmnl")) stop("The model was not estimated using gmnl")
   if (obj$model != "lc") stop("The model is not a LC-MNL")
@@ -506,6 +534,9 @@ shares <- function(obj){
 
 ## Reports class-shares:
 shares(LC_GM)
+shares(LC_GM3)
+shares(LC_GM4)
+shares(LC_GM5)
 
 ## LCM class-specific WTP:
 -coef(LC_GM)/coef(LC_GM)["class.1.Price"]
@@ -577,7 +608,7 @@ Research_SB <- sbchoice(Q6ResearchResponse ~ Order + Q1Gender + Q2Age + Q3Distan
                         + Q4Trips + Q16BP + Q18Charity 
                         + Q20Consequentiality
                         + Q21Experts +Q22Education+ Q23Employment
-                        +  Q24AIncome | Q6Bid, data = FirstSurvey2,dist="logistic")
+                        +  Q24AIncome | Q6Bid, data = First_Understanding,dist="logistic")
 summary(Research_SB) ## Reports the SBDC analysis for Q6 with mean, median and coefficients.
 ### NOTE: The moodel CURRENTLY only produces realistic WTP when the distribution is "logistic" not the default "log-logistic"  
 
@@ -591,7 +622,7 @@ Treatment_DB <- dbchoice(Q7TreatmentResponse + Q7Response2 ~ Order + Q1Gender + 
                          + Q4Trips + Q16BP + Q18Charity 
                          + Q20Consequentiality
                          + Q21Experts +Q22Education+ Q23Employment
-                         +  Q24AIncome | Q7Bid + Q7Bid2,data = First,dist="logistic")
+                         +  Q24AIncome | Q7Bid + Q7Bid2,data = First_Understanding,dist="logistic")
 summary(Treatment_DB)
 krCI(Treatment_DB)
 bootCI(Treatment_DB)
@@ -613,7 +644,115 @@ plot(TreatmentKMT)
 ##########################################################  
 
 
+#############################################################################
+## APOLLO: MNL
+#############################################################################
 
+library(apollo)
+apollo_initialise()
+
+### Set core controls
+apollo_control = list(
+  modelName  ="MY_Apollo_example",
+  modelDescr ="Simple MNL model on my Pilot data",
+  indivID    ="ID",
+  HB = FALSE,
+  mixing=FALSE
+)
+
+Test_Apollo <- data.frame(Firsts$ID,Firsts$Task, Firsts$Q1Gender,
+                          Firsts$Q2Age,Firsts$Q3Distance,Firsts$Q4Trips,
+                          Firsts$Q16BP,Firsts$Q18Charity,
+                          Firsts$Q20Consequentiality,Firsts$Q21Experts,
+                          Firsts$Q22Education,First$Q23Employment,
+                          Firsts$Q25Understanding,Firsts[,15:20],
+                          Firsts$Choice,mean(Firsts$Q24AIncome))
+colnames(Test_Apollo) <- c("ID","Task","Q1Gender","Age","Distance",
+                           "Trips","BP","Charity",
+                           "Consequentiality",
+                           "Experts","Education","Employment","Survey",
+                           "Price_B","Performance_B","Emission_B",
+                           "Performance_A","Emission_A","Price_A"
+                           ,"Choice","Income")
+
+# Tests_Dominated <- Test_Apollo[!Test_Apollo$ID %in% c(Test_Apollo$ID[ ((Test_Apollo$Task == 1) & (Test_Apollo$Choice ==1) & (grepl("SQ",rownames(Test_Apollo),fixed = TRUE) == FALSE)) ]),]
+# Tests_Understanding <- Tests_Dominated[!Tests_Dominated$ID %in% c( unique(Tests_Dominated$ID[Tests_Dominated$Survey <= 5])),]
+# Test_Apollo <- Tests_Understanding
+
+Test_Apollo$Choice[Test_Apollo$Choice == 1] <- 2
+Test_Apollo$Choice[Test_Apollo$Choice == 0] <- 1
+database = Test_Apollo
+
+
+choiceAnalysis_settings <- list(
+  alternatives = c(A=1, B=2),
+  avail        = list(A=1, B=1),
+  choiceVar    = Test_Apollo$Choice,
+  explanators  = Test_Apollo[,c("Price_B","Performance_B","Emission_B","Q1Gender","Age","Distance",
+                                "Trips","BP","Charity",
+                                "Education","Employment",
+                                "Income")]
+)
+
+apollo_choiceAnalysis(choiceAnalysis_settings, apollo_control, Test_Apollo)
+
+apollo_beta=c(asc_A     = 0,
+              asc_B    = 0,
+              b_Price    = 0,
+              b_Performance   = 0,
+              b_Emission   = 0,
+              b_Q1Gender =0,
+              b_Age      = 0,
+              b_Distance = 0,
+              b_Trips    = 0,
+              b_BP       = 0,
+              b_Charity  = 0,
+              b_Education  = 0,
+              b_Employment = 0,
+              b_Income     = 0)
+
+apollo_fixed = c("asc_A")
+database <- Test_Apollo
+apollo_inputs = apollo_validateInputs()
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  P = list()
+  V = list()
+  V[['A']]  = asc_A  + 
+    b_Price * Test_Apollo$Price_A +
+    b_Performance * Test_Apollo$Performance_A +
+    b_Emission * Test_Apollo$Emission_A
+  
+  V[['B']]  = asc_B  + b_Price * Test_Apollo$Price_B +
+    b_Performance * Test_Apollo$Performance_B  +
+    b_Emission * Test_Apollo$Emission_B +
+    b_Q1Gender * Test_Apollo$Q1Gender + 
+    b_Age * Test_Apollo$Age +
+    b_Distance * Test_Apollo$Distance + 
+    b_Trips * Test_Apollo$Trips +
+    b_BP * Test_Apollo$BP +
+    b_Charity * Test_Apollo$Charity + 
+    b_Education * Test_Apollo$Education +
+    b_Employment * Test_Apollo$Employment + 
+    b_Income * Test_Apollo$Income
+  
+  mnl_settings = list(
+    alternatives  = c(A=1, B=2), 
+    avail         = list(A=1, B=1), 
+    choiceVar     = Choice,
+    V             = V
+  )
+  P[['model']] = apollo_mnl(mnl_settings, functionality)
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+apollo_modelOutput(apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs,estimate_settings = list(estimationRoutine="bfgs",bootstrapSE=10,maxIterations=50)))
+
+  
 
 #############################################################################
 ## LCM with RRM and RUM classes
@@ -628,16 +767,16 @@ apollo_control = list(
   indivID    ="ID",
   nCores     = 2 
 )
-database = Test_Apollo
-
 ## Parameters to be estimated and their starting values
 ## Price and Health attributes used only
 apollo_beta = c(# Class 1
   B_Price_1 = 0,
-  B_Health_1  = 0,
+  B_Emission_1 = 0,
+  B_Performance_1  = 0,
   # Class 2
   B_Price_2 = 0,
-  B_Health_2  = -0.2,
+  B_Emission_2 = 0,
+  B_Performance_2  = -0.2,
   # Class membership parameters
   s_1     = 0,
   s_2     = 0)
@@ -649,9 +788,9 @@ apollo_fixed = c("s_1")
 apollo_lcPars = function(apollo_beta, apollo_inputs){
   lcpars = list()
   lcpars[["B_Price"]] = list(B_Price_1, B_Price_2)
-  lcpars[["B_Health"]]  = list(B_Health_1, B_Health_2)
+  lcpars[["B_Performance"]] = list(B_Performance_1, B_Performance_2)
+  lcpars[["B_Emission"]]  = list(B_Emission_1, B_Emission_2)
   
-  ###Class membership probabilities based on s_1, s_2: use of MNL fomula
   V=list()
   V[["class_1"]] = s_1
   V[["class_2"]] = s_2
@@ -679,35 +818,41 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
   apollo_attach(apollo_beta, apollo_inputs)
   on.exit(apollo_detach(apollo_beta, apollo_inputs))
   
-  ## Pairwise comparison and scale of aHealthribues
+  ## Pairwise comparison and scale of attributes
   
   ## Define PRRM variables
-  Price1_sc =( 1 / 1000 ) * Price_ALT
-  Price2_sc =( 1 / 1000 ) * Price_SQ
-  Health1_sc = ( 1 / 100 ) * Health_ALT
-  Health2_sc = ( 1 / 100 ) * Health_SQ 
+  Price1_sc =( 1 / 1000 ) * Price_A
+  Price2_sc =( 1 / 1000 ) * Price_B
+  Performance1_sc =( 1 / 1000 ) * Performance_A
+  Performance2_sc =( 1 / 1000 ) * Performance_B
+  Emission1_sc = ( 1 / 100 ) * Emission_A
+  Emission2_sc = ( 1 / 100 ) * Emission_B
   
   # Compute P-RRM Atrribute levels
-  X_Price1 =  pmax( 0 , Price2_sc - Price1_sc ) 
-  X_Price2 =  pmax( 0 , Price1_sc - Price2_sc ) 
+  X_Price1 = pmax( 0 , Price2_sc - Price1_sc ) 
+  X_Price2 = pmax( 0 , Price1_sc - Price2_sc ) 
   
-  X_Health1 = pmin( 0 , Health2_sc - Health1_sc ) 
-  X_Health2 = pmin( 0 , Health1_sc - Health2_sc ) 
+  X_Performance1 = pmax( 0 , Performance2_sc - Performance1_sc ) 
+  X_Performance2 = pmax( 0 , Performance1_sc - Performance2_sc ) 
+  
+  X_Emission1 =  pmin( 0 , Emission2_sc - Emission1_sc ) 
+  X_Emission2 =  pmin( 0 , Emission1_sc - Emission2_sc ) 
+  
   
   ###Create list for probabilities
   P = list()
   
   ###Input for calculating MNL probabilities
-  mnl_settings = list(
+   mnl_settings = list(
     alternatives  = c(Alt1=1, Alt2=2), 
     avail         = list(Alt1=1, Alt2=1),
     choiceVar     = Choice
   )
   
   ### Compute class-specific utilities
-  V=list()
-  V[['Alt1']]  = B_Price_1 * Price1_sc + B_Health_1 * Health1_sc
-  V[['Alt2']]  = B_Price_1 * Price2_sc + B_Health_1 * Health2_sc
+   V=list()
+   V[['Alt1']]  = B_Price_1 * Price1_sc + B_Performance_1 * Performance1_sc + B_Emission_1 * Emission1_sc
+   V[['Alt2']]  = B_Price_1 * Price2_sc + B_Performance_1 * Performance2_sc + B_Emission_1 * Emission2_sc
   
   ###Calculating probabilities based on MNL function for class 1
   mnl_settings$V = V
@@ -716,8 +861,8 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
   
   ### Compute class-specific regrets
   R=list()
-  R[['Alt1']]  = B_Price_2 * X_Price1 + B_Health_2 * X_Health1
-  R[['Alt2']]  = B_Price_2 * X_Price2 + B_Health_2 * X_Health2 
+  R[['Alt1']]  = B_Price_2 * X_Price1 + B_Performance_2 * X_Performance1 + B_Emission_2 * X_Emission1
+  R[['Alt2']]  = B_Price_2 * X_Price2 + B_Performance_2 * X_Performance2 + B_Emission_2 * X_Emission2 
   
   ###Calculating probabilities based on MNL function for class 2
   mnl_settings$V = lapply(R, "*", -1) ###the regrets must be negative (and used in MNL-settings as V)
@@ -731,12 +876,14 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
   return(P)
 }
 
-## Starting value search:
+# Starting value search:
 apollo_beta = apollo_searchStart(apollo_beta,
                                  apollo_fixed,
                                  apollo_probabilities,
                                  apollo_inputs,
                                  searchStart_settings=list(nCandidates=20))
-## Starting value search:
-model = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs, estimate_settings=list(hessianRoutine="maxLik")) ## Estimate full model
-apollo_modelOutput(model) ## Display the model output
+
+apollo_modelOutput(apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs,estimate_settings = list(estimationRoutine="bfgs",bootstrapSE=10,maxIterations=50)))
+
+model = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs, estimate_settings=list(hessianRoutine="maxLik")) 
+apollo_modelOutput(model)
