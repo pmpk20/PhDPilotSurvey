@@ -3,11 +3,18 @@
 ############### Introduction: First 100 Data Analysis Script  ##########################
 ####################################################################################
 
+############ TO DO:
+# - Weight CE by certainty
+# - Check CVM by ordering
+# - Fix clustering
+
 
 ############ Packages:
 install.packages("mlogit") ## MLOGIT is the best DCE package in R so far.
 install.packages("gmnl") ## Very similar to MLOGIT but more flexibility.
 install.packages("stargazer") ## To export to LaTeX code.
+install.packages("dplyr")
+library(dplyr)
 setwd("H:/PhDFirstSurveySurvey") ## Sets working directory. This is where my Github repo is cloned to.
 
 ############ Setup and manipulation:
@@ -101,39 +108,39 @@ FirstSurvey2 <- mutate(Q7Bid2 = coalesce(FirstSurvey2$Q7Bid2Lower,FirstSurvey2$Q
 FirstSurvey2 <- mutate(Q7Response2 = coalesce(FirstSurvey2$Q7TreatmentUpperResponse,FirstSurvey2$Q7TreatmentLowerResponse),.data = FirstSurvey2)
 
 ## The following section codes all the attributes as their actual values.
-FirstSurvey2$Q9Performance[FirstSurvey2$Q9Performance == 1] <- 5
-FirstSurvey2$Q9Performance[FirstSurvey2$Q9Performance == 2] <- 50
-FirstSurvey2$Q9Performance[FirstSurvey2$Q9Performance == 0] <- 10
-FirstSurvey2$Q9Emission[FirstSurvey2$Q9Emission == 1] <- 40
-FirstSurvey2$Q9Emission[FirstSurvey2$Q9Emission == 2] <- 90
-FirstSurvey2$Q9Emission[FirstSurvey2$Q9Emission == 0] <- 10
+FirstSurvey2$Q9Performance[FirstSurvey2$Q9Performance == 1] <- 0.05
+FirstSurvey2$Q9Performance[FirstSurvey2$Q9Performance == 2] <- 0.5
+FirstSurvey2$Q9Performance[FirstSurvey2$Q9Performance == 0] <- 0.1
+FirstSurvey2$Q9Emission[FirstSurvey2$Q9Emission == 1] <- 0.4
+FirstSurvey2$Q9Emission[FirstSurvey2$Q9Emission == 2] <- 0.9
+FirstSurvey2$Q9Emission[FirstSurvey2$Q9Emission == 0] <- 0.1
 FirstSurvey2$Q9Price[FirstSurvey2$Q9Price == 1] <- 2.5
 FirstSurvey2$Q9Price[FirstSurvey2$Q9Price == 2] <- 5
 FirstSurvey2$Q9Price[FirstSurvey2$Q9Price == 0] <- 1
 
-FirstSurvey2$Q10Performance[FirstSurvey2$Q10Performance == 1] <- 5
-FirstSurvey2$Q10Performance[FirstSurvey2$Q10Performance == 0] <- 10
-FirstSurvey2$Q10Emission[FirstSurvey2$Q10Emission == 1] <- 4 
-FirstSurvey2$Q10Emission[FirstSurvey2$Q10Emission == 2] <- 40
-FirstSurvey2$Q10Emission[FirstSurvey2$Q10Emission == 0] <- 10
+FirstSurvey2$Q10Performance[FirstSurvey2$Q10Performance == 1] <- 0.05
+FirstSurvey2$Q10Performance[FirstSurvey2$Q10Performance == 0] <- 0.1
+FirstSurvey2$Q10Emission[FirstSurvey2$Q10Emission == 1] <- 0.4
+FirstSurvey2$Q10Emission[FirstSurvey2$Q10Emission == 2] <- 0.4
+FirstSurvey2$Q10Emission[FirstSurvey2$Q10Emission == 0] <- 0.1
 FirstSurvey2$Q10Price[FirstSurvey2$Q10Price == 1] <- 1
 FirstSurvey2$Q10Price[FirstSurvey2$Q10Price == 2] <- 2.5
 FirstSurvey2$Q10Price[FirstSurvey2$Q10Price == 0] <- 0.5
 
-FirstSurvey2$Q11Performance[FirstSurvey2$Q11Performance == 1] <- 5
-FirstSurvey2$Q11Performance[FirstSurvey2$Q11Performance == 0] <- 10
-FirstSurvey2$Q11Emission[FirstSurvey2$Q11Emission == 1] <- 90
-FirstSurvey2$Q11Emission[FirstSurvey2$Q11Emission == 0] <- 10
+FirstSurvey2$Q11Performance[FirstSurvey2$Q11Performance == 1] <- 0.05
+FirstSurvey2$Q11Performance[FirstSurvey2$Q11Performance == 0] <- 0.1
+FirstSurvey2$Q11Emission[FirstSurvey2$Q11Emission == 1] <- 0.9
+FirstSurvey2$Q11Emission[FirstSurvey2$Q11Emission == 0] <- 0.1
 FirstSurvey2$Q11Price[FirstSurvey2$Q11Price == 0] <- 0.5
 FirstSurvey2$Q11Price[FirstSurvey2$Q11Price == 1] <- 1
 FirstSurvey2$Q11Price[FirstSurvey2$Q11Price == 2] <- 2.5
 FirstSurvey2$Q11Price[FirstSurvey2$Q11Price == 3] <- 5
 
-FirstSurvey2$Q12Performance[FirstSurvey2$Q12Performance == 1] <- 5
-FirstSurvey2$Q12Performance[FirstSurvey2$Q12Performance == 2] <- 50
-FirstSurvey2$Q12Performance[FirstSurvey2$Q12Performance == 0] <- 10
-FirstSurvey2$Q12Emission[FirstSurvey2$Q12Emission == 1] <- 40
-FirstSurvey2$Q12Emission[FirstSurvey2$Q12Emission == 0] <- 10
+FirstSurvey2$Q12Performance[FirstSurvey2$Q12Performance == 1] <- 0.05
+FirstSurvey2$Q12Performance[FirstSurvey2$Q12Performance == 2] <- 0.5
+FirstSurvey2$Q12Performance[FirstSurvey2$Q12Performance == 0] <- 0.1
+FirstSurvey2$Q12Emission[FirstSurvey2$Q12Emission == 1] <- 0.4
+FirstSurvey2$Q12Emission[FirstSurvey2$Q12Emission == 0] <- 0.1
 FirstSurvey2$Q12Price[FirstSurvey2$Q12Price == 1] <- 1
 FirstSurvey2$Q12Price[FirstSurvey2$Q12Price == 2] <- 2.5
 FirstSurvey2$Q12Price[FirstSurvey2$Q12Price == 0] <- 0.5
@@ -296,7 +303,15 @@ library(mlogit)
 
 ## Here the dataframe First is reshaped from wide to long format for use in the MLOGIT estimations.
 First_Long <- mlogit.data(First, shape = "wide", choice = "Choice",
-              varying = 15:20, sep = "_", id.var = "ID")
+              varying = 15:20, sep = "_", id.var = "ID",opposite = c("Price","Performance"))
+
+# First_Long$Performance[First_Long$Performance == -5] <- -0.05
+# First_Long$Performance[First_Long$Performance == -10] <- -0.1
+# First_Long$Performance[First_Long$Performance == -50] <- -0.5
+# First_Long$Emission[First_Long$Emission == -10] <- -0.1
+# First_Long$Emission[First_Long$Emission == -40] <- -0.4
+# First_Long$Emission[First_Long$Emission == -4] <- -0.4
+# First_Long$Emission[First_Long$Emission == -90] <- -0.9
 
 ## To trim the sample according to:
 ###  Passing the Q8 dominated test scenario
@@ -371,18 +386,20 @@ grid.arrange(P1, P2 )
 ## Have to do the manipulation section again to ignore the changes made in the graphics section
 library(mlogit) #Already have package installed
 First_Long <- mlogit.data(First, shape = "wide", choice = "Choice",
-                         varying = 15:20, sep = "_", id.var = "ID", opposite = c("Price"))
+                         varying = 15:20, sep = "_", id.var = "ID",
+                         opposite=c("Price"))
 
 ## To trim the sample: 
 First_Dominated <- First_Long[First_Long$Q8DominatedTest == 0]
 First_Understanding <- First_Dominated[First_Dominated$Q25Understanding >= 5]
 First_Cons <- First_Understanding[First_Understanding$Q20Consequentiality == 1]
-
+First_Certain <- First_Dominated[First_Dominated$Q12CECertainty == 2]
 ######################## Estimation section:
+
 
 ## A very basic MNL model to test whether the method works 
 Base_MNL <- mlogit(Choice ~  Price + Performance + Emission, 
-                   First_Cons,
+                   First_Long,
                    alt.subset = c("A","B"),reflevel = "A") 
 summary(Base_MNL) ## Estimates a simplistic mlogit model before adding in individual-specifics
 
@@ -393,7 +410,7 @@ Pilot_MNL <- mlogit(Choice ~ Price + Performance + Emission |
                     + Q20Consequentiality
                     + Q21Experts +Q22Education+ Q23Employment
                     +  Q24AIncome, 
-                    First_Long, alt.subset = c("A", "B"), 
+                    First_Certain, alt.subset = c("A", "B"), 
                     reflevel = "A") 
 summary(Pilot_MNL) ## Summarises the MNL output
 
@@ -405,10 +422,34 @@ MXLFull <- mlogit(
   + Q20Consequentiality
   + Q21Experts +Q22Education+ Q23Employment
   +  Q24AIncome,
-  First_Long, rpar=c(Price="ln"),
-  R=10,correlation = FALSE,
+  First_Long, rpar=c(Price="n"),
+  R=1000,correlation = FALSE,
   reflevel="A",halton=NA,method="bhhh",panel=TRUE,seed=123)
 summary(MXLFull)
+
+## Same as above but with only certain responses
+MXLFullD <- mlogit(
+  Choice ~ Price + Performance + Emission | 
+    Order + Task + Q1Gender + Q2Age + Q3Distance
+  + Q4Trips + Q16BP + Q18Charity 
+  + Q20Consequentiality
+  + Q21Experts +Q22Education+ Q23Employment
+  +  Q24AIncome,
+  First_Certain, rpar=c(Price="n"),
+  R=1000,correlation = FALSE,
+  reflevel="A",halton=NA,method="bhhh",panel=TRUE,seed=123)
+summary(MXLFullD)
+
+## Compare attribute MWTP by sample
+WTPs <- data.frame("Full sample" = c(coef(MXLFull)["Emission"]/coef(MXLFull)["Price"],
+             coef(MXLFull)["Performance"]/coef(MXLFull)["Price"])
+           ,"Truncated" = c(coef(MXLFullD)["Emission"]/coef(MXLFullD)["Price"],
+              coef(MXLFullD)["Performance"]/coef(MXLFullD)["Price"]))
+
+## Plot conditional distribution of MWTP. 
+layout(matrix(c(1,1,2,2), 2, 2, byrow = TRUE), widths=c(1,1), heights=c(4,4))
+plot(rpar(MXLFull,"Price"), main="Scatterplot of wt vs. mpg")
+plot(rpar(MXLFullD,"Price"), main="Scatterplot of wt vs disp")
 
 ## Can use AIC and BIC to compare model fits:
 AIC(Pilot_MNL): ## 599.57
@@ -424,7 +465,10 @@ coef(MXLFull)["Emission"]/coef(MXLFull)["Price"]
 
 ## Clustering and bootstrapping:
 library(clusterSEs)
-CBSM <- cluster.bs.mlogit(MXLFull, First_Long, ~ ID, boot.reps=10,seed = 123)
+CBSM <- cluster.bs.mlogit(MXLFull, First_Long, ~ ID, boot.reps=100,seed = 123)
+
+library(stargazer)
+stargazer(summary(MXLFull)$CoefTable, title = "MXLFull", align = TRUE,report="p*")
 
 ## Calculating consumer surplus:
 First_Understanding_CS1 <- First_Understanding
@@ -468,6 +512,8 @@ GMNL_MXLDefault <- gmnl(Choice ~ Price + Performance + Emission | 1 | 0|
                         ,seed = 123,reflevel = "A")
 summary(GMNL_MXLDefault)
 wtp.gmnl(GMNL_MXLDefault,"Price",3)
+coef(GMNL_MXLDefault)["Performance"]/coef(GMNL_MXLDefault)["Price"]
+coef(GMNL_MXLDefault)["Emission"]/coef(GMNL_MXLDefault)["Price"]
 
 ## GMNL has a plot function for the conditional distribution of the random parameters:
 plot(GMNL_MXLDefault, par = "Q18Charity", effect = "wtp", type = "density", col = "grey",wrt="Price")
@@ -508,6 +554,7 @@ summary(LC_GM4)
 AIC(LC_GM4) # 186.1308
 BIC(LC_GM4) # 232.2584
 
+## 5-class model
 LC_GM5 <- gmnl(Choice ~ Price + Performance + Emission | 0 |
                  0 | 0 | 1,
                data = First_Cons,
@@ -603,18 +650,41 @@ install.packages("interval")
 install.packages("DCchoice")
 library(DCchoice)
 
+
+## Creating new dataframes depending on ordering or consequentiality. 
+First_NormalOrder <-First_Long[First_Long$Order == 0]
+First_OtherOrder <-First_Long[First_Long$Order == 1]
+First_Consequential <-First_Long[First_Long$Q20Consequentiality == 1]
+First_Inconsequential <-First_Long[First_Long$Q20Consequentiality != 1]
+
+
 ## The Q6 model: actually much better than the AOD approach above.
 Research_SB <- sbchoice(Q6ResearchResponse ~ Order + Q1Gender + Q2Age + Q3Distance
                         + Q4Trips + Q16BP + Q18Charity 
                         + Q20Consequentiality
                         + Q21Experts +Q22Education+ Q23Employment
-                        +  Q24AIncome | Q6Bid, data = First_Understanding,dist="logistic")
+                        +  Q24AIncome | Q6Bid, data = First_Long,dist="logistic")
 summary(Research_SB) ## Reports the SBDC analysis for Q6 with mean, median and coefficients.
 ### NOTE: The moodel CURRENTLY only produces realistic WTP when the distribution is "logistic" not the default "log-logistic"  
-
 ## Two methods to estimate confidence intervals:
 krCI(Research_SB)
 bootCI(Research_SB)
+Research_Order1 <- sbchoice(Q6ResearchResponse ~ Q1Gender + Q2Age + Q3Distance
+                        + Q4Trips + Q16BP + Q18Charity 
+                        + Q20Consequentiality
+                        + Q21Experts +Q22Education+ Q23Employment
+                        +  Q24AIncome | Q6Bid, data = First_NormalOrder,dist="logistic")
+summary(Research_Order1) ## Reports the SBDC analysis for Q6 with mean, median and coefficients.
+Research_Order2 <- sbchoice(Q6ResearchResponse ~  Q1Gender + Q2Age + Q3Distance
+                            + Q4Trips + Q16BP + Q18Charity 
+                            + Q20Consequentiality
+                            + Q21Experts +Q22Education+ Q23Employment
+                            +  Q24AIncome | Q6Bid, data = First_OtherOrder,dist="logistic")
+summary(Research_Order2) ## Reports the SBDC analysis for Q6 with mean, median and coefficients.
+krCI(Research_Order1)
+bootCI(Research_Order1)
+krCI(Research_Order2)
+bootCI(Research_Order2)
 
 
 ## Repeating the same as above but for Q7 the DBDC question:
@@ -622,10 +692,55 @@ Treatment_DB <- dbchoice(Q7TreatmentResponse + Q7Response2 ~ Order + Q1Gender + 
                          + Q4Trips + Q16BP + Q18Charity 
                          + Q20Consequentiality
                          + Q21Experts +Q22Education+ Q23Employment
-                         +  Q24AIncome | Q7Bid + Q7Bid2,data = First_Understanding,dist="logistic")
+                         +  Q24AIncome | Q7Bid + Q7Bid2,data = First_Long,dist="logistic")
 summary(Treatment_DB)
 krCI(Treatment_DB)
 bootCI(Treatment_DB)
+
+## Splitting CVM by ordering of questions.
+Treatment_DBOrder1 <- dbchoice(Q7TreatmentResponse + Q7Response2 ~ Q1Gender + Q2Age + Q3Distance
+                         + Q4Trips + Q16BP + Q18Charity 
+                         + Q20Consequentiality
+                         + Q21Experts +Q22Education+ Q23Employment
+                         +  Q24AIncome | Q7Bid + Q7Bid2,data = First_NormalOrder,dist="logistic")
+summary(Treatment_DBOrder1)
+krCI(Treatment_DBOrder1)
+bootCI(Treatment_DBOrder1)
+Treatment_DBOrder2 <- dbchoice(Q7TreatmentResponse + Q7Response2 ~ Q1Gender + Q2Age + Q3Distance
+                         + Q4Trips + Q16BP + Q18Charity 
+                         + Q20Consequentiality
+                         + Q21Experts +Q22Education+ Q23Employment
+                         +  Q24AIncome | Q7Bid + Q7Bid2,data = First_OtherOrder,dist="logistic")
+summary(Treatment_DBOrder2)
+krCI(Treatment_DBOrder2)
+bootCI(Treatment_DBOrder2)
+
+
+## Splitting CVM by consequentiality beliefs:
+Research_Consequential <- sbchoice(Q6ResearchResponse ~ Q1Gender + Q2Age + Q3Distance
+                                   + Q4Trips + Q16BP + Q18Charity 
+                                   + Q21Experts +Q22Education+ Q23Employment
+                                   +  Q24AIncome | Q6Bid, data = First_Consequential,dist="logistic")
+summary(Research_Consequential) ## Reports the SBDC analysis for Q6 with mean, median and coefficients.
+Research_Inconsequential <- sbchoice(Q6ResearchResponse ~  Q1Gender + Q2Age + Q3Distance
+                                     + Q4Trips + Q16BP + Q18Charity
+                                     + Q21Experts +Q22Education+ Q23Employment
+                                     +  Q24AIncome | Q6Bid, data = First_Inconsequential,dist="logistic")
+summary(Research_Inconsequential) ## Reports the SBDC analysis for Q6 with mean, median and coefficients.
+bootCI(Research_Consequential)
+bootCI(Research_Inconsequential)
+Treatment_Consequential <- dbchoice(Q7TreatmentResponse + Q7Response2 ~ Q1Gender + Q2Age + Q3Distance
+                               + Q4Trips + Q16BP + Q18Charity 
+                               + Q21Experts +Q22Education+ Q23Employment
+                               +  Q24AIncome | Q7Bid + Q7Bid2,data = First_Consequential,dist="logistic")
+summary(Treatment_Consequential)
+Treatment_Inconsequential <- dbchoice(Q7TreatmentResponse + Q7Response2 ~ Q1Gender + Q2Age + Q3Distance
+                               + Q4Trips + Q16BP + Q18Charity
+                               + Q21Experts +Q22Education+ Q23Employment
+                               +  Q24AIncome | Q7Bid + Q7Bid2,data = First_Inconsequential,dist="logistic")
+summary(Treatment_Inconsequential)
+bootCI(Treatment_Consequential)
+bootCI(Treatment_Inconsequential)
 
 
 ## This section deals with Q6 and Q7 respectively but uses a non-parametric Kaplan-Meier-Turnbull survival function:
@@ -638,6 +753,11 @@ TreatmentKMT <- turnbull.db(formula = Q7TreatmentResponse + Q7Response2 ~  Q7Bid
 summary(TreatmentKMT)
 plot(TreatmentKMT)
 
+
+## Plot both KMT functions together in one plot. 
+layout(matrix(c(1,1,2,2), 2, 2, byrow = TRUE), widths=c(1,1), heights=c(4,4))
+plot(ResearchKMT, main="Q6 Kaplan-Meier-Turnbull survival function.")
+plot(TreatmentKMT, main="Q7 Kaplan-Meier-Turnbull survival function.")
 
 ##########################################################  
 ## The following code is experimental:
