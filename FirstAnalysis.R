@@ -303,15 +303,7 @@ library(mlogit)
 
 ## Here the dataframe First is reshaped from wide to long format for use in the MLOGIT estimations.
 First_Long <- mlogit.data(First, shape = "wide", choice = "Choice",
-              varying = 15:20, sep = "_", id.var = "ID",opposite = c("Price","Performance"))
-
-# First_Long$Performance[First_Long$Performance == -5] <- -0.05
-# First_Long$Performance[First_Long$Performance == -10] <- -0.1
-# First_Long$Performance[First_Long$Performance == -50] <- -0.5
-# First_Long$Emission[First_Long$Emission == -10] <- -0.1
-# First_Long$Emission[First_Long$Emission == -40] <- -0.4
-# First_Long$Emission[First_Long$Emission == -4] <- -0.4
-# First_Long$Emission[First_Long$Emission == -90] <- -0.9
+              varying = 15:20, sep = "_", id.var = "ID")
 
 ## To trim the sample according to:
 ###  Passing the Q8 dominated test scenario
@@ -344,6 +336,7 @@ First_Cons$Q18Charity[First_Cons$Q18Charity == 1] <- "Donated or joined"
 ### The strings used here and above are changed back later for econometric analysis. 
 First_Long$Q20Consequentiality[First_Long$Q20Consequentiality == 0] <- "Inconsequential"
 First_Long$Q20Consequentiality[First_Long$Q20Consequentiality == 1] <- "Consequential"
+
 
 ## Using these two packages for graphics.
 library(scales)
@@ -378,6 +371,38 @@ library(gridExtra)
 grid.arrange(P1, P2 )
 
 
+## Demand Curve: Plotting choice versus price levels 
+A1 <- ggplot(Firsts, aes(Choice,Price_B)) + 
+  geom_point(shape = 1) +
+  geom_smooth(method="lm",se=T) +
+  ggtitle("Demand curve") +
+  theme(plot.title = element_text(hjust = 0.5),
+        plot.margin=unit(c(1,1,-0.5,1),"cm"),
+        axis.title.y = element_text(size = 10)) +
+  labs(x = "Likelihood of accepting option B",y="Price attribute")
+
+
+## Emission Curve: Plotting choice versus emission levels 
+A2 <- ggplot(Firsts, aes(Choice,Emission_B)) + 
+  geom_point(shape = 1) +
+  geom_smooth(method="lm",se=T) +
+  ggtitle("Emission curve") +
+  theme(plot.title = element_text(hjust = 0.5),
+        plot.margin=unit(c(1,1,-0.5,1),"cm"),
+        axis.title.y = element_text(size = 10)) +
+  labs(x = "Likelihood of accepting option B",y="Emission attribute")
+
+## Performance Curve: Plotting choice versus performance levels 
+A3 <- ggplot(Firsts, aes(Choice,Performance_B)) + 
+  geom_point(shape = 1) +
+  geom_smooth(method="lm",se=T) +
+  ggtitle("Performance curve") +
+  theme(plot.title = element_text(hjust = 0.5),
+        plot.margin=unit(c(1,1,-0.5,1),"cm"),
+        axis.title.y = element_text(size = 10)) +
+  labs(x = "Likelihood of accepting option B",y="Performance attribute")
+
+grid.arrange(A1, A2, A3)
 ##########################################################  
 ####### CE
 ##########################################################  
@@ -386,14 +411,22 @@ grid.arrange(P1, P2 )
 ## Have to do the manipulation section again to ignore the changes made in the graphics section
 library(mlogit) #Already have package installed
 First_Long <- mlogit.data(First, shape = "wide", choice = "Choice",
-                         varying = 15:20, sep = "_", id.var = "ID",
-                         opposite=c("Price"))
+                         varying = 15:20, sep = "_", id.var = "ID")
+
+First_Long$Performance[First_Long$Performance == 0.05] <- -5
+First_Long$Performance[First_Long$Performance == 0.10] <- -10
+First_Long$Performance[First_Long$Performance == 0.50] <- -50
+First_Long$Emission[First_Long$Emission == 0.1] <- 10
+First_Long$Emission[First_Long$Emission == 0.9] <- 90 
+First_Long$Emission[First_Long$Emission == 0.4] <- 40 
 
 ## To trim the sample: 
 First_Dominated <- First_Long[First_Long$Q8DominatedTest == 0]
-First_Understanding <- First_Dominated[First_Dominated$Q25Understanding >= 5]
-First_Cons <- First_Understanding[First_Understanding$Q20Consequentiality == 1]
+# First_Understanding <- First_Dominated[First_Dominated$Q25Understanding >= 5]
 First_Certain <- First_Dominated[First_Dominated$Q12CECertainty == 2]
+First_Cons <- First_Certain[First_Certain$Q20Consequentiality == 1]
+
+  
 ######################## Estimation section:
 
 
@@ -410,7 +443,7 @@ Pilot_MNL <- mlogit(Choice ~ Price + Performance + Emission |
                     + Q20Consequentiality
                     + Q21Experts +Q22Education+ Q23Employment
                     +  Q24AIncome, 
-                    First_Certain, alt.subset = c("A", "B"), 
+                    First_Long, alt.subset = c("A", "B"), 
                     reflevel = "A") 
 summary(Pilot_MNL) ## Summarises the MNL output
 
@@ -418,12 +451,11 @@ summary(Pilot_MNL) ## Summarises the MNL output
 MXLFull <- mlogit(
   Choice ~ Price + Performance + Emission | 
     Order + Task + Q1Gender + Q2Age + Q3Distance
-  + Q4Trips + Q16BP + Q18Charity 
-  + Q20Consequentiality
+  + Q4Trips + Q16BP + Q18Charity
   + Q21Experts +Q22Education+ Q23Employment
   +  Q24AIncome,
   First_Long, rpar=c(Price="n"),
-  R=1000,correlation = FALSE,
+  R=10000,correlation = FALSE,
   reflevel="A",halton=NA,method="bhhh",panel=TRUE,seed=123)
 summary(MXLFull)
 
@@ -431,8 +463,7 @@ summary(MXLFull)
 MXLFullD <- mlogit(
   Choice ~ Price + Performance + Emission | 
     Order + Task + Q1Gender + Q2Age + Q3Distance
-  + Q4Trips + Q16BP + Q18Charity 
-  + Q20Consequentiality
+  + Q4Trips + Q16BP + Q18Charity
   + Q21Experts +Q22Education+ Q23Employment
   +  Q24AIncome,
   First_Certain, rpar=c(Price="n"),
@@ -441,34 +472,46 @@ MXLFullD <- mlogit(
 summary(MXLFullD)
 
 ## Compare attribute MWTP by sample
-WTPs <- data.frame("Full sample" = c(coef(MXLFull)["Emission"]/coef(MXLFull)["Price"],
-             coef(MXLFull)["Performance"]/coef(MXLFull)["Price"])
-           ,"Truncated" = c(coef(MXLFullD)["Emission"]/coef(MXLFullD)["Price"],
-              coef(MXLFullD)["Performance"]/coef(MXLFullD)["Price"]))
+WTPs <- data.frame("Full sample" = 
+                     c(-1*coef(MXLFull)["Emission"]/coef(MXLFull)["Price"],
+             -1*coef(MXLFull)["Performance"]/coef(MXLFull)["Price"])
+           ,"Truncated" = 
+             c(-1*coef(MXLFullD)["Emission"]/coef(MXLFullD)["Price"],
+              -1*coef(MXLFullD)["Performance"]/coef(MXLFullD)["Price"]),
+           "Welfare" = 
+             c(-1*(coef(MXLFullD)["Emission"]/coef(MXLFullD)["Price"] * 100),
+                         -1*(coef(MXLFullD)["Performance"]/coef(MXLFullD)["Price"] *100)))
+WTPs
 
 ## Plot conditional distribution of MWTP. 
 layout(matrix(c(1,1,2,2), 2, 2, byrow = TRUE), widths=c(1,1), heights=c(4,4))
 plot(rpar(MXLFull,"Price"), main="Scatterplot of wt vs. mpg")
 plot(rpar(MXLFullD,"Price"), main="Scatterplot of wt vs disp")
+AIC(MXLFullD)
+
+# Long: AIC = 561.1715, Dist = 61%, R^2 = 0.19, LLH= -263.59
+#     3.29, -6.76 
+# Dominated: AIC = 408.9245, Dist = 73%, R^2 = 0.19, LLH= -187
+#     1.05, -3.386 
+# Cons: AIC = 103.8874, Dist = 54%, R^2 = 0.33, LLH= -34.944
+#     0.0026, -9.189 
+# Certain: AIC = 200.5288, Dist = 724%, R^2 = 0.20, LLH= -83.26
+#     0.44, -2.449 
 
 ## Can use AIC and BIC to compare model fits:
-AIC(Pilot_MNL): ## 599.57
-BIC(Pilot_MNL): ## NA
-AIC(MXLFull):   ## 539.71
-BIC(MXLFull):   ## NA
+AIC(Pilot_MNL): ## 215.1842
+AIC(MXLFull):   ## 561.1319
+AIC(MXLFullD):   ## 200.5288
  
-## Report WTP crudely: 
-coef(Pilot_MNL)["Performance"]/coef(Pilot_MNL)["Price"]
-coef(MXLFull)["Performance"]/coef(MXLFull)["Price"]
-coef(Pilot_MNL)["Emission"]/coef(Pilot_MNL)["Price"]
-coef(MXLFull)["Emission"]/coef(MXLFull)["Price"]
-
+  
 ## Clustering and bootstrapping:
 library(clusterSEs)
 CBSM <- cluster.bs.mlogit(MXLFull, First_Long, ~ ID, boot.reps=100,seed = 123)
 
+
 library(stargazer)
 stargazer(summary(MXLFull)$CoefTable, title = "MXLFull", align = TRUE,report="p*")
+
 
 ## Calculating consumer surplus:
 First_Understanding_CS1 <- First_Understanding
@@ -659,10 +702,9 @@ First_Inconsequential <-First_Long[First_Long$Q20Consequentiality != 1]
 
 
 ## The Q6 model: actually much better than the AOD approach above.
-Research_SB <- sbchoice(Q6ResearchResponse ~ Order + Q1Gender + Q2Age + Q3Distance
-                        + Q4Trips + Q16BP + Q18Charity 
-                        + Q20Consequentiality
-                        + Q21Experts +Q22Education+ Q23Employment
+Research_SB <- sbchoice(Q6ResearchResponse ~ Order + Task + Q1Gender + Q2Age + Q3Distance
+                        + Q4Trips + Q16BP + Q18Charity
+                        + Q21Experts + Q22Education + Q23Employment
                         +  Q24AIncome | Q6Bid, data = First_Long,dist="logistic")
 summary(Research_SB) ## Reports the SBDC analysis for Q6 with mean, median and coefficients.
 ### NOTE: The moodel CURRENTLY only produces realistic WTP when the distribution is "logistic" not the default "log-logistic"  
@@ -688,11 +730,10 @@ bootCI(Research_Order2)
 
 
 ## Repeating the same as above but for Q7 the DBDC question:
-Treatment_DB <- dbchoice(Q7TreatmentResponse + Q7Response2 ~ Order + Q1Gender + Q2Age + Q3Distance
-                         + Q4Trips + Q16BP + Q18Charity 
-                         + Q20Consequentiality
-                         + Q21Experts +Q22Education+ Q23Employment
-                         +  Q24AIncome | Q7Bid + Q7Bid2,data = First_Long,dist="logistic")
+Treatment_DB <- dbchoice(Q7TreatmentResponse + Q7Response2 ~ Order + Task + Q1Gender + Q2Age + Q3Distance
+                         + Q4Trips + Q16BP + Q18Charity
+                         + Q21Experts + Q22Education + Q23Employment
+                         +  Q24AIncome | Q7Bid + Q7Bid2,data = First_Certain,dist="logistic")
 summary(Treatment_DB)
 krCI(Treatment_DB)
 bootCI(Treatment_DB)
@@ -758,6 +799,18 @@ plot(TreatmentKMT)
 layout(matrix(c(1,1,2,2), 2, 2, byrow = TRUE), widths=c(1,1), heights=c(4,4))
 plot(ResearchKMT, main="Q6 Kaplan-Meier-Turnbull survival function.")
 plot(TreatmentKMT, main="Q7 Kaplan-Meier-Turnbull survival function.")
+
+
+## Curiosity code - checking whether the CVM estimation works for the CE and it does.
+ChoiceKMT <- turnbull.sb(formula = Choice ~ Price_B,data = Firsts)
+summary(ChoiceKMT)
+plot(ChoiceKMT)
+Choice_SB <- sbchoice(Choice ~ Order + Task + Q1Gender + Q2Age + Q3Distance
+                      + Q4Trips + Q16BP + Q18Charity
+                      + Q21Experts + Q22Education + Q23Employment
+                      +  Q24AIncome | Price_B, data = Firsts,dist="logistic")
+summary(Choice_SB) ## Reports the SBDC analysis for Q6 with mean, median and coefficients.
+
 
 ##########################################################  
 ## The following code is experimental:
