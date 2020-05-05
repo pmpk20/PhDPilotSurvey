@@ -15,7 +15,7 @@ install.packages("gmnl") ## Very similar to MLOGIT but more flexibility.
 install.packages("stargazer") ## To export to LaTeX code.
 install.packages("dplyr")
 library(dplyr)
-setwd("H:/PhDFirstSurveySurvey") ## Sets working directory. This is where my Github repo is cloned to.
+setwd("H:/PhDPilotSurvey") ## Sets working directory. This is where my Github repo is cloned to.
 
 ############ Setup and manipulation:
 FirstSurvey <- data.frame(read.csv("FirstHundred.csv")) ## Imports from the excel file straight from the survey companies website.
@@ -318,6 +318,90 @@ First_Cons <- First_Understanding[First_Understanding$Q20Consequentiality == 1]
 ####### Descriptive Graphics
 ##########################################################  
 
+## In this section I plot the percent of the sample choosing each alternative
+### To do so I make a dataframe called "Acceptance" which calculates the percentage in each sample choosing each alternative.
+Acceptance <- data.frame("First_Long" =c(length(First_Long$ID[(((First_Long$alt == "A") & (First_Long$Choice ==TRUE)))]),length(First_Long$ID[(((First_Long$alt == "A") & (First_Long$Choice ==FALSE)))])), 
+                         "First_Dominated" =c(length(First_Dominated$ID[(((First_Dominated$alt == "A") & (First_Dominated$Choice ==TRUE)))]),length(First_Dominated$ID[(((First_Dominated$alt == "A") & (First_Dominated$Choice ==FALSE)))])),
+                         "First_Certain" =c(length(First_Certain$ID[(((First_Certain$alt == "A") & (First_Certain$Choice ==TRUE)))]),length(First_Certain$ID[(((First_Certain$alt == "A") & (First_Certain$Choice ==FALSE)))])),
+                         "First_Cons" =c(length(First_Cons$ID[(((First_Cons$alt == "A") & (First_Cons$Choice ==TRUE)))]),length(First_Cons$ID[(((First_Cons$alt == "A") & (First_Cons$Choice ==FALSE)))])))
+Acceptance <- t(Acceptance) ## Transposed is easier to work with
+Acceptance <- cbind(Acceptance,rowSums(Acceptance),deparse.level = 2) ## Add total responses
+Acceptance <- cbind(Acceptance,100/Acceptance[,3]*Acceptance[,1],100/Acceptance[,3]*Acceptance[,2],c(1,2,3,4),deparse.level = 2) ## Add percentage accepting and rejecting A and number the questions.
+colnames(Acceptance) <- c("A","B","Total","Acceptance","Rejected","Dataset")
+Acceptance <- data.frame(Acceptance)
+
+library(ggplot2)
+## Plotting status quo acceptance by truncation strategy. 
+p <- ggplot(data=Acceptance, aes(x=factor(Dataset), y=Acceptance)) +
+  geom_bar(position="stack",stat="identity") + 
+  scale_x_discrete(name="Data set",breaks = 1:4, labels=c(rownames(Acceptance)))+
+  coord_cartesian(ylim=c(1,100))
+p 
+
+
+################# The same approach to above but better:
+## Acc3 is acceptance of each option in the first sample
+Acc3 <- rbind(t(data.frame("Q9"=c(c(length(First_Long$ID[(( (First_Long$Task == 1) & (First_Long$alt == "A") & (First_Long$Choice ==TRUE)) )] )),c(length(First_Long$ID[(( (First_Long$Task == 1) & (First_Long$alt == "A") & (First_Long$Choice ==FALSE)) )] ))))),
+              t(data.frame("Q10"=c(c(length(First_Long$ID[(( (First_Long$Task == 2) & (First_Long$alt == "A") & (First_Long$Choice ==TRUE)) )] )),c(length(First_Long$ID[(( (First_Long$Task == 2) & (First_Long$alt == "A") & (First_Long$Choice ==FALSE)) )] ))))),
+              t(data.frame("Q11"=c(c(length(First_Long$ID[(( (First_Long$Task == 3) & (First_Long$alt == "A") & (First_Long$Choice ==TRUE)) )] )),c(length(First_Long$ID[(( (First_Long$Task == 3) & (First_Long$alt == "A") & (First_Long$Choice ==FALSE)) )] ))))),
+              t(data.frame("Q12"=c(c(length(First_Long$ID[(( (First_Long$Task == 4) & (First_Long$alt == "A") & (First_Long$Choice ==TRUE)) )] )),c(length(First_Long$ID[(( (First_Long$Task == 4) & (First_Long$alt == "A") & (First_Long$Choice ==FALSE)) )] ))))))
+Acc3 <- cbind(Acc3,c(1,2,3,4),round(Acc3[,1:2]/sum(Acc3[1,1:2])*100,3))
+colnames(Acc3) <- c("A","B","Question","APercent","BPercent")
+Acc3 <- data.frame(Acc3)
+
+## Acc4 is acceptance of each option in the sample eliminating those failing the dominance test
+Acc4 <- rbind(t(data.frame("Q9"=c(c(length(First_Dominated$ID[(( (First_Dominated$Task == 1) & (First_Dominated$alt == "A") & (First_Dominated$Choice ==TRUE)) )] )),c(length(First_Dominated$ID[(( (First_Dominated$Task == 1) & (First_Dominated$alt == "A") & (First_Dominated$Choice ==FALSE)) )] ))))),
+              t(data.frame("Q10"=c(c(length(First_Dominated$ID[(( (First_Dominated$Task == 2) & (First_Dominated$alt == "A") & (First_Dominated$Choice ==TRUE)) )] )),c(length(First_Dominated$ID[(( (First_Dominated$Task == 2) & (First_Dominated$alt == "A") & (First_Dominated$Choice ==FALSE)) )] ))))),
+              t(data.frame("Q11"=c(c(length(First_Dominated$ID[(( (First_Dominated$Task == 3) & (First_Dominated$alt == "A") & (First_Dominated$Choice ==TRUE)) )] )),c(length(First_Dominated$ID[(( (First_Dominated$Task == 3) & (First_Dominated$alt == "A") & (First_Dominated$Choice ==FALSE)) )] ))))),
+              t(data.frame("Q12"=c(c(length(First_Dominated$ID[(( (First_Dominated$Task == 4) & (First_Dominated$alt == "A") & (First_Dominated$Choice ==TRUE)) )] )),c(length(First_Dominated$ID[(( (First_Dominated$Task == 4) & (First_Dominated$alt == "A") & (First_Dominated$Choice ==FALSE)) )] ))))))
+Acc4 <- cbind(Acc4,c(1,2,3,4),round(Acc4[,1:2]/sum(Acc4[1,1:2])*100,3))
+colnames(Acc4) <- c("A","B","Question","APercent","BPercent")
+Acc4 <- data.frame(Acc4)
+Acc4
+
+## Acc5 is acceptance of each option in the sample relying on certainty
+Acc5 <- rbind(t(data.frame("Q9"=c(c(length(First_Certain$ID[(( (First_Certain$Task == 1) & (First_Certain$alt == "A") & (First_Certain$Choice ==TRUE)) )] )),c(length(First_Certain$ID[(( (First_Certain$Task == 1) & (First_Certain$alt == "A") & (First_Certain$Choice ==FALSE)) )] ))))),
+              t(data.frame("Q10"=c(c(length(First_Certain$ID[(( (First_Certain$Task == 2) & (First_Certain$alt == "A") & (First_Certain$Choice ==TRUE)) )] )),c(length(First_Certain$ID[(( (First_Certain$Task == 2) & (First_Certain$alt == "A") & (First_Certain$Choice ==FALSE)) )] ))))),
+              t(data.frame("Q11"=c(c(length(First_Certain$ID[(( (First_Certain$Task == 3) & (First_Certain$alt == "A") & (First_Certain$Choice ==TRUE)) )] )),c(length(First_Certain$ID[(( (First_Certain$Task == 3) & (First_Certain$alt == "A") & (First_Certain$Choice ==FALSE)) )] ))))),
+              t(data.frame("Q12"=c(c(length(First_Certain$ID[(( (First_Certain$Task == 4) & (First_Certain$alt == "A") & (First_Certain$Choice ==TRUE)) )] )),c(length(First_Certain$ID[(( (First_Certain$Task == 4) & (First_Certain$alt == "A") & (First_Certain$Choice ==FALSE)) )] ))))))
+Acc5 <- cbind(Acc5,c(1,2,3,4),round(Acc5[,1:2]/sum(Acc5[1,1:2])*100,3))
+colnames(Acc5) <- c("A","B","Question","APercent","BPercent")
+Acc5 <- data.frame(Acc5)
+Acc5
+
+## Acc6 is acceptance of each option in the consequential sample
+Acc6 <- rbind(t(data.frame("Q9"=c(c(length(First_Cons$ID[(( (First_Cons$Task == 1) & (First_Cons$alt == "A") & (First_Cons$Choice ==TRUE)) )] )),c(length(First_Cons$ID[(( (First_Cons$Task == 1) & (First_Cons$alt == "A") & (First_Cons$Choice ==FALSE)) )] ))))),
+              t(data.frame("Q10"=c(c(length(First_Cons$ID[(( (First_Cons$Task == 2) & (First_Cons$alt == "A") & (First_Cons$Choice ==TRUE)) )] )),c(length(First_Cons$ID[(( (First_Cons$Task == 2) & (First_Cons$alt == "A") & (First_Cons$Choice ==FALSE)) )] ))))),
+              t(data.frame("Q11"=c(c(length(First_Cons$ID[(( (First_Cons$Task == 3) & (First_Cons$alt == "A") & (First_Cons$Choice ==TRUE)) )] )),c(length(First_Cons$ID[(( (First_Cons$Task == 3) & (First_Cons$alt == "A") & (First_Cons$Choice ==FALSE)) )] ))))),
+              t(data.frame("Q12"=c(c(length(First_Cons$ID[(( (First_Cons$Task == 4) & (First_Cons$alt == "A") & (First_Cons$Choice ==TRUE)) )] )),c(length(First_Cons$ID[(( (First_Cons$Task == 4) & (First_Cons$alt == "A") & (First_Cons$Choice ==FALSE)) )] ))))))
+Acc6 <- cbind(Acc6,c(1,2,3,4),round(Acc6[,1:2]/sum(Acc6[1,1:2])*100,3))
+colnames(Acc6) <- c("A","B","Question","APercent","BPercent")
+Acc6 <- data.frame(Acc6)
+Acc6
+
+
+## Combining line plots of acceptance rates over questions by dataset
+### Note no major differences by question or data. 
+ggplot()+
+  geom_line(aes(x=Question,y=APercent,color="red"),data=Acc3)+
+  geom_line(aes(x=Question,y=APercent,color="blue"),data=Acc4)+
+  geom_line(aes(x=Question,y=APercent,color="green"),data=Acc5)+
+  geom_line(aes(x=Question,y=APercent,color="orange"),data=Acc6)+
+  scale_x_continuous(name="Question",breaks = 1:4, 
+                     labels=c(rownames(Acc3)))+
+  scale_y_continuous(name="Percent choosing Option A",
+                     breaks=waiver(),limits = c(25,75),
+                     n.breaks = 10, labels = function(x) paste0(x, "%"))+
+  scale_color_discrete(name = "Lines", 
+                       labels = c("Full sample", "Dominated","Certainty","Consequentiality"))+
+  ggtitle("Percentage choosing the status quo by question and truncation strategy.")
+
+##  
+Sames <-data.frame(c(c(length(FirstSurvey2$ID[(( (FirstSurvey2$Q9Choice == 1) & (FirstSurvey2$Q10Choice == 1) & (FirstSurvey2$Q11Choice == 1) & (FirstSurvey2$Q12Choice == 1) ))])),c(length(FirstSurvey2$ID[(( (FirstSurvey2$Q9Choice == 0) & (FirstSurvey2$Q10Choice == 0) & (FirstSurvey2$Q11Choice == 0) & (FirstSurvey2$Q12Choice == 0) ))]))))
+colnames(Sames) <- c("Always same")
+rownames(Sames) <- c("A","B")
+
+################ 
  
 First_Cons <- data.frame(First_Cons) ## Change into dataframe format 
 
@@ -426,7 +510,7 @@ First_Dominated <- First_Long[First_Long$Q8DominatedTest == 0]
 First_Certain <- First_Dominated[First_Dominated$Q12CECertainty == 2]
 First_Cons <- First_Certain[First_Certain$Q20Consequentiality == 1]
 
-  
+
 ######################## Estimation section:
 
 
@@ -467,7 +551,7 @@ MXLFullD <- mlogit(
   + Q21Experts +Q22Education+ Q23Employment
   +  Q24AIncome,
   First_Certain, rpar=c(Price="n"),
-  R=1000,correlation = FALSE,
+  R=10000,correlation = FALSE,
   reflevel="A",halton=NA,method="bhhh",panel=TRUE,seed=123)
 summary(MXLFullD)
 
@@ -499,15 +583,16 @@ AIC(MXLFullD)
 #     0.44, -2.449 
 
 ## Can use AIC and BIC to compare model fits:
-AIC(Pilot_MNL): ## 215.1842
-AIC(MXLFull):   ## 561.1319
-AIC(MXLFullD):   ## 200.5288
+AIC(Pilot_MNL) ## 215.1842
+AIC(MXLFull)   ## 561.1319
+AIC(MXLFullD)   ## 200.5288
  
   
 ## Clustering and bootstrapping:
 library(clusterSEs)
-CBSM <- cluster.bs.mlogit(MXLFull, First_Long, ~ ID, boot.reps=100,seed = 123)
+CBSM <- cluster.bs.mlogit(MXLFullD, First_Certain, ~ ID, boot.reps=100,seed = 123)
 
+data.frame("WTPLower" =c(  -1*(CBSM$ci[,1]/CBSM$ci[2,1])), "WTPUpper" = c( -1*(CBSM$ci[,2]/CBSM$ci[2,2])))
 
 library(stargazer)
 stargazer(summary(MXLFull)$CoefTable, title = "MXLFull", align = TRUE,report="p*")
@@ -699,6 +784,39 @@ First_NormalOrder <-First_Long[First_Long$Order == 0]
 First_OtherOrder <-First_Long[First_Long$Order == 1]
 First_Consequential <-First_Long[First_Long$Q20Consequentiality == 1]
 First_Inconsequential <-First_Long[First_Long$Q20Consequentiality != 1]
+
+
+## Here I construct dataframes which calculate acceptance rates for each CVM question by ordering 
+Q6 <- t(data.frame("Normal" = c(length(FirstSurvey2$Q6ResearchResponse[(FirstSurvey2$Order ==0) & (FirstSurvey2$Q6ResearchResponse ==0)]),length(FirstSurvey2$Q6ResearchResponse[(FirstSurvey2$Order ==0) & (FirstSurvey2$Q6ResearchResponse ==1)])),
+           "Alternate" = c(length(FirstSurvey2$Q6ResearchResponse[(FirstSurvey2$Order ==1) & (FirstSurvey2$Q6ResearchResponse ==0)]),length(FirstSurvey2$Q6ResearchResponse[(FirstSurvey2$Order ==1) & (FirstSurvey2$Q6ResearchResponse ==1)]))))
+Q6 <- data.frame(cbind(Q6,Q6[,2]/sum(Q6[2,]),c(1,2)))
+colnames(Q6) <- c("Reject","Accept","Percentage","Order")
+
+Q7 <- t(data.frame("Normal" = c(length(FirstSurvey2$Q7TreatmentResponse[(FirstSurvey2$Order ==0) & (FirstSurvey2$Q7TreatmentResponse ==0)]),length(FirstSurvey2$Q7TreatmentResponse[(FirstSurvey2$Order ==0) & (FirstSurvey2$Q7TreatmentResponse ==1)])),
+                   "Alternate" = c(length(FirstSurvey2$Q7TreatmentResponse[(FirstSurvey2$Order ==1) & (FirstSurvey2$Q7TreatmentResponse ==0)]),length(FirstSurvey2$Q7TreatmentResponse[(FirstSurvey2$Order ==1) & (FirstSurvey2$Q7TreatmentResponse ==1)]))))
+Q7 <- data.frame(cbind(Q7,Q7[,2]/sum(Q7[2,]),c(1,2)))
+colnames(Q7) <- c("Reject","Accept","Percentage","Order")
+
+Q7b <- t(data.frame("Normal" = c(length(FirstSurvey2$Q7Response2[(FirstSurvey2$Order ==0) & (FirstSurvey2$Q7Response2 ==0)]),length(FirstSurvey2$Q7Response2[(FirstSurvey2$Order ==0) & (FirstSurvey2$Q7Response2 ==1)])),
+                   "Alternate" = c(length(FirstSurvey2$Q7Response2[(FirstSurvey2$Order ==1) & (FirstSurvey2$Q7Response2 ==0)]),length(FirstSurvey2$Q7Response2[(FirstSurvey2$Order ==1) & (FirstSurvey2$Q7Response2 ==1)]))))
+Q7b <- data.frame(cbind(Q7b,Q7b[,2]/sum(Q7b[2,]),c(1,2)))
+colnames(Q7b) <- c("Reject","Accept","Percentage","Order")
+
+## Combines all CVM qestion acceptance rates
+CVM <- cbind(rbind(Q6,Q7,Q7b),c("Q6","Q6","Q7","Q7","Q7b","Q7b"))
+colnames(CVM) <- c("Reject","Accept","Percentage","Order","Question")
+CVM <- data.frame(CVM)
+
+## Plotting order effects on bid acceptance by question. 
+ggplot(aes(x=Order,y=Percentage),data=CVM)+ 
+  geom_point(shape = 1) +
+  geom_smooth(method="lm",se=F) +
+  facet_wrap(~Question,ncol = 1) + 
+  scale_x_continuous(name="Question",breaks = 1:2, 
+                     labels=c("Q6 then Q7","Q7 then  Q6"))+
+  scale_y_continuous(name="Percent choosing Option A",
+                     breaks=waiver())+
+  ggtitle("Percentage accepting or rejecting the bid level.")
 
 
 ## The Q6 model: actually much better than the AOD approach above.
@@ -956,6 +1074,15 @@ apollo_beta = c(# Class 1
 
 ## Define one class as fixed as the utility-differences approach 
 apollo_fixed = c("s_1")
+
+
+Test_Apollo$Price_A[Test_Apollo$Price_A == 0] <-1
+Test_Apollo$Performance_A[Test_Apollo$Performance_A == 0] <-1
+Test_Apollo$Emission_A[Test_Apollo$Emission_A == 0] <- 1
+Test_Apollo$Price_B <- Test_Apollo$Price_B +1
+Test_Apollo$Emission_B <- Test_Apollo$Emission_B +1
+Test_Apollo$Performance_B <- Test_Apollo$Performance_B +1
+database = Test_Apollo
 
 ## Grouping latent class parameters
 apollo_lcPars = function(apollo_beta, apollo_inputs){
