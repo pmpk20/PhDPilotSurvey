@@ -4,10 +4,7 @@
 ####################################################################################
 
 ############ TO DO:
-# - Weight CE by certainty
-# - Check CVM by ordering
-# - Fix clustering
-
+# - Fix apollo code
 
 ############ Packages:
 install.packages("mlogit") ## MLOGIT is the best DCE package in R so far.
@@ -310,6 +307,8 @@ First_Long <- mlogit.data(First, shape = "wide", choice = "Choice",
 First_Dominated <- First_Long[First_Long$Q8DominatedTest == 0]
 ###  Understanding the survey more than 5/10
 First_Understanding <- First_Dominated[First_Dominated$Q25Understanding >= 5]
+### Trimming by having certainty in their CE choices. 
+First_Certain <- First_Dominated[First_Dominated$Q12CECertainty == 2]
 ###  Believing the survey responses to be consequential.
 First_Cons <- First_Understanding[First_Understanding$Q20Consequentiality == 1]
 
@@ -321,9 +320,9 @@ First_Cons <- First_Understanding[First_Understanding$Q20Consequentiality == 1]
 ## In this section I plot the percent of the sample choosing each alternative
 ### To do so I make a dataframe called "Acceptance" which calculates the percentage in each sample choosing each alternative.
 Acceptance <- data.frame("First_Long" =c(length(First_Long$ID[(((First_Long$alt == "A") & (First_Long$Choice ==TRUE)))]),length(First_Long$ID[(((First_Long$alt == "A") & (First_Long$Choice ==FALSE)))])), 
+                         "First_Cons" =c(length(First_Cons$ID[(((First_Cons$alt == "A") & (First_Cons$Choice ==TRUE)))]),length(First_Cons$ID[(((First_Cons$alt == "A") & (First_Cons$Choice ==FALSE)))])),
                          "First_Dominated" =c(length(First_Dominated$ID[(((First_Dominated$alt == "A") & (First_Dominated$Choice ==TRUE)))]),length(First_Dominated$ID[(((First_Dominated$alt == "A") & (First_Dominated$Choice ==FALSE)))])),
-                         "First_Certain" =c(length(First_Certain$ID[(((First_Certain$alt == "A") & (First_Certain$Choice ==TRUE)))]),length(First_Certain$ID[(((First_Certain$alt == "A") & (First_Certain$Choice ==FALSE)))])),
-                         "First_Cons" =c(length(First_Cons$ID[(((First_Cons$alt == "A") & (First_Cons$Choice ==TRUE)))]),length(First_Cons$ID[(((First_Cons$alt == "A") & (First_Cons$Choice ==FALSE)))])))
+                         "First_Certain" =c(length(First_Certain$ID[(((First_Certain$alt == "A") & (First_Certain$Choice ==TRUE)))]),length(First_Certain$ID[(((First_Certain$alt == "A") & (First_Certain$Choice ==FALSE)))])))
 Acceptance <- t(Acceptance) ## Transposed is easier to work with
 Acceptance <- cbind(Acceptance,rowSums(Acceptance),deparse.level = 2) ## Add total responses
 Acceptance <- cbind(Acceptance,100/Acceptance[,3]*Acceptance[,1],100/Acceptance[,3]*Acceptance[,2],c(1,2,3,4),deparse.level = 2) ## Add percentage accepting and rejecting A and number the questions.
@@ -332,7 +331,7 @@ Acceptance <- data.frame(Acceptance)
 
 library(ggplot2)
 ## Plotting status quo acceptance by truncation strategy. 
-p <- ggplot(data=Acceptance, aes(x=factor(Dataset), y=Acceptance)) +
+P <- ggplot(data=Acceptance, aes(x=factor(Dataset), y=Acceptance)) +
   geom_bar(position="stack",stat="identity") + 
   scale_x_discrete(name="Data set",breaks = 1:4, labels=c(rownames(Acceptance)))+
   coord_cartesian(ylim=c(1,100))
@@ -463,7 +462,8 @@ A1 <- ggplot(Firsts, aes(Choice,Price_B)) +
   theme(plot.title = element_text(hjust = 0.5),
         plot.margin=unit(c(1,1,-0.5,1),"cm"),
         axis.title.y = element_text(size = 10)) +
-  labs(x = "Likelihood of accepting option B",y="Price attribute")
+  labs(x = "Likelihood of accepting option B",y="Price attribute levels")+
+  scale_x_continuous(breaks = 0:1, labels=c(0,1))
 
 
 ## Emission Curve: Plotting choice versus emission levels 
@@ -474,7 +474,8 @@ A2 <- ggplot(Firsts, aes(Choice,Emission_B)) +
   theme(plot.title = element_text(hjust = 0.5),
         plot.margin=unit(c(1,1,-0.5,1),"cm"),
         axis.title.y = element_text(size = 10)) +
-  labs(x = "Likelihood of accepting option B",y="Emission attribute")
+  labs(x = "Likelihood of accepting option B",y="Emission attribute")+
+  scale_x_continuous(breaks = 0:1, labels=c(0,1))
 
 ## Performance Curve: Plotting choice versus performance levels 
 A3 <- ggplot(Firsts, aes(Choice,Performance_B)) + 
@@ -484,7 +485,8 @@ A3 <- ggplot(Firsts, aes(Choice,Performance_B)) +
   theme(plot.title = element_text(hjust = 0.5),
         plot.margin=unit(c(1,1,-0.5,1),"cm"),
         axis.title.y = element_text(size = 10)) +
-  labs(x = "Likelihood of accepting option B",y="Performance attribute")
+  labs(x = "Likelihood of accepting option B",y="Performance attribute")+
+  scale_x_continuous(breaks = 0:1,labels=c(0,1))
 
 grid.arrange(A1, A2, A3)
 ##########################################################  
@@ -539,7 +541,7 @@ MXLFull <- mlogit(
   + Q21Experts +Q22Education+ Q23Employment
   +  Q24AIncome,
   First_Long, rpar=c(Price="n"),
-  R=10000,correlation = FALSE,
+  R=1000,correlation = FALSE,
   reflevel="A",halton=NA,method="bhhh",panel=TRUE,seed=123)
 summary(MXLFull)
 
@@ -551,7 +553,7 @@ MXLFullD <- mlogit(
   + Q21Experts +Q22Education+ Q23Employment
   +  Q24AIncome,
   First_Certain, rpar=c(Price="n"),
-  R=10000,correlation = FALSE,
+  R=1000,correlation = FALSE,
   reflevel="A",halton=NA,method="bhhh",panel=TRUE,seed=123)
 summary(MXLFullD)
 
@@ -599,10 +601,10 @@ stargazer(summary(MXLFull)$CoefTable, title = "MXLFull", align = TRUE,report="p*
 
 
 ## Calculating consumer surplus:
-First_Understanding_CS1 <- First_Understanding
+First_Understanding_CS1 <- First_Long
 First_Understanding_CS1$Price <- First_Understanding_CS1$Price * 1.1
 First_Understanding_CS1$Performance <- First_Understanding_CS1$Performance * 0.9
-Va1 <- logsum(MXLFull,data=First_Understanding)
+Va1 <- logsum(MXLFull,data=First_Long)
 Va0 <- logsum(MXLFull,data = First_Understanding_CS1)
 surplus <- - (Va1 - Va0) / coef(MXLFull)["Price"]
 summary(surplus)
@@ -631,9 +633,9 @@ GMNL_MXLDefault <- gmnl(Choice ~ Price + Performance + Emission | 1 | 0|
                         + Q4Trips + Q16BP + Q18Charity 
                         + Q20Consequentiality
                         + Q21Experts +Q22Education+ Q23Employment
-                        +  Q24AIncome, data = First_Understanding,
+                        +  Q24AIncome, data = First_Long,
                         model = "mixl",
-                        ranp = c( Price = "ln"),
+                        ranp = c( Price = "n"),
                         mvar = list(Price = c("Q18Charity")),
                         R = 10,
                         haltons = NA
@@ -644,54 +646,38 @@ coef(GMNL_MXLDefault)["Performance"]/coef(GMNL_MXLDefault)["Price"]
 coef(GMNL_MXLDefault)["Emission"]/coef(GMNL_MXLDefault)["Price"]
 
 ## GMNL has a plot function for the conditional distribution of the random parameters:
-plot(GMNL_MXLDefault, par = "Q18Charity", effect = "wtp", type = "density", col = "grey",wrt="Price")
+plot(GMNL_MXLDefault, par = "Price",type = "density", col = "grey",wrt="Price")
 
 
 ############ Estimating LATENT-CLASS MODELS
 
 ## Two class model:
 LC_GM <- gmnl(Choice ~ Price + Performance + Emission | 0 |
-                0 | 0 | 1,
+                0 | 0 | 1+  Q1Gender + Q2Age + Q3Distance
+              + Q4Trips + Q16BP + Q18Charity
+              + Q21Experts +Q22Education+ Q23Employment
+              +  Q24AIncome,
               data = First_Cons,
               model = 'lc',
               panel = TRUE,
               Q = 2)
 summary(LC_GM)
-AIC(LC_GM) ## 194.4641
-BIC(LC_GM) ## 215.9903
+AIC(LC_GM) ## 547.1257
+BIC(LC_GM) ## 618.08
 
 ## Three class model:
 LC_GM3 <- gmnl(Choice ~ Price + Performance + Emission | 0 |
-                0 | 0 | 1,
-              data = First_Cons,
+                0 | 0 | 1+  Q1Gender + Q2Age + Q3Distance
+               + Q4Trips + Q16BP + Q18Charity
+               + Q21Experts +Q22Education+ Q23Employment
+               +  Q24AIncome,
+              data = First_Long,
               model = 'lc',
               panel = TRUE,
               Q = 3)
 summary(LC_GM3)
-AIC(LC_GM3) # 190.1208
-BIC(LC_GM3) # 223.9478
-
-## Four class model:
-LC_GM4 <- gmnl(Choice ~ Price + Performance + Emission | 0 |
-                0 | 0 | 1,
-              data = First_Cons,
-              model = 'lc',
-              panel = TRUE,
-              Q = 4)
-summary(LC_GM4)
-AIC(LC_GM4) # 186.1308
-BIC(LC_GM4) # 232.2584
-
-## 5-class model
-LC_GM5 <- gmnl(Choice ~ Price + Performance + Emission | 0 |
-                 0 | 0 | 1,
-               data = First_Cons,
-               model = 'lc',
-               panel = TRUE,
-               Q = 5)
-summary(LC_GM5)
-AIC(LC_GM5) # 185.2838
-BIC(LC_GM5) # 243.7121
+AIC(LC_GM3) # 547.4673
+BIC(LC_GM3) # 676.8547
 
 
 ## Function from https://rpubs.com/msarrias1986/335556 which calculates the share of the sample in each class
@@ -710,12 +696,12 @@ shares <- function(obj){
 ## Reports class-shares:
 shares(LC_GM)
 shares(LC_GM3)
-shares(LC_GM4)
-shares(LC_GM5)
 
 ## LCM class-specific WTP:
--coef(LC_GM)/coef(LC_GM)["class.1.Price"]
--coef(LC_GM)/coef(LC_GM)["class.2.Price"]
+-1* (coef(LC_GM)["class.1.Performance"]/coef(LC_GM)["class.1.Price"])
+-1* (coef(LC_GM)["class.1.Emission"]/coef(LC_GM)["class.1.Price"])
+-1* (coef(LC_GM)["class.2.Performance"]/coef(LC_GM)["class.2.Price"])
+-1* (coef(LC_GM)["class.2.Emission"]/coef(LC_GM)["class.2.Price"])
 
 
 
@@ -818,6 +804,14 @@ ggplot(aes(x=Order,y=Percentage),data=CVM)+
                      breaks=waiver())+
   ggtitle("Percentage accepting or rejecting the bid level.")
 
+
+rbind("Normal order"=data.frame("Accepting higher bid"=c(length(unique(First_Long$ID[ (First_Long$Q7Response2 == 0) & (First_Long$Q7Bid > First_Long$Q7Bid2) & (First_Long$Order == 0) ]))),
+           "Rejecting higher bid" = c(length(unique(First_Long$ID[ (First_Long$Q7Response2 == 1) & (First_Long$Q7Bid > First_Long$Q7Bid2) & (First_Long$Order == 0) ])))),
+      "Reversed"=data.frame("Accepting higher bid"=c(length(unique(First_Long$ID[ (First_Long$Q7Response2 == 0) & (First_Long$Q7Bid > First_Long$Q7Bid2) & (First_Long$Order == 1) ]))),
+           "Rejecting higher bid" = c(length(unique(First_Long$ID[ (First_Long$Q7Response2 == 1) & (First_Long$Q7Bid > First_Long$Q7Bid2) & (First_Long$Order == 1) ])))))
+
+data.frame("Percentage accepting higher bid" = c(length(unique(First_Long$ID[ (First_Long$Q7Response2 == 1) & (First_Long$Q7Bid > First_Long$Q7Bid2) & (First_Long$Order == 0) ])))/c(length(unique(First_Long$ID[  (First_Long$Q7Bid > First_Long$Q7Bid2) & (First_Long$Order == 0) ])))*100,
+           )
 
 ## The Q6 model: actually much better than the AOD approach above.
 Research_SB <- sbchoice(Q6ResearchResponse ~ Order + Task + Q1Gender + Q2Age + Q3Distance
@@ -1041,9 +1035,520 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
   return(P)
 }
 
-apollo_modelOutput(apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs,estimate_settings = list(estimationRoutine="bfgs",bootstrapSE=10,maxIterations=50)))
 
+model = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs, estimate_settings=list(hessianRoutine="maxLik")) 
+apollo_modelOutput(model)
   
+
+#############################################################################
+## ICLV model:
+## http://www.apollochoicemodelling.com/files/Apollo_example_24.r
+#############################################################################
+
+## LOAD LIBRARY AND DEFINE CORE SETTINGS
+library(apollo)
+
+### Initialise code
+apollo_initialise()
+
+### Set core controls
+apollo_control = list(
+  modelName  = "Apollo_ICLV",
+  modelDescr = "ICLV model example",
+  indivID    = "ID",
+  mixing     = TRUE,
+  nCores     = 1
+)
+
+database = Test_Apollo
+  
+# read.csv("apollo_drugChoiceData.csv",header=TRUE)
+
+### Vector of parameters, including any that are kept fixed in estimation
+apollo_beta = c(b_brand_Artemis    = 0, 
+                b_brand_Novum      = 0, 
+                b_brand_BestValue  = 0, 
+                b_brand_Supermarket= 0, 
+                b_brand_PainAway   = 0, 
+                b_country_CH       = 0, 
+                b_country_DK       = 0, 
+                b_country_USA      = 0, 
+                b_country_IND      = 0, 
+                b_country_RUS      = 0, 
+                b_country_BRA      = 0, 
+                b_char_standard    = 0, 
+                b_char_fast        = 0, 
+                b_char_double      = 0, 
+                b_risk             = 0, 
+                b_price            = 0,  
+                lambda             = 1, 
+                gamma_reg_user     = 0, 
+                gamma_university   = 0, 
+                gamma_age_50       = 0, 
+                zeta_quality       = 1, 
+                zeta_ingredient    = 1, 
+                zeta_patent        = 1, 
+                zeta_dominance     = 1, 
+                tau_quality_1      =-2, 
+                tau_quality_2      =-1, 
+                tau_quality_3      = 1, 
+                tau_quality_4      = 2, 
+                tau_ingredients_1  =-2, 
+                tau_ingredients_2  =-1, 
+                tau_ingredients_3  = 1, 
+                tau_ingredients_4  = 2, 
+                tau_patent_1       =-2, 
+                tau_patent_2       =-1, 
+                tau_patent_3       = 1, 
+                tau_patent_4       = 2, 
+                tau_dominance_1    =-2, 
+                tau_dominance_2    =-1, 
+                tau_dominance_3    = 1, 
+                tau_dominance_4    = 2)
+
+### Vector with names (in quotes) of parameters to be kept fixed at their starting value in apollo_beta, use apollo_beta_fixed = c() if none
+apollo_fixed = c("b_brand_Artemis", "b_country_USA", "b_char_standard")
+
+# ################################################################# #
+#### DEFINE RANDOM COMPONENTS                                    ####
+
+### Set parameters for generating draws
+apollo_draws = list(
+  interDrawsType="halton", 
+  interNDraws=100,          
+  interUnifDraws=c(),      
+  interNormDraws=c("eta"), 
+  
+  intraDrawsType='',
+  intraNDraws=0,          
+  intraUnifDraws=c(),     
+  intraNormDraws=c()      
+)
+
+### Create random parameters
+apollo_randCoeff=function(apollo_beta, apollo_inputs){
+  randcoeff = list()
+  
+  randcoeff[["LV"]] = gamma_reg_user*regular_user + gamma_university*university_educated + gamma_age_50*over_50 + eta
+  
+  return(randcoeff)
+}
+
+
+# ################################################################# #
+#### GROUP AND VALIDATE INPUTS                                   ####
+
+apollo_inputs = apollo_validateInputs()
+
+# ################################################################# #
+#### DEFINE MODEL AND LIKELIHOOD FUNCTION                        ####
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  
+  ### Attach inputs and detach after function exit
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  
+  ### Create list of probabilities P
+  P = list()
+  
+  ### Likelihood of indicators
+  ol_settings1 = list(outcomeOrdered = attitude_quality, 
+                      V              = zeta_quality*LV, 
+                      tau            = c(tau_quality_1, tau_quality_2, tau_quality_3, tau_quality_4),
+                      rows           = (task==1),
+                      componentName  = "indic_quality")
+  ol_settings2 = list(outcomeOrdered = attitude_ingredients, 
+                      V              = zeta_ingredient*LV, 
+                      tau            = c(tau_ingredients_1, tau_ingredients_2, tau_ingredients_3, tau_ingredients_4), 
+                      rows           = (task==1),
+                      componentName  = "indic_ingredients")
+  ol_settings3 = list(outcomeOrdered = attitude_patent, 
+                      V              = zeta_patent*LV, 
+                      tau            = c(tau_patent_1, tau_patent_2, tau_patent_3, tau_patent_4), 
+                      rows           = (task==1),
+                      componentName  = "indic_patent")
+  ol_settings4 = list(outcomeOrdered = attitude_dominance, 
+                      V              = zeta_dominance*LV, 
+                      tau            = c(tau_dominance_1, tau_dominance_2, tau_dominance_3, tau_dominance_4), 
+                      rows           = (task==1),
+                      componentName  = "indic_dominance")
+  P[["indic_quality"]]     = apollo_ol(ol_settings1, functionality)
+  P[["indic_ingredients"]] = apollo_ol(ol_settings2, functionality)
+  P[["indic_patent"]]      = apollo_ol(ol_settings3, functionality)
+  P[["indic_dominance"]]   = apollo_ol(ol_settings4, functionality)
+  
+  ### Likelihood of choices
+  ### List of utilities: these must use the same names as in mnl_settings, order is irrelevant
+  V = list()
+  V[['alt1']] = ( b_brand_Artemis*(brand_1=="Artemis") + b_brand_Novum*(brand_1=="Novum") 
+                  + b_country_CH*(country_1=="Switzerland") + b_country_DK*(country_1=="Denmark") + b_country_USA*(country_1=="USA") 
+                  + b_char_standard*(char_1=="standard") + b_char_fast*(char_1=="fast acting") + b_char_double*(char_1=="double strength") 
+                  + b_risk*side_effects_1
+                  + b_price*price_1 
+                  + lambda*LV )
+  V[['alt2']] = ( b_brand_Artemis*(brand_2=="Artemis") + b_brand_Novum*(brand_2=="Novum") 
+                  + b_country_CH*(country_2=="Switzerland") + b_country_DK*(country_2=="Denmark") + b_country_USA*(country_2=="USA") 
+                  + b_char_standard*(char_2=="standard") + b_char_fast*(char_2=="fast acting") + b_char_double*(char_2=="double strength") 
+                  + b_risk*side_effects_2
+                  + b_price*price_2 
+                  + lambda*LV )
+  V[['alt3']] = ( b_brand_BestValue*(brand_3=="BestValue") + b_brand_Supermarket*(brand_3=="Supermarket") + b_brand_PainAway*(brand_3=="PainAway") 
+                  + b_country_USA*(country_3=="USA") + b_country_IND*(country_3=="India") + b_country_RUS*(country_3=="Russia") + b_country_BRA*(country_3=="Brazil") 
+                  + b_char_standard*(char_3=="standard") + b_char_fast*(char_3=="fast acting") 
+                  + b_risk*side_effects_3
+                  + b_price*price_3 )
+  V[['alt4']] = ( b_brand_BestValue*(brand_4=="BestValue") + b_brand_Supermarket*(brand_4=="Supermarket") + b_brand_PainAway*(brand_4=="PainAway") 
+                  + b_country_USA*(country_4=="USA") + b_country_IND*(country_4=="India") + b_country_RUS*(country_4=="Russia") + b_country_BRA*(country_4=="Brazil") 
+                  + b_char_standard*(char_4=="standard") + b_char_fast*(char_4=="fast acting") 
+                  + b_risk*side_effects_4
+                  + b_price*price_4 )
+  
+  ### Define settings for MNL model component
+  mnl_settings = list(
+    alternatives = c(alt1=1, alt2=2, alt3=3, alt4=4),
+    avail        = list(alt1=1, alt2=1, alt3=1, alt4=1),
+    choiceVar    = best,
+    V            = V,
+    componentName= "choice"
+  )
+  
+  ### Compute probabilities for MNL model component
+  P[["choice"]] = apollo_mnl(mnl_settings, functionality)
+  
+  ### Likelihood of the whole model
+  P = apollo_combineModels(P, apollo_inputs, functionality)
+  
+  ### Take product across observation for same individual
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  
+  ### Average across inter-individual draws
+  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
+  
+  ### Prepare and return outputs of function
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+# ################################################################# #
+#### MODEL ESTIMATION                                            
+
+### Optional: calculate LL before model estimation
+# apollo_llCalc(apollo_beta, apollo_probabilities, apollo_inputs)
+
+### Estimate model
+model = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+apollo_modelOutput(model)
+
+apollo_saveOutput(model)
+
+# ################################################################# #
+##### POST-PROCESSING                                            ####
+
+### Print outputs of additional diagnostics to new output file (remember to close file writing when complete)
+sink(paste(model$apollo_control$modelName,"_additional_output.txt",sep=""),split=TRUE)
+
+## Predictions 
+forecast <- apollo_prediction(model, apollo_probabilities, apollo_inputs,
+                              prediction_settings=list(modelComponent="indic_quality"))
+
+conditionals <- apollo_conditionals(model,apollo_probabilities,apollo_inputs)
+
+unconditionals <- apollo_unconditionals(model,apollo_probabilities,apollo_inputs)
+
+## switch off writing to file                                 
+if(sink.number()>0) sink()
+
+
+#############################################################################
+## Apollo HCM
+## http://www.apollochoicemodelling.com/files/hybrid_model_classical.r
+#############################################################################
+
+apollo_initialise()
+
+### Set core controls
+apollo_control = list(
+  modelName  = "hybrid_model_classical",
+  modelDescr = "Hybrid choice model on drug choice data, classical estimation",
+  indivID    = "ID",
+  mixing     = TRUE,
+  nCores     = 25
+)
+
+# ################################################################# #
+#### LOAD DATA AND APPLY ANY TRANSFORMATIONS                     ####
+# ################################################################# #
+
+database = read.csv("apollo_drugChoiceData.csv",header=TRUE)
+
+# ################################################################# #
+#### ANALYSIS OF CHOICES                                         ####
+# ################################################################# #
+
+choiceAnalysis_settings <- list(
+  alternatives = c(Artemis=11, Novum=12, BestValue=21, Supermarket=22, PainAway=23),
+  avail        = with(database,list(
+    Artemis=(brand_1=="Artemis")|(brand_2=="Artemis"), 
+    Novum=(brand_1=="Novum")|(brand_2=="Novum"),
+    BestValue=(brand_3=="BestValue")|(brand_4=="BestValue"),
+    Supermarket=(brand_3=="Supermarket")|(brand_4=="Supermarket"),
+    PainAway=(brand_3=="PainAway")|(brand_4=="PainAway"))),
+  choiceVar    = with(database,
+                      (11*((best==1)*(brand_1=="Artemis")+(best==2)*(brand_2=="Artemis"))
+                       +12*((best==1)*(brand_1=="Novum")+(best==2)*(brand_2=="Novum"))
+                       +21*((best==3)*(brand_3=="BestValue")+(best==4)*(brand_4=="BestValue"))
+                       +22*((best==3)*(brand_3=="Supermarket")+(best==4)*(brand_4=="Supermarket"))
+                       +23*((best==3)*(brand_3=="PainAway")+(best==4)*(brand_4=="PainAway")))),
+  explanators  = database[,c("regular_user","university_educated","over_50")]
+)
+
+apollo_choiceAnalysis(choiceAnalysis_settings, apollo_control, database)
+
+# ################################################################# #
+#### DEFINE MODEL PARAMETERS                                     ####
+# ################################################################# #
+
+### Vector of parameters, including any that are kept fixed in estimation
+apollo_beta = c(mu_brand_Artemis          = 0, sig_brand_Artemis         = 0, 
+                gamma_Artemis_reg_user    = 0, gamma_Artemis_university  = 0, 
+                gamma_Artemis_age_50      = 0, mu_brand_Novum            = 0, 
+                sig_brand_Novum           = 0, gamma_Novum_reg_user      = 0, 
+                gamma_Novum_university    = 0, gamma_Novum_age_50        = 0, 
+                b_brand_BestValue         = 0, b_brand_Supermarket       = 0, 
+                b_brand_PainAway          = 0, b_country_CH              = 0, 
+                b_country_DK              = 0, b_country_USA             = 0, 
+                b_country_IND             = 0, b_country_RUS             = 0, 
+                b_country_BRA             = 0, b_char_standard           = 0, 
+                b_char_fast               = 0, b_char_double             = 0, 
+                b_risk                    = 0, b_price                   = 0,  
+                gamma_LV_reg_user         = 0, gamma_LV_university       = 0, 
+                gamma_LV_age_50           = 0, lambda                    = 1, 
+                zeta_quality              = 1, zeta_ingredient           = 1, 
+                zeta_patent               = 1, zeta_dominance            = 1, 
+                tau_quality_1             =-2, tau_quality_2             =-1, 
+                tau_quality_3             = 1, tau_quality_4             = 2, 
+                tau_ingredients_1         =-2, tau_ingredients_2         =-1, 
+                tau_ingredients_3         = 1, tau_ingredients_4         = 2, 
+                tau_patent_1              =-2, tau_patent_2              =-1, 
+                tau_patent_3              = 1, tau_patent_4              = 2, 
+                tau_dominance_1           =-2, tau_dominance_2           =-1, 
+                tau_dominance_3           = 1, tau_dominance_4           = 2)
+
+### Vector with names (in quotes) of parameters to be kept fixed at their starting value in apollo_beta, use apollo_beta_fixed = c() if none
+apollo_fixed = c("b_brand_PainAway", "b_country_USA", "b_char_standard")
+
+# ################################################################# #
+#### DEFINE RANDOM COMPONENTS                                    ####
+# ################################################################# #
+
+### Set parameters for generating draws
+apollo_draws = list(
+  interDrawsType="halton", 
+  interNDraws=500,          
+  interNormDraws=c("eta","xi_Artemis","xi_Novum")
+)
+
+### Create random parameters
+apollo_randCoeff=function(apollo_beta, apollo_inputs){
+  randcoeff = list()
+  
+  randcoeff[["LV"]] = gamma_LV_reg_user*regular_user + gamma_LV_university*university_educated + gamma_LV_age_50*over_50 + eta
+  randcoeff[["b_brand_Artemis"]] = mu_brand_Artemis + sig_brand_Artemis * xi_Artemis + gamma_Artemis_reg_user*regular_user + gamma_Artemis_university*university_educated + gamma_Artemis_age_50*over_50  
+  randcoeff[["b_brand_Novum"]] = mu_brand_Novum + sig_brand_Novum * xi_Novum + gamma_Novum_reg_user*regular_user + gamma_Novum_university*university_educated + gamma_Novum_age_50*over_50  
+  
+  return(randcoeff)
+}
+
+# ################################################################# #
+#### GROUP AND VALIDATE INPUTS                                   ####
+# ################################################################# #
+
+apollo_inputs = apollo_validateInputs()
+
+# ################################################################# #
+#### DEFINE MODEL AND LIKELIHOOD FUNCTION                        ####
+# ################################################################# #
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  
+  ### Attach inputs and detach after function exit
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  
+  ### Create list of probabilities P
+  P = list()
+  
+  ### Likelihood of choices
+  ### List of utilities: these must use the same names as in mnl_settings, order is irrelevant
+  V = list()
+  V[['alt1']] = ( b_brand_Artemis*(brand_1=="Artemis") + b_brand_Novum*(brand_1=="Novum") 
+                  + b_country_CH*(country_1=="Switzerland") + b_country_DK*(country_1=="Denmark") + b_country_USA*(country_1=="USA") 
+                  + b_char_standard*(char_1=="standard") + b_char_fast*(char_1=="fast acting") + b_char_double*(char_1=="double strength") 
+                  + b_risk*side_effects_1
+                  + b_price*price_1 
+                  + lambda*LV )
+  V[['alt2']] = ( b_brand_Artemis*(brand_2=="Artemis") + b_brand_Novum*(brand_2=="Novum") 
+                  + b_country_CH*(country_2=="Switzerland") + b_country_DK*(country_2=="Denmark") + b_country_USA*(country_2=="USA") 
+                  + b_char_standard*(char_2=="standard") + b_char_fast*(char_2=="fast acting") + b_char_double*(char_2=="double strength") 
+                  + b_risk*side_effects_2
+                  + b_price*price_2 
+                  + lambda*LV )
+  V[['alt3']] = ( b_brand_BestValue*(brand_3=="BestValue") + b_brand_Supermarket*(brand_3=="Supermarket") + b_brand_PainAway*(brand_3=="PainAway") 
+                  + b_country_USA*(country_3=="USA") + b_country_IND*(country_3=="India") + b_country_RUS*(country_3=="Russia") + b_country_BRA*(country_3=="Brazil") 
+                  + b_char_standard*(char_3=="standard") + b_char_fast*(char_3=="fast acting") 
+                  + b_risk*side_effects_3
+                  + b_price*price_3 )
+  V[['alt4']] = ( b_brand_BestValue*(brand_4=="BestValue") + b_brand_Supermarket*(brand_4=="Supermarket") + b_brand_PainAway*(brand_4=="PainAway") 
+                  + b_country_USA*(country_4=="USA") + b_country_IND*(country_4=="India") + b_country_RUS*(country_4=="Russia") + b_country_BRA*(country_4=="Brazil") 
+                  + b_char_standard*(char_4=="standard") + b_char_fast*(char_4=="fast acting") 
+                  + b_risk*side_effects_4
+                  + b_price*price_4 )
+  
+  ### Define settings for MNL model component
+  mnl_settings = list(
+    alternatives = c(alt1=1, alt2=2, alt3=3, alt4=4),
+    avail        = list(alt1=1, alt2=1, alt3=1, alt4=1),
+    choiceVar    = best,
+    V            = V
+  )
+  
+  ### Compute probabilities for MNL model component
+  P[["choice"]] = apollo_mnl(mnl_settings, functionality)
+  
+  ### Likelihood of indicators
+  ol_settings1 = list(outcomeOrdered=attitude_quality, 
+                      V=zeta_quality*LV, 
+                      tau=c(tau_quality_1, tau_quality_2, tau_quality_3, tau_quality_4),
+                      rows=(task==1))
+  ol_settings2 = list(outcomeOrdered=attitude_ingredients, 
+                      V=zeta_ingredient*LV, 
+                      tau=c(tau_ingredients_1, tau_ingredients_2, tau_ingredients_3, tau_ingredients_4), 
+                      rows=(task==1))
+  ol_settings3 = list(outcomeOrdered=attitude_patent, 
+                      V=zeta_patent*LV, 
+                      tau=c(tau_patent_1, tau_patent_2, tau_patent_3, tau_patent_4), 
+                      rows=(task==1))
+  ol_settings4 = list(outcomeOrdered=attitude_dominance, 
+                      V=zeta_dominance*LV, 
+                      tau=c(tau_dominance_1, tau_dominance_2, tau_dominance_3, tau_dominance_4), 
+                      rows=(task==1))
+  P[["indic_quality"]]     = apollo_ol(ol_settings1, functionality)
+  P[["indic_ingredients"]] = apollo_ol(ol_settings2, functionality)
+  P[["indic_patent"]]      = apollo_ol(ol_settings3, functionality)
+  P[["indic_dominance"]]   = apollo_ol(ol_settings4, functionality)
+  
+  ### Likelihood of the whole model
+  P = apollo_combineModels(P, apollo_inputs, functionality)
+  
+  ### Take product across observation for same individual
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  
+  ### Average across inter-individual draws
+  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
+  
+  ### Prepare and return outputs of function
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+# ################################################################# #
+#### CHECK FOR COMPUTATIONAL REQUIREMENTS                         ####
+# ################################################################# #
+
+speedTest_settings=list(
+  nDrawsTry = c(250, 500, 1000),
+  nCoresTry = 1:3,
+  nRep      = 10
+)
+
+apollo_speedTest(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs, speedTest_settings)
+
+# ################################################################# #
+#### MODEL ESTIMATION                                            ####
+# ################################################################# #
+
+### Estimate model
+model = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+
+# ################################################################# #
+#### MODEL OUTPUTS                                               ####
+# ################################################################# #
+
+# ----------------------------------------------------------------- #
+#---- FORMATTED OUTPUT (TO SCREEN)                               ----
+# ----------------------------------------------------------------- #
+
+apollo_modelOutput(model)
+
+# ----------------------------------------------------------------- #
+#---- FORMATTED OUTPUT (TO FILE, using model name)               ----
+# ----------------------------------------------------------------- #
+
+apollo_saveOutput(model)
+
+# ################################################################# #
+##### POST-PROCESSING                                            ####
+# ################################################################# #
+
+### Print outputs of additional diagnostics to new output file (remember to close file writing when complete)
+sink(paste(model$apollo_control$modelName,"_additional_output.txt",sep=""),split=TRUE)
+
+# ----------------------------------------------------------------- #
+#---- FUNCTIONS OF MODEL PARAMETERS                              ----
+# ----------------------------------------------------------------- #
+
+deltaMethod_settings=list(operation="ratio", parName1="b_risk", parName2="b_price", multPar1 = 1000)
+apollo_deltaMethod(model, deltaMethod_settings)
+
+deltaMethod_settings=list(operation="diff", parName1="mu_brand_Artemis", parName2="mu_brand_Novum")
+apollo_deltaMethod(model, deltaMethod_settings)
+
+# ----------------------------------------------------------------- #
+#---- MODEL PREDICTIONS                                          ----
+# ----------------------------------------------------------------- #
+
+base_forecast <- apollo_prediction(model, apollo_probabilities, apollo_inputs,
+                                   modelComponent="choice")
+
+mean(base_forecast[,1]+base_forecast[,2])
+
+database$price_1=1.5*database$price_1
+database$price_2=1.5*database$price_2
+
+change_forecast <- apollo_prediction(model, apollo_probabilities, apollo_inputs,
+                                     modelComponent="choice")
+
+mean(change_forecast[,1]+change_forecast[,2])
+
+database$price_1=1/1.5*database$price_1
+database$price_2=1/1.5*database$price_2
+
+# ----------------------------------------------------------------- #
+#---- UNCONDITIONALS AND CONDITIONALS                            ----
+# ----------------------------------------------------------------- #
+
+unconditionals <- apollo_unconditionals(model,apollo_probabilities,apollo_inputs)
+
+conditionals <- apollo_conditionals(model,apollo_probabilities,apollo_inputs)
+
+mean(unconditionals[["LV"]])
+sd(unconditionals[["LV"]])
+
+summary(conditionals[["LV"]])
+
+regular_user_n=apollo_firstRow(database$regular_user, apollo_inputs)
+
+mean(subset(unconditionals[["LV"]],regular_user_n==0))
+mean(subset(unconditionals[["LV"]],regular_user_n==1))
+summary(subset(conditionals[["LV"]],regular_user_n==0))
+summary(subset(conditionals[["LV"]],regular_user_n==1))
+
+# ----------------------------------------------------------------- #
+#---- switch off writing to file                                 ----
+# ----------------------------------------------------------------- #
+
+if(sink.number()>0) sink()
 
 #############################################################################
 ## LCM with RRM and RUM classes
