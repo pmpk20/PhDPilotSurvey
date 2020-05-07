@@ -594,7 +594,13 @@ AIC(MXLFullD)   ## 200.5288
 library(clusterSEs)
 CBSM <- cluster.bs.mlogit(MXLFullD, First_Certain, ~ ID, boot.reps=100,seed = 123)
 
-data.frame("WTPLower" =c(  -1*(CBSM$ci[,1]/CBSM$ci[2,1])), "WTPUpper" = c( -1*(CBSM$ci[,2]/CBSM$ci[2,2])))
+WTPbs <- data.frame("Emission" = c(CBSM$ci[4,1]/CBSM$ci[2,1],CBSM$ci[4,2]/CBSM$ci[2,2]),
+                    "Performance"=c(CBSM$ci[3,1]/CBSM$ci[2,1],CBSM$ci[3,2]/CBSM$ci[2,2]))
+WTPbs <- t(WTPbs)
+WTPbs <- -1* WTPbs
+WTPs <- cbind(WTPbs[,1],WTPs[,2],WTPbs[,2])
+colnames(WTPs) <- c("Lower","Mean","Upper")
+round(WTPs,3)
 
 library(stargazer)
 stargazer(summary(MXLFull)$CoefTable, title = "MXLFull", align = TRUE,report="p*")
@@ -603,10 +609,10 @@ stargazer(summary(MXLFull)$CoefTable, title = "MXLFull", align = TRUE,report="p*
 ## Calculating consumer surplus:
 First_Understanding_CS1 <- First_Long
 First_Understanding_CS1$Price <- First_Understanding_CS1$Price * 1.1
-First_Understanding_CS1$Performance <- First_Understanding_CS1$Performance * 0.9
-Va1 <- logsum(MXLFull,data=First_Long)
-Va0 <- logsum(MXLFull,data = First_Understanding_CS1)
-surplus <- - (Va1 - Va0) / coef(MXLFull)["Price"]
+First_Understanding_CS1$Emission <- First_Understanding_CS1$Emission * 0.9
+Va1 <- logsum(MXLFullD,data=First_Long)
+Va0 <- logsum(MXLFullD,data = First_Understanding_CS1)
+surplus <- - (Va1 - Va0) / coef(MXLFullD)["Price"]
 summary(surplus)
 
 
@@ -620,7 +626,7 @@ MNL_GM <- gmnl(  Choice ~ Price + Performance + Emission |
                  + Q20Consequentiality
                  + Q21Experts +Q22Education+ Q23Employment
                  +  Q24AIncome,
-                 data = First_Understanding,
+                 data = First_Long,
                  model = "mnl",alt.subset = c("A","B"),reflevel = "A")
 summary(MNL_GM)
 
@@ -671,7 +677,7 @@ LC_GM3 <- gmnl(Choice ~ Price + Performance + Emission | 0 |
                + Q4Trips + Q16BP + Q18Charity
                + Q21Experts +Q22Education+ Q23Employment
                +  Q24AIncome,
-              data = First_Long,
+              data = First_Cons,
               model = 'lc',
               panel = TRUE,
               Q = 3)
@@ -804,17 +810,15 @@ ggplot(aes(x=Order,y=Percentage),data=CVM)+
                      breaks=waiver())+
   ggtitle("Percentage accepting or rejecting the bid level.")
 
-
-rbind("Normal order"=data.frame("Accepting higher bid"=c(length(unique(First_Long$ID[ (First_Long$Q7Response2 == 0) & (First_Long$Q7Bid > First_Long$Q7Bid2) & (First_Long$Order == 0) ]))),
+## Here I am trying to construct a dataframe to show that ordering may effect whether respondents accept or reject the third valuation exercise. 
+Ordering <- data.frame(rbind("Normal order"=data.frame("Accepting higher bid"=c(length(unique(First_Long$ID[ (First_Long$Q7Response2 == 0) & (First_Long$Q7Bid > First_Long$Q7Bid2) & (First_Long$Order == 0) ]))),
            "Rejecting higher bid" = c(length(unique(First_Long$ID[ (First_Long$Q7Response2 == 1) & (First_Long$Q7Bid > First_Long$Q7Bid2) & (First_Long$Order == 0) ])))),
       "Reversed"=data.frame("Accepting higher bid"=c(length(unique(First_Long$ID[ (First_Long$Q7Response2 == 0) & (First_Long$Q7Bid > First_Long$Q7Bid2) & (First_Long$Order == 1) ]))),
-           "Rejecting higher bid" = c(length(unique(First_Long$ID[ (First_Long$Q7Response2 == 1) & (First_Long$Q7Bid > First_Long$Q7Bid2) & (First_Long$Order == 1) ])))))
+           "Rejecting higher bid" = c(length(unique(First_Long$ID[ (First_Long$Q7Response2 == 1) & (First_Long$Q7Bid > First_Long$Q7Bid2) & (First_Long$Order == 1) ]))))))
 
-data.frame("Percentage accepting higher bid" = c(length(unique(First_Long$ID[ (First_Long$Q7Response2 == 1) & (First_Long$Q7Bid > First_Long$Q7Bid2) & (First_Long$Order == 0) ])))/c(length(unique(First_Long$ID[  (First_Long$Q7Bid > First_Long$Q7Bid2) & (First_Long$Order == 0) ])))*100,
-           )
 
 ## The Q6 model: actually much better than the AOD approach above.
-Research_SB <- sbchoice(Q6ResearchResponse ~ Order + Task + Q1Gender + Q2Age + Q3Distance
+Research_SB <- sbchoice(Q6ResearchResponse ~ Order + Q1Gender + Q2Age + Q3Distance
                         + Q4Trips + Q16BP + Q18Charity
                         + Q21Experts + Q22Education + Q23Employment
                         +  Q24AIncome | Q6Bid, data = First_Long,dist="logistic")
@@ -839,6 +843,22 @@ krCI(Research_Order1)
 bootCI(Research_Order1)
 krCI(Research_Order2)
 bootCI(Research_Order2)
+
+## In this experimental code I fit WTP to an average respondent and then examine the difference in median WTP by ordering effects only. 
+Research_SB <- sbchoice(Q6ResearchResponse ~ Order + Q1Gender + Q2Age + Q3Distance
+                        + Q4Trips + Q16BP + Q18Charity
+                        + Q21Experts + Q22Education + Q23Employment
+                        +  Q24AIncome| Q6Bid, data = FirstSurvey2,dist="logistic")
+O1 <- bootCI(Research_SB,individual = data.frame(Order=0, Q1Gender = mean(FirstSurvey2$Q1Gender), Q2Age = mean(FirstSurvey2$Q2Age), Q3Distance = mean(FirstSurvey2$Q3Distance),Q4Trips = mean(FirstSurvey2$Q4Trips), Q16BP = mean(FirstSurvey2$Q16BP),Q18Charity = mean(FirstSurvey2$Q18Charity),Q21Experts = mean(FirstSurvey2$Q21Experts),Q22Education = mean(FirstSurvey2$Q22Education), Q23Employment = mean(FirstSurvey2$Q23Employment), Q24AIncome = mean(FirstSurvey2$Q24AIncome)))
+O2 <- bootCI(Research_SB,individual = data.frame(Order=1, Q1Gender = mean(FirstSurvey2$Q1Gender), Q2Age = mean(FirstSurvey2$Q2Age), Q3Distance = mean(FirstSurvey2$Q3Distance),Q4Trips = mean(FirstSurvey2$Q4Trips), Q16BP = mean(FirstSurvey2$Q16BP),Q18Charity = mean(FirstSurvey2$Q18Charity),Q21Experts = mean(FirstSurvey2$Q21Experts),Q22Education = mean(FirstSurvey2$Q22Education), Q23Employment = mean(FirstSurvey2$Q23Employment), Q24AIncome = mean(FirstSurvey2$Q24AIncome)))
+data.frame("Order 1" = c(median(O1$medWTP)), "Order 2" = c(median(O2$medWTP)),"Ordering effect" = c(abs(median(O1$medWTP)-median(O2$medWTP))))
+
+## With this function I append bootstrapped individual WTP to the original dataframe 
+FirstSurvey2 <- cbind(FirstSurvey2,
+      apply(FirstSurvey2, 
+            1, 
+            function(i) c(bootCI(Research_SB,individual = data.frame(Order= FirstSurvey2$Order[i], Q1Gender = FirstSurvey2$Q1Gender[i], Q2Age = FirstSurvey2$Q2Age[i], Q3Distance = FirstSurvey2$Q3Distance[i],Q4Trips = FirstSurvey2$Q4Trips[i], Q16BP = FirstSurvey2$Q16BP[i],Q18Charity = FirstSurvey2$Q18Charity[i],Q21Experts = FirstSurvey2$Q21Experts[i],Q22Education = FirstSurvey2$Q22Education[i], Q23Employment = FirstSurvey2$Q23Employment[i], Q24AIncome = FirstSurvey2$Q24AIncome[i]))$out[4,1])))
+colnames(FirstSurvey2)[55] <- "Q6WTP"
 
 
 ## Repeating the same as above but for Q7 the DBDC question:
@@ -894,6 +914,24 @@ Treatment_Inconsequential <- dbchoice(Q7TreatmentResponse + Q7Response2 ~ Q1Gend
 summary(Treatment_Inconsequential)
 bootCI(Treatment_Consequential)
 bootCI(Treatment_Inconsequential)
+
+
+
+## In this experimental code I fit WTP to an average respondent and then examine the difference in median WTP by ordering effects only. 
+Treatment_DBWTP <- dbchoice(Q7TreatmentResponse + Q7Response2 ~ Order +  Q1Gender + Q2Age + Q3Distance
+                            + Q4Trips + Q16BP + Q18Charity
+                            + Q21Experts + Q22Education + Q23Employment
+                            +  Q24AIncome | Q7Bid + Q7Bid2,data = FirstSurvey2,dist="logistic")
+O1 <- bootCI(Treatment_DBWTP,individual = data.frame(Order=0, Q1Gender = mean(FirstSurvey2$Q1Gender), Q2Age = mean(FirstSurvey2$Q2Age), Q3Distance = mean(FirstSurvey2$Q3Distance),Q4Trips = mean(FirstSurvey2$Q4Trips), Q16BP = mean(FirstSurvey2$Q16BP),Q18Charity = mean(FirstSurvey2$Q18Charity),Q21Experts = mean(FirstSurvey2$Q21Experts),Q22Education = mean(FirstSurvey2$Q22Education), Q23Employment = mean(FirstSurvey2$Q23Employment), Q24AIncome = mean(FirstSurvey2$Q24AIncome)))
+O2 <- bootCI(Treatment_DBWTP,individual = data.frame(Order=1, Q1Gender = mean(FirstSurvey2$Q1Gender), Q2Age = mean(FirstSurvey2$Q2Age), Q3Distance = mean(FirstSurvey2$Q3Distance),Q4Trips = mean(FirstSurvey2$Q4Trips), Q16BP = mean(FirstSurvey2$Q16BP),Q18Charity = mean(FirstSurvey2$Q18Charity),Q21Experts = mean(FirstSurvey2$Q21Experts),Q22Education = mean(FirstSurvey2$Q22Education), Q23Employment = mean(FirstSurvey2$Q23Employment), Q24AIncome = mean(FirstSurvey2$Q24AIncome)))
+data.frame("Order 1" = c(median(O1$medWTP)), "Order 2" = c(median(O2$medWTP)),"Ordering effect" = c(abs(median(O1$medWTP)-median(O2$medWTP))))
+
+## With this function I append bootstrapped individual WTP to the original dataframe 
+FirstSurvey2 <- cbind(FirstSurvey2,
+                      apply(FirstSurvey2, 
+                            1, 
+                            function(i) c(bootCI(Treatment_DBWTP,individual = data.frame(Order= FirstSurvey2$Order[i], Q1Gender = FirstSurvey2$Q1Gender[i], Q2Age = FirstSurvey2$Q2Age[i], Q3Distance = FirstSurvey2$Q3Distance[i],Q4Trips = FirstSurvey2$Q4Trips[i], Q16BP = FirstSurvey2$Q16BP[i],Q18Charity = FirstSurvey2$Q18Charity[i],Q21Experts = FirstSurvey2$Q21Experts[i],Q22Education = FirstSurvey2$Q22Education[i], Q23Employment = FirstSurvey2$Q23Employment[i], Q24AIncome = FirstSurvey2$Q24AIncome[i]))$out[4,1])))
+colnames(FirstSurvey2)[55] <- "Q7WTP"
 
 
 ## This section deals with Q6 and Q7 respectively but uses a non-parametric Kaplan-Meier-Turnbull survival function:
