@@ -777,6 +777,9 @@ First_OtherOrder <-First_Long[First_Long$Order == 1]
 First_Consequential <-First_Long[First_Long$Q20Consequentiality == 1]
 First_Inconsequential <-First_Long[First_Long$Q20Consequentiality != 1]
 
+FirstSurvey2 <- data.frame(FirstSurvey2)
+First_OtherOrders <- FirstSurvey2[ (FirstSurvey2$Order ==1) ,]
+
 
 ## Here I construct dataframes which calculate acceptance rates for each CVM question by ordering 
 Q6 <- t(data.frame("Normal" = c(length(FirstSurvey2$Q6ResearchResponse[(FirstSurvey2$Order ==0) & (FirstSurvey2$Q6ResearchResponse ==0)]),length(FirstSurvey2$Q6ResearchResponse[(FirstSurvey2$Order ==0) & (FirstSurvey2$Q6ResearchResponse ==1)])),
@@ -857,7 +860,7 @@ data.frame("Order 1" = c(median(O1$medWTP)), "Order 2" = c(median(O2$medWTP)),"O
 FirstSurvey2 <- cbind(FirstSurvey2,
       apply(FirstSurvey2, 
             1, 
-            function(i) c(bootCI(Research_SB,individual = data.frame(Order= FirstSurvey2$Order[i], Q1Gender = FirstSurvey2$Q1Gender[i], Q2Age = FirstSurvey2$Q2Age[i], Q3Distance = FirstSurvey2$Q3Distance[i],Q4Trips = FirstSurvey2$Q4Trips[i], Q16BP = FirstSurvey2$Q16BP[i],Q18Charity = FirstSurvey2$Q18Charity[i],Q21Experts = FirstSurvey2$Q21Experts[i],Q22Education = FirstSurvey2$Q22Education[i], Q23Employment = FirstSurvey2$Q23Employment[i], Q24AIncome = FirstSurvey2$Q24AIncome[i]))$out[4,1])))
+            function(i) c(krCI(Research_SB,individual = data.frame(Order= FirstSurvey2$Order[i], Q1Gender = FirstSurvey2$Q1Gender[i], Q2Age = FirstSurvey2$Q2Age[i], Q3Distance = FirstSurvey2$Q3Distance[i],Q4Trips = FirstSurvey2$Q4Trips[i], Q16BP = FirstSurvey2$Q16BP[i],Q18Charity = FirstSurvey2$Q18Charity[i],Q21Experts = FirstSurvey2$Q21Experts[i],Q22Education = FirstSurvey2$Q22Education[i], Q23Employment = FirstSurvey2$Q23Employment[i], Q24AIncome = FirstSurvey2$Q24AIncome[i]))$out[4,1])))
 colnames(FirstSurvey2)[55] <- "Q6WTP"
 
 
@@ -869,6 +872,29 @@ Treatment_DB <- dbchoice(Q7TreatmentResponse + Q7Response2 ~ Order + Task + Q1Ge
 summary(Treatment_DB)
 krCI(Treatment_DB)
 bootCI(Treatment_DB)
+
+## Analysing only the firt bound if anchoring is an issue
+Treatment1_SB <- sbchoice(Q7TreatmentResponse ~ Order  + Q1Gender + Q2Age + Q3Distance
+                         + Q4Trips + Q16BP + Q18Charity
+                         + Q21Experts + Q22Education + Q23Employment
+                         +  Q24AIncome | Q7Bid ,data = FirstSurvey2,dist="logistic")
+summary(Treatment1_SB)
+krCI(Treatment1_SB)
+
+## Here I include the first bound bid level to test whether it affects WTP and the answer is it absolutely ruins it.
+Treatment2_SB <- sbchoice(Q7Response2 ~ Order + Q1Gender + Q2Age + Q3Distance
+                         + Q4Trips + Q16BP + Q18Charity
+                         + Q21Experts + Q22Education + Q23Employment
+                         +  Q24AIncome +Q7Bid  | Q7Bid2,data = FirstSurvey2,dist="logistic")
+summary(Treatment2_SB)
+krCI(Treatment2_SB)
+
+
+## Here I estimate Q7 WTP when Q7 first bound was the first valuation task respondents did. 
+Treatment_SB <- sbchoice(Q7TreatmentResponse ~ Q1Gender | Q7Bid, data = First_OtherOrders,dist="logistic")
+summary(Treatment_SB)
+krCI(Treatment_SB)
+
 
 ## Splitting CVM by ordering of questions.
 Treatment_DBOrder1 <- dbchoice(Q7TreatmentResponse + Q7Response2 ~ Q1Gender + Q2Age + Q3Distance
@@ -930,8 +956,27 @@ data.frame("Order 1" = c(median(O1$medWTP)), "Order 2" = c(median(O2$medWTP)),"O
 FirstSurvey2 <- cbind(FirstSurvey2,
                       apply(FirstSurvey2, 
                             1, 
-                            function(i) c(bootCI(Treatment_DBWTP,individual = data.frame(Order= FirstSurvey2$Order[i], Q1Gender = FirstSurvey2$Q1Gender[i], Q2Age = FirstSurvey2$Q2Age[i], Q3Distance = FirstSurvey2$Q3Distance[i],Q4Trips = FirstSurvey2$Q4Trips[i], Q16BP = FirstSurvey2$Q16BP[i],Q18Charity = FirstSurvey2$Q18Charity[i],Q21Experts = FirstSurvey2$Q21Experts[i],Q22Education = FirstSurvey2$Q22Education[i], Q23Employment = FirstSurvey2$Q23Employment[i], Q24AIncome = FirstSurvey2$Q24AIncome[i]))$out[4,1])))
-colnames(FirstSurvey2)[55] <- "Q7WTP"
+                            function(i) c(krCI(Treatment_DBWTP,individual = data.frame(Order= FirstSurvey2$Order[i], Q1Gender = FirstSurvey2$Q1Gender[i], Q2Age = FirstSurvey2$Q2Age[i], Q3Distance = FirstSurvey2$Q3Distance[i],Q4Trips = FirstSurvey2$Q4Trips[i], Q16BP = FirstSurvey2$Q16BP[i],Q18Charity = FirstSurvey2$Q18Charity[i],Q21Experts = FirstSurvey2$Q21Experts[i],Q22Education = FirstSurvey2$Q22Education[i], Q23Employment = FirstSurvey2$Q23Employment[i], Q24AIncome = FirstSurvey2$Q24AIncome[i]))$out[4,1])))
+colnames(FirstSurvey2)[56] <- "Q7WTP"
+
+FirstSurvey2 <- cbind(FirstSurvey2,(FirstSurvey2$Q7WTP - FirstSurvey2$Q6WTP ))
+colnames(FirstSurvey2)[57] <- "Precaution"
+### NOTE: Q6 is research (delaying, preserving, postponing), Q7 is tackling (immediately) 
+
+## Plotting precaution  
+library(ggplot2)
+ggplot(FirstSurvey2) + 
+ facet_wrap( ~Q1Gender)+
+ geom_smooth(aes(x=Q24AIncome,y=Q6WTP,color="red"),method="loess",se=F) +
+ geom_smooth(aes(x=Q24AIncome,y=Q7WTP,color="blue"),method="loess",se=F) +
+ scale_color_discrete(name = "Lines", 
+                          labels = c("WTP for Research", "WTP for treatment"))+
+     ggtitle("Relationship between precaution and income") +
+  theme(plot.title = element_text(hjust = 0.5),
+        plot.margin=unit(c(1,1,-0.5,1),"cm"),
+        axis.title.y = element_text(size = 12)) +
+  labs(x = "Income",y="Difference between Q6 and Q7 WTP")
+
 
 
 ## This section deals with Q6 and Q7 respectively but uses a non-parametric Kaplan-Meier-Turnbull survival function:
