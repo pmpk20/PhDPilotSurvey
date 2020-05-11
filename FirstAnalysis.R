@@ -761,6 +761,10 @@ wald.test(b = coef(QOVProbit), Sigma = vcov(QOVProbit), Terms=2)
 ##########################################################################
 ############### CVM: DChoice package                  #####################
 
+
+#################### Setup using packages and manipulation:
+
+
 ## Have to do some R magic here to install a package not on CRAN
 if (!requireNamespace("BiocManager", quietly = TRUE))
   install.packages("BiocManager")
@@ -770,16 +774,16 @@ install.packages("interval")
 install.packages("DCchoice")
 library(DCchoice)
 
-
 ## Creating new dataframes depending on ordering or consequentiality. 
 First_NormalOrder <-First_Long[First_Long$Order == 0]
 First_OtherOrder <-First_Long[First_Long$Order == 1]
 First_Consequential <-First_Long[First_Long$Q20Consequentiality == 1]
 First_Inconsequential <-First_Long[First_Long$Q20Consequentiality != 1]
 
+## I also split the other dataframe for ease of fitting WTP 
 FirstSurvey2 <- data.frame(FirstSurvey2)
-First_OtherOrders <- FirstSurvey2[ (FirstSurvey2$Order ==1) ,]
-
+First_Order1 <- FirstSurvey2[ (FirstSurvey2$Order ==0) ,]
+First_Order2 <- FirstSurvey2[ (FirstSurvey2$Order ==1) ,]
 
 ## Here I construct dataframes which calculate acceptance rates for each CVM question by ordering 
 Q6 <- t(data.frame("Normal" = c(length(FirstSurvey2$Q6ResearchResponse[(FirstSurvey2$Order ==0) & (FirstSurvey2$Q6ResearchResponse ==0)]),length(FirstSurvey2$Q6ResearchResponse[(FirstSurvey2$Order ==0) & (FirstSurvey2$Q6ResearchResponse ==1)])),
@@ -820,6 +824,29 @@ Ordering <- data.frame(rbind("Normal order"=data.frame("Accepting higher bid"=c(
            "Rejecting higher bid" = c(length(unique(First_Long$ID[ (First_Long$Q7Response2 == 1) & (First_Long$Q7Bid > First_Long$Q7Bid2) & (First_Long$Order == 1) ]))))))
 
 
+#################### Plotting KMT survival functions:
+
+
+## This section deals with Q6 and Q7 respectively but uses a non-parametric Kaplan-Meier-Turnbull survival function:
+ResearchKMT <- turnbull.sb(formula = Q6ResearchResponse ~ Q6Bid,data = First_Order1)
+summary(ResearchKMT)
+plot(ResearchKMT)
+
+## Reporting the KMT for Q7.
+TreatmentKMT <- turnbull.db(formula = Q7TreatmentResponse + Q7Response2 ~  Q7Bid + Q7Bid2,data = First_Order2)
+summary(TreatmentKMT)
+plot(TreatmentKMT)
+
+
+## Plot both KMT functions together in one plot. 
+layout(matrix(c(1,1,2,2), 2, 2, byrow = TRUE), widths=c(1,1), heights=c(4,4))
+plot(ResearchKMT, main="Q6 Kaplan-Meier-Turnbull survival function.")
+plot(TreatmentKMT, main="Q7 Kaplan-Meier-Turnbull survival function.")
+
+
+#################### Estimating WTP. Q6 then Q7 and exploring ordering and consequentiality
+
+
 ## The Q6 model: actually much better than the AOD approach above.
 Research_SB <- sbchoice(Q6ResearchResponse ~ Order + Q1Gender + Q2Age + Q3Distance
                         + Q4Trips + Q16BP + Q18Charity
@@ -847,22 +874,8 @@ bootCI(Research_Order1)
 krCI(Research_Order2)
 bootCI(Research_Order2)
 
-## In this experimental code I fit WTP to an average respondent and then examine the difference in median WTP by ordering effects only. 
-Research_SB <- sbchoice(Q6ResearchResponse ~ Order + Q1Gender + Q2Age + Q3Distance
-                        + Q4Trips + Q16BP + Q18Charity
-                        + Q21Experts + Q22Education + Q23Employment
-                        +  Q24AIncome| Q6Bid, data = FirstSurvey2,dist="logistic")
-O1 <- bootCI(Research_SB,individual = data.frame(Order=0, Q1Gender = mean(FirstSurvey2$Q1Gender), Q2Age = mean(FirstSurvey2$Q2Age), Q3Distance = mean(FirstSurvey2$Q3Distance),Q4Trips = mean(FirstSurvey2$Q4Trips), Q16BP = mean(FirstSurvey2$Q16BP),Q18Charity = mean(FirstSurvey2$Q18Charity),Q21Experts = mean(FirstSurvey2$Q21Experts),Q22Education = mean(FirstSurvey2$Q22Education), Q23Employment = mean(FirstSurvey2$Q23Employment), Q24AIncome = mean(FirstSurvey2$Q24AIncome)))
-O2 <- bootCI(Research_SB,individual = data.frame(Order=1, Q1Gender = mean(FirstSurvey2$Q1Gender), Q2Age = mean(FirstSurvey2$Q2Age), Q3Distance = mean(FirstSurvey2$Q3Distance),Q4Trips = mean(FirstSurvey2$Q4Trips), Q16BP = mean(FirstSurvey2$Q16BP),Q18Charity = mean(FirstSurvey2$Q18Charity),Q21Experts = mean(FirstSurvey2$Q21Experts),Q22Education = mean(FirstSurvey2$Q22Education), Q23Employment = mean(FirstSurvey2$Q23Employment), Q24AIncome = mean(FirstSurvey2$Q24AIncome)))
-data.frame("Order 1" = c(median(O1$medWTP)), "Order 2" = c(median(O2$medWTP)),"Ordering effect" = c(abs(median(O1$medWTP)-median(O2$medWTP))))
 
-## With this function I append bootstrapped individual WTP to the original dataframe 
-FirstSurvey2 <- cbind(FirstSurvey2,
-      apply(FirstSurvey2, 
-            1, 
-            function(i) c(krCI(Research_SB,individual = data.frame(Order= FirstSurvey2$Order[i], Q1Gender = FirstSurvey2$Q1Gender[i], Q2Age = FirstSurvey2$Q2Age[i], Q3Distance = FirstSurvey2$Q3Distance[i],Q4Trips = FirstSurvey2$Q4Trips[i], Q16BP = FirstSurvey2$Q16BP[i],Q18Charity = FirstSurvey2$Q18Charity[i],Q21Experts = FirstSurvey2$Q21Experts[i],Q22Education = FirstSurvey2$Q22Education[i], Q23Employment = FirstSurvey2$Q23Employment[i], Q24AIncome = FirstSurvey2$Q24AIncome[i]))$out[4,1])))
-colnames(FirstSurvey2)[55] <- "Q6WTP"
-
+#################### Q7 WTP elicitation:
 
 ## Repeating the same as above but for Q7 the DBDC question:
 Treatment_DB <- dbchoice(Q7TreatmentResponse + Q7Response2 ~ Order + Task + Q1Gender + Q2Age + Q3Distance
@@ -942,8 +955,62 @@ bootCI(Treatment_Consequential)
 bootCI(Treatment_Inconsequential)
 
 
+#################### Estimating QOV:
+
+
+## In this section I directly compare the first-bound first-round Q6 and Q7 WTP valuations
+### My suggestion is that this difference in treatment - research is akin to QOV.
+Research <- sbchoice(Q6ResearchResponse ~ Q1Gender + Q2Age + Q3Distance
+                        + Q4Trips + Q16BP + Q18Charity
+                        + Q21Experts + Q22Education + Q23Employment
+                        +  Q24AIncome| Q6Bid, data = First_Order1,dist="logistic")
+Treatment <- sbchoice(Q7TreatmentResponse ~ Q1Gender + Q2Age + Q3Distance
+                     + Q4Trips + Q16BP + Q18Charity
+                     + Q21Experts + Q22Education + Q23Employment
+                     +  Q24AIncome| Q7Bid, data = First_Order2,dist="logistic")
+summary(Research)
+summary(Treatment)
+First_Order1 <- cbind(First_Order1,
+                      apply(First_Order1, 
+                            1, 
+                            function(i) c(krCI(Research,individual = data.frame(Q1Gender = First_Order1$Q1Gender[i], Q2Age = First_Order1$Q2Age[i], Q3Distance = First_Order1$Q3Distance[i],Q4Trips = First_Order1$Q4Trips[i], Q16BP = First_Order1$Q16BP[i],Q18Charity = First_Order1$Q18Charity[i],Q21Experts = First_Order1$Q21Experts[i],Q22Education = First_Order1$Q22Education[i], Q23Employment = First_Order1$Q23Employment[i], Q24AIncome = First_Order1$Q24AIncome[i]))$out[4,1])))
+colnames(First_Order1)[55] <- "Q6WTP"
+First_Order2 <- cbind(First_Order2,
+                      apply(First_Order2, 
+                            1, 
+                            function(i) c(krCI(Treatment,individual = data.frame(Q1Gender = First_Order2$Q1Gender[i], Q2Age = First_Order2$Q2Age[i], Q3Distance = First_Order2$Q3Distance[i],Q4Trips = First_Order2$Q4Trips[i], Q16BP = First_Order2$Q16BP[i],Q18Charity = First_Order2$Q18Charity[i],Q21Experts = First_Order2$Q21Experts[i],Q22Education = First_Order2$Q22Education[i], Q23Employment = First_Order2$Q23Employment[i], Q24AIncome = First_Order2$Q24AIncome[i]))$out[4,1])))
+colnames(First_Order2)[55] <- "Q7WTP"
+
+
+## Plotting precaution  
+library(ggplot2)
+ggplot() + 
+  facet_grid( ~ Q1Gender, labeller = as_labeller(c(
+    `0` = "Female",
+    `1` = "Male")))+
+ geom_smooth(aes(x=Q24AIncome,y=Q6WTP,color="red"),data=First_Order1,method="lm",se=F) +
+ geom_smooth(aes(x=Q24AIncome,y=Q7WTP,color="blue"),data=First_Order2,method="lm",se=F) +
+ scale_color_discrete(name = "Lines", 
+                          labels = c("WTP for Research", "WTP for treatment"))+
+     ggtitle("Relationship between precaution and income") +
+  theme(plot.title = element_text(hjust = 0.5),
+        plot.margin=unit(c(1,1,-0.5,1),"cm"),
+        axis.title.y = element_text(size = 12)) +
+  labs(x = "Income",y="Difference between Q6 and Q7 WTP")
+
+
+## In this section I calculate each respondents QOV 
+### This differs from above which elicits sample QOV by taking best-case sample WTP
+
 
 ## In this experimental code I fit WTP to an average respondent and then examine the difference in median WTP by ordering effects only. 
+Research_WTP <- sbchoice(Q6ResearchResponse ~ Order +  Q1Gender + Q2Age + Q3Distance
+                            + Q4Trips + Q16BP + Q18Charity
+                            + Q21Experts + Q22Education + Q23Employment
+                            +  Q24AIncome | Q6Bid, data = FirstSurvey2,dist="logistic")
+O1 <- bootCI(Research_WTP,individual = data.frame(Order=0, Q1Gender = mean(FirstSurvey2$Q1Gender), Q2Age = mean(FirstSurvey2$Q2Age), Q3Distance = mean(FirstSurvey2$Q3Distance),Q4Trips = mean(FirstSurvey2$Q4Trips), Q16BP = mean(FirstSurvey2$Q16BP),Q18Charity = mean(FirstSurvey2$Q18Charity),Q21Experts = mean(FirstSurvey2$Q21Experts),Q22Education = mean(FirstSurvey2$Q22Education), Q23Employment = mean(FirstSurvey2$Q23Employment), Q24AIncome = mean(FirstSurvey2$Q24AIncome)))
+O2 <- bootCI(Research_WTP,individual = data.frame(Order=1, Q1Gender = mean(FirstSurvey2$Q1Gender), Q2Age = mean(FirstSurvey2$Q2Age), Q3Distance = mean(FirstSurvey2$Q3Distance),Q4Trips = mean(FirstSurvey2$Q4Trips), Q16BP = mean(FirstSurvey2$Q16BP),Q18Charity = mean(FirstSurvey2$Q18Charity),Q21Experts = mean(FirstSurvey2$Q21Experts),Q22Education = mean(FirstSurvey2$Q22Education), Q23Employment = mean(FirstSurvey2$Q23Employment), Q24AIncome = mean(FirstSurvey2$Q24AIncome)))
+data.frame("Order 1" = c(median(O1$medWTP)), "Order 2" = c(median(O2$medWTP)),"Ordering effect" = c(abs(median(O1$medWTP)-median(O2$medWTP))))
 Treatment_DBWTP <- dbchoice(Q7TreatmentResponse + Q7Response2 ~ Order +  Q1Gender + Q2Age + Q3Distance
                             + Q4Trips + Q16BP + Q18Charity
                             + Q21Experts + Q22Education + Q23Employment
@@ -956,44 +1023,35 @@ data.frame("Order 1" = c(median(O1$medWTP)), "Order 2" = c(median(O2$medWTP)),"O
 FirstSurvey2 <- cbind(FirstSurvey2,
                       apply(FirstSurvey2, 
                             1, 
+                            function(i) c(krCI(Research_WTP,individual = data.frame(Order= FirstSurvey2$Order[i], Q1Gender = FirstSurvey2$Q1Gender[i], Q2Age = FirstSurvey2$Q2Age[i], Q3Distance = FirstSurvey2$Q3Distance[i],Q4Trips = FirstSurvey2$Q4Trips[i], Q16BP = FirstSurvey2$Q16BP[i],Q18Charity = FirstSurvey2$Q18Charity[i],Q21Experts = FirstSurvey2$Q21Experts[i],Q22Education = FirstSurvey2$Q22Education[i], Q23Employment = FirstSurvey2$Q23Employment[i], Q24AIncome = FirstSurvey2$Q24AIncome[i]))$out[4,1])))
+colnames(FirstSurvey2)[55] <- "Q6WTP"
+FirstSurvey2 <- cbind(FirstSurvey2,
+                      apply(FirstSurvey2, 
+                            1, 
                             function(i) c(krCI(Treatment_DBWTP,individual = data.frame(Order= FirstSurvey2$Order[i], Q1Gender = FirstSurvey2$Q1Gender[i], Q2Age = FirstSurvey2$Q2Age[i], Q3Distance = FirstSurvey2$Q3Distance[i],Q4Trips = FirstSurvey2$Q4Trips[i], Q16BP = FirstSurvey2$Q16BP[i],Q18Charity = FirstSurvey2$Q18Charity[i],Q21Experts = FirstSurvey2$Q21Experts[i],Q22Education = FirstSurvey2$Q22Education[i], Q23Employment = FirstSurvey2$Q23Employment[i], Q24AIncome = FirstSurvey2$Q24AIncome[i]))$out[4,1])))
 colnames(FirstSurvey2)[56] <- "Q7WTP"
 
 FirstSurvey2 <- cbind(FirstSurvey2,(FirstSurvey2$Q7WTP - FirstSurvey2$Q6WTP ))
 colnames(FirstSurvey2)[57] <- "Precaution"
 ### NOTE: Q6 is research (delaying, preserving, postponing), Q7 is tackling (immediately) 
-
-## Plotting precaution  
-library(ggplot2)
 ggplot(FirstSurvey2) + 
- facet_wrap( ~Q1Gender)+
- geom_smooth(aes(x=Q24AIncome,y=Q6WTP,color="red"),method="loess",se=F) +
- geom_smooth(aes(x=Q24AIncome,y=Q7WTP,color="blue"),method="loess",se=F) +
- scale_color_discrete(name = "Lines", 
-                          labels = c("WTP for Research", "WTP for treatment"))+
-     ggtitle("Relationship between precaution and income") +
+  facet_grid( ~ Q1Gender, labeller = as_labeller(c(
+    `0` = "Female",
+    `1` = "Male")))+
+  geom_smooth(aes(x=Q24AIncome,y=Q6WTP,color="red"),method="lm",se=F) +
+  geom_smooth(aes(x=Q24AIncome,y=Q7WTP,color="blue"),method="lm",se=F) +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("WTP for Research", "WTP for treatment"))+
+  ggtitle("Relationship between precaution and income") +
   theme(plot.title = element_text(hjust = 0.5),
         plot.margin=unit(c(1,1,-0.5,1),"cm"),
         axis.title.y = element_text(size = 12)) +
   labs(x = "Income",y="Difference between Q6 and Q7 WTP")
 
-
-
-## This section deals with Q6 and Q7 respectively but uses a non-parametric Kaplan-Meier-Turnbull survival function:
-ResearchKMT <- turnbull.sb(formula = Q6ResearchResponse ~ Q6Bid,data = FirstSurvey2)
-summary(ResearchKMT)
-plot(ResearchKMT)
-
-## Reporting the KMT for Q7.
-TreatmentKMT <- turnbull.db(formula = Q7TreatmentResponse + Q7Response2 ~  Q7Bid + Q7Bid2,data = FirstSurvey2)
-summary(TreatmentKMT)
-plot(TreatmentKMT)
-
-
-## Plot both KMT functions together in one plot. 
-layout(matrix(c(1,1,2,2), 2, 2, byrow = TRUE), widths=c(1,1), heights=c(4,4))
-plot(ResearchKMT, main="Q6 Kaplan-Meier-Turnbull survival function.")
-plot(TreatmentKMT, main="Q7 Kaplan-Meier-Turnbull survival function.")
+## First look at sample QOV:
+summary(First_Order1$Q6WTP - First_Order2$Q7WTP)
+## Individual QOV within the sample:
+summary(FirstSurvey2$Precaution)
 
 
 ## Curiosity code - checking whether the CVM estimation works for the CE and it does.
