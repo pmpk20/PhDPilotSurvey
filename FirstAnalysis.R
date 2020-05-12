@@ -686,7 +686,7 @@ AIC(LC_GM3) # 547.4673
 BIC(LC_GM3) # 676.8547
 
 
-## Function from https://rpubs.com/msarrias1986/335556 which calculates the share of the sample in each class
+## The following two Functions are from https://rpubs.com/msarrias1986/335556 which calculates the share of the sample in each class
 exp(coef(LC_GM5)["(class)2"]) / (exp(0) + exp(coef(LC_GM5)["(class)2"]))
 shares <- function(obj){
   if (!inherits(obj, "gmnl")) stop("The model was not estimated using gmnl")
@@ -699,9 +699,59 @@ shares <- function(obj){
   return(shares)
 }
 
+## Plot confidence-intervals for the LCM: 
+plot_ci_lc <- function(obj, var = NULL, mar = c(2, 5, 2, 2),
+                       cex.pts = 0.9, cex.var = 0.8, 
+                       var.las = 2, pch.pts = 20, col.pts = 1, ...){
+  if (!inherits(obj, "gmnl")) stop("The model was not estimated using gmnl")
+  if (obj$model != "lc") stop("The model is not a LC-MNL")
+  bhat <- coef(obj)
+  se   <- sqrt(diag(vcov(obj)))
+  cons_class <- c(0, bhat[grep("(class)", names(bhat), fixed = TRUE)])
+  name.x <- if (is.null(var)) names(obj$mf)[-1] else var
+  Q <- length(cons_class)
+  lc.names <- c()
+  for (i in 1:length(name.x)) {
+    lc.names <- c(lc.names, paste("class", 1:Q, name.x[i], 
+                                  sep = "."))
+  }
+  bhat <- bhat[lc.names]
+  se   <- se[lc.names]
+  
+  u <-  bhat + 1.96 * se
+  l <-  bhat - 1.96 * se
+  n.c <- length(bhat)
+  idx <- seq(1, n.c)
+  k <- 1 / n.c
+  
+  par(mar = mar)
+  plot(c(l, u), c(idx + k, idx - k), 
+       type = "n", axes = F, main = "" , xlab = "", 
+       ylab = "", ...)
+  axis(3)
+  axis(2, n.c:1, names(bhat)[n.c:1], las = var.las, 
+       tck = FALSE, lty = 0, cex.axis = cex.var)
+  abline(v = 0, lty = 2)
+  points(bhat, idx, pch = pch.pts, cex = cex.pts, 
+         col = col.pts)
+  segments(l, idx, u, idx, lwd = 2, 
+           col = "red")
+}
+
+
 ## Reports class-shares:
 shares(LC_GM)
 shares(LC_GM3)
+
+## Assigning classes to individuals:
+ClassProbs <- LC_GM$Qir ## Thankfully GMNL has an inbuilt method of calculating individual likelihood of class-memberships
+colnames(ClassProbs) <- c(1,2) ## Name columns as one of the classes. Here I'm using the 2-class model but this can easily be augmented if the 2+ models fit better. 
+Classes <- data.frame("Classes" = as.integer(colnames(ClassProbs)[apply(round(ClassProbs,4),1,which.max)])) ## This picks the class that is most likely for each individual
+First_Cons <- cbind(First_Cons,slice(.data = Classes,rep(1:n(), times = nrow(First_Cons)/length(unique(First_Cons$ID)))))
+
+
+## Plotting the confidence intervals of coefficients:
+plot_ci_lc(LC_GM,var = c("Price"))
 
 ## LCM class-specific WTP:
 -1* (coef(LC_GM)["class.1.Performance"]/coef(LC_GM)["class.1.Price"])
@@ -709,7 +759,10 @@ shares(LC_GM3)
 -1* (coef(LC_GM)["class.2.Performance"]/coef(LC_GM)["class.2.Price"])
 -1* (coef(LC_GM)["class.2.Emission"]/coef(LC_GM)["class.2.Price"])
 
-
+## Sample average WTP 
+wtp_bar <- (-coef(LC_GM)["class.1.Performance"] / coef(LC_GM)["class.1.Price"]) * shares(LC_GM)[1] + 
+  (-coef(LC_GM)["class.2.Performance"] / coef(LC_GM)["class.2.Price"]) * shares(LC_GM)[2]
+wtp_bar
 
 ##########################################################  
 ####### CVM
