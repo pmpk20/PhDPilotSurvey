@@ -4,7 +4,11 @@
 ####################################################################################
 
 ############ TO DO:
-# - Translate FullAnalysis code
+# - Report LCM further
+# - Add other attributes to the Apollo RRM
+# - Fix Apollo ICLV
+# - Estimate an Apollo MXL
+# - Decide whether to report MLOGIT or GMNL
 
 ############ Packages:
 install.packages("mlogit") ## MLOGIT is the best DCE package in R so far.
@@ -1083,3 +1087,621 @@ summary(Full_Order1$Q6WTP - Full_Order2$Q7WTP)
 ## Individual QOV within the sample:
 summary(FullSurvey2$Precaution)
 
+
+
+
+##########################################################  
+## The following code is experimental:
+##########################################################  
+
+
+
+
+#############################################################################
+## APOLLO: MNL
+#############################################################################
+
+install.packages("randtoolbox")
+install.packages("apollo")
+
+### Load Apollo library
+library(apollo)
+
+library(apollo)
+apollo_initialise()
+
+### Set core controls
+apollo_control = list(
+  modelName  ="MY_Apollo_example",
+  modelDescr ="Simple MNL model on my Pilot data",
+  indivID    ="ID",
+  HB = FALSE,
+  mixing=FALSE
+)
+
+Test_Apollo <- data.frame(Fulls$ID,Fulls$Task, Fulls$Q1Gender,
+                          Fulls$Q2Age,Fulls$Q3Distance,Fulls$Q4Trips,
+                          Fulls$Q16BP,Fulls$Q18Charity,
+                          Fulls$Q20Consequentiality,Fulls$Q21Experts,
+                          Fulls$Q22Education,Fulls$Q23Employment,
+                          Fulls$Q25Understanding,Fulls[,15:20],
+                          Fulls$Choice,mean(Fulls$Q24AIncome))
+colnames(Test_Apollo) <- c("ID","Task","Q1Gender","Age","Distance",
+                           "Trips","BP","Charity",
+                           "Consequentiality",
+                           "Experts","Education","Employment","Survey",
+                           "Price_B","Performance_B","Emission_B",
+                           "Performance_A","Emission_A","Price_A"
+                           ,"Choice","Income")
+
+# Tests_Dominated <- Test_Apollo[!Test_Apollo$ID %in% c(Test_Apollo$ID[ ((Test_Apollo$Task == 1) & (Test_Apollo$Choice ==1) & (grepl("SQ",rownames(Test_Apollo),fixed = TRUE) == FALSE)) ]),]
+# Tests_Understanding <- Tests_Dominated[!Tests_Dominated$ID %in% c( unique(Tests_Dominated$ID[Tests_Dominated$Survey <= 5])),]
+# Test_Apollo <- Tests_Understanding
+
+Test_Apollo$Choice[Test_Apollo$Choice == 1] <- 2
+Test_Apollo$Choice[Test_Apollo$Choice == 0] <- 1
+database = Test_Apollo
+
+
+choiceAnalysis_settings <- list(
+  alternatives = c(A=1, B=2),
+  avail        = list(A=1, B=1),
+  choiceVar    = Test_Apollo$Choice,
+  explanators  = Test_Apollo[,c("Price_B","Performance_B","Emission_B","Q1Gender","Age","Distance",
+                                "Trips","BP","Charity",
+                                "Education","Employment",
+                                "Income")]
+)
+
+apollo_choiceAnalysis(choiceAnalysis_settings, apollo_control, Test_Apollo)
+
+apollo_beta=c(asc_A      = 0,
+              asc_B      = 0,
+              b_Price    = 0,
+              b_Performance   = 0,
+              b_Emission      = 0,
+              b_Q1Gender = 0,
+              b_Age      = 0,
+              b_Distance = 0,
+              b_Trips    = 0,
+              b_BP       = 0,
+              b_Charity  = 0,
+              b_Education  = 0,
+              b_Employment = 0,
+              b_Income     = 0)
+
+apollo_fixed = c("asc_A")
+database <- Test_Apollo
+apollo_inputs = apollo_validateInputs()
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  P = list()
+  V = list()
+  V[['A']]  = asc_A  + 
+    b_Price * Test_Apollo$Price_A +
+    b_Performance * Test_Apollo$Performance_A +
+    b_Emission * Test_Apollo$Emission_A
+  
+  V[['B']]  = asc_B  + b_Price * Test_Apollo$Price_B +
+    b_Performance * Test_Apollo$Performance_B  +
+    b_Emission * Test_Apollo$Emission_B +
+    b_Q1Gender * Test_Apollo$Q1Gender + 
+    b_Age * Test_Apollo$Age +
+    b_Distance * Test_Apollo$Distance + 
+    b_Trips * Test_Apollo$Trips +
+    b_BP * Test_Apollo$BP +
+    b_Charity * Test_Apollo$Charity + 
+    b_Education * Test_Apollo$Education +
+    b_Employment * Test_Apollo$Employment + 
+    b_Income * Test_Apollo$Income
+  
+  mnl_settings = list(
+    alternatives  = c(A=1, B=2), 
+    avail         = list(A=1, B=1), 
+    choiceVar     = Choice,
+    V             = V
+  )
+  P[['model']] = apollo_mnl(mnl_settings, functionality)
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+
+model = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs, estimate_settings=list(hessianRoutine="maxLik")) 
+apollo_modelOutput(model)
+
+
+
+#############################################################################
+## LCM with RRM and RUM classes
+## https://www.advancedrrmmodels.com/latent-class-models
+#############################################################################
+
+library(apollo)
+apollo_initialise()
+apollo_control = list(
+  modelName  ="LC_RUM_PRRM_2classes",
+  modelDescr ="Latent class with 2 classes: RUM and PRRM",
+  indivID    ="ID",
+  nCores     = 2 
+)
+## Parameters to be estimated and their starting values
+## Price and Health attributes used only
+apollo_beta = c(# Class 1
+  B_Price_1 = 0,
+  B_Performance_1 = 0,
+  # Class 2
+  B_Price_2 = 0,
+  B_Performance_2  = -0.2,
+  # Class membership parameters
+  s_1     = 0,
+  s_2     = 0)
+
+## Define one class as fixed as the utility-differences approach 
+apollo_fixed = c("s_1")
+
+
+Test_Apollo$Price_A[Test_Apollo$Price_A == 0] <-1
+Test_Apollo$Performance_A[Test_Apollo$Performance_A == 0] <-1
+Test_Apollo$Emission_A[Test_Apollo$Emission_A == 0] <- 1
+Test_Apollo$Price_B <- Test_Apollo$Price_B +1
+Test_Apollo$Emission_B <- Test_Apollo$Emission_B +1
+Test_Apollo$Performance_B <- Test_Apollo$Performance_B +1
+database = Test_Apollo
+
+## Grouping latent class parameters
+apollo_lcPars = function(apollo_beta, apollo_inputs){
+  lcpars = list()
+  lcpars[["B_Price"]] = list(B_Price_1, B_Price_2)
+  lcpars[["B_Performance"]] = list(B_Performance_1, B_Performance_2)
+  
+  
+  V=list()
+  V[["class_1"]] = s_1
+  V[["class_2"]] = s_2
+  
+  ###settings for class membership probabilities 
+  mnl_settings = list(
+    alternatives = c(class_1=1, class_2=2), 
+    avail        = 1, 
+    choiceVar    = NA, ###No choice variable as only the formula of MNL is used
+    V            = V
+  )
+  ###Class membership probabilities
+  lcpars[["pi_values"]] = apollo_mnl(mnl_settings, functionality="raw")
+  lcpars[["pi_values"]] = apollo_firstRow(lcpars[["pi_values"]], apollo_inputs)
+  return(lcpars)
+}
+
+## Search the user work space for all necessary input 
+apollo_inputs = apollo_validateInputs()
+
+## Probability function
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  
+  ## Attaches parameters and data so that variables can be referred by name
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  
+  ## Pairwise comparison and scale of attributes
+  
+  ## Define PRRM variables
+  Price1_sc =( 1 / 1000 ) * Price_A
+  Price2_sc =( 1 / 1000 ) * Price_B
+  Performance1_sc =( 1 / 1000 ) * Performance_A
+  Performance2_sc =( 1 / 1000 ) * Performance_B
+  
+  
+  # Compute P-RRM Atrribute levels
+  X_Price1 = pmax( 0 , Price2_sc - Price1_sc ) 
+  X_Price2 = pmax( 0 , Price1_sc - Price2_sc ) 
+  
+  X_Performance1 = pmax( 0 , Performance2_sc - Performance1_sc ) 
+  X_Performance2 = pmax( 0 , Performance1_sc - Performance2_sc ) 
+  
+  ###Create list for probabilities
+  P = list()
+  
+  ###Input for calculating MNL probabilities
+  mnl_settings = list(
+    alternatives  = c(Alt1=1, Alt2=2), 
+    avail         = list(Alt1=1, Alt2=1),
+    choiceVar     = Choice
+  )
+  
+  ### Compute class-specific utilities
+  V=list()
+  V[['Alt1']]  = B_Price_1 * Price1_sc + B_Performance_1 * Performance1_sc 
+  V[['Alt2']]  = B_Price_1 * Price2_sc + B_Performance_1 * Performance2_sc 
+  
+  ###Calculating probabilities based on MNL function for class 1
+  mnl_settings$V = V
+  P[[1]] = apollo_mnl(mnl_settings, functionality)
+  P[[1]] = apollo_panelProd(P[[1]], apollo_inputs ,functionality)
+  
+  ### Compute class-specific regrets
+  R=list()
+  R[['Alt1']]  = B_Price_2 * X_Price1 + B_Performance_2 * X_Performance1
+  R[['Alt2']]  = B_Price_2 * X_Price2 + B_Performance_2 * X_Performance2 
+  
+  ###Calculating probabilities based on MNL function for class 2
+  mnl_settings$V = lapply(R, "*", -1) ###the regrets must be negative (and used in MNL-settings as V)
+  P[[2]] = apollo_mnl(mnl_settings, functionality)
+  P[[2]] = apollo_panelProd(P[[2]], apollo_inputs ,functionality)
+  
+  ###Calculating choice probabilities using class membership and conditional probabilities 
+  lc_settings   = list(inClassProb = P, classProb=pi_values)
+  P[["model"]] = apollo_lc(lc_settings, apollo_inputs, functionality)
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+# Starting value search:
+apollo_beta = apollo_searchStart(apollo_beta,
+                                 apollo_fixed,
+                                 apollo_probabilities,
+                                 apollo_inputs,
+                                 searchStart_settings=list(nCandidates=20))
+
+model = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs, estimate_settings=list(hessianRoutine="numDeriv")) 
+apollo_modelOutput(model)
+
+
+#############################################################################
+## ICLV model:
+## http://www.apollochoicemodelling.com/files/Apollo_example_24.r
+#############################################################################
+
+
+rm(list = ls())
+install.packages("randtoolbox")
+install.packages("apollo")
+
+### Load Apollo library
+library(apollo)
+
+### Initialise code
+apollo_initialise()
+
+### Set core controls
+apollo_control = list(
+  modelName  = "Apollo_example_24",
+  modelDescr = "ICLV model on drug choice data, using ordered measurement model for indicators",
+  indivID    = "ID",
+  mixing     = TRUE,
+  nCores     = 1
+)
+database = read.csv("apollo_drugChoiceData.csv",header=TRUE)
+
+## DEFINE MODEL PARAMETERS                                     
+
+### Vector of parameters, including any that are kept fixed in estimation
+apollo_beta = c(b_brand_Artemis    = 0, 
+                b_brand_Novum      = 0, 
+                b_brand_BestValue  = 0, 
+                b_brand_Supermarket= 0, 
+                b_brand_PainAway   = 0, 
+                b_country_CH       = 0, 
+                b_country_DK       = 0, 
+                b_country_USA      = 0, 
+                b_country_IND      = 0, 
+                b_country_RUS      = 0, 
+                b_country_BRA      = 0, 
+                b_char_standard    = 0, 
+                b_char_fast        = 0, 
+                b_char_double      = 0, 
+                b_risk             = 0, 
+                b_price            = 0,  
+                lambda             = 1, 
+                gamma_reg_user     = 0, 
+                gamma_university   = 0, 
+                gamma_age_50       = 0, 
+                zeta_quality       = 1, 
+                zeta_ingredient    = 1, 
+                zeta_patent        = 1, 
+                zeta_dominance     = 1, 
+                tau_quality_1      =-2, 
+                tau_quality_2      =-1, 
+                tau_quality_3      = 1, 
+                tau_quality_4      = 2, 
+                tau_ingredients_1  =-2, 
+                tau_ingredients_2  =-1, 
+                tau_ingredients_3  = 1, 
+                tau_ingredients_4  = 2, 
+                tau_patent_1       =-2, 
+                tau_patent_2       =-1, 
+                tau_patent_3       = 1, 
+                tau_patent_4       = 2, 
+                tau_dominance_1    =-2, 
+                tau_dominance_2    =-1, 
+                tau_dominance_3    = 1, 
+                tau_dominance_4    = 2)
+
+## Vector with names (in quotes) of parameters to be kept fixed at their starting value in apollo_beta, use apollo_beta_fixed = c() if none
+apollo_fixed = c("b_brand_Artemis", "b_country_USA", "b_char_standard")
+
+## DEFINE RANDOM COMPONENTS                                    
+
+### Set parameters for generating draws
+apollo_draws = list(
+  interDrawsType="halton", 
+  interNDraws=100,          
+  interUnifDraws=c(),      
+  interNormDraws=c("eta"), 
+  
+  intraDrawsType='',
+  intraNDraws=0,          
+  intraUnifDraws=c(),     
+  intraNormDraws=c()      
+)
+
+### Create random parameters
+apollo_randCoeff=function(apollo_beta, apollo_inputs){
+  randcoeff = list()
+  
+  randcoeff[["LV"]] = gamma_reg_user*regular_user + gamma_university*university_educated + gamma_age_50*over_50 + eta
+  
+  return(randcoeff)
+}
+
+
+## GROUP AND VALIDATE INPUTS
+
+apollo_inputs = apollo_validateInputs()
+
+## DEFINE MODEL AND LIKELIHOOD FUNCTION                        
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  
+  ### Attach inputs and detach after function exit
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  
+  ### Create list of probabilities P
+  P = list()
+  
+  ### Likelihood of indicators
+  ol_settings1 = list(outcomeOrdered = attitude_quality, 
+                      V              = zeta_quality*LV, 
+                      tau            = c(tau_quality_1, tau_quality_2, tau_quality_3, tau_quality_4),
+                      rows           = (task==1),
+                      componentName  = "indic_quality")
+  ol_settings2 = list(outcomeOrdered = attitude_ingredients, 
+                      V              = zeta_ingredient*LV, 
+                      tau            = c(tau_ingredients_1, tau_ingredients_2, tau_ingredients_3, tau_ingredients_4), 
+                      rows           = (task==1),
+                      componentName  = "indic_ingredients")
+  ol_settings3 = list(outcomeOrdered = attitude_patent, 
+                      V              = zeta_patent*LV, 
+                      tau            = c(tau_patent_1, tau_patent_2, tau_patent_3, tau_patent_4), 
+                      rows           = (task==1),
+                      componentName  = "indic_patent")
+  ol_settings4 = list(outcomeOrdered = attitude_dominance, 
+                      V              = zeta_dominance*LV, 
+                      tau            = c(tau_dominance_1, tau_dominance_2, tau_dominance_3, tau_dominance_4), 
+                      rows           = (task==1),
+                      componentName  = "indic_dominance")
+  P[["indic_quality"]]     = apollo_ol(ol_settings1, functionality)
+  P[["indic_ingredients"]] = apollo_ol(ol_settings2, functionality)
+  P[["indic_patent"]]      = apollo_ol(ol_settings3, functionality)
+  P[["indic_dominance"]]   = apollo_ol(ol_settings4, functionality)
+  
+  ### Likelihood of choices
+  ### List of utilities: these must use the same names as in mnl_settings, order is irrelevant
+  V = list()
+  V[['alt1']] = ( b_brand_Artemis*(brand_1=="Artemis") + b_brand_Novum*(brand_1=="Novum") 
+                  + b_country_CH*(country_1=="Switzerland") + b_country_DK*(country_1=="Denmark") + b_country_USA*(country_1=="USA") 
+                  + b_char_standard*(char_1=="standard") + b_char_fast*(char_1=="fast acting") + b_char_double*(char_1=="double strength") 
+                  + b_risk*side_effects_1
+                  + b_price*price_1 
+                  + lambda*LV )
+  V[['alt2']] = ( b_brand_Artemis*(brand_2=="Artemis") + b_brand_Novum*(brand_2=="Novum") 
+                  + b_country_CH*(country_2=="Switzerland") + b_country_DK*(country_2=="Denmark") + b_country_USA*(country_2=="USA") 
+                  + b_char_standard*(char_2=="standard") + b_char_fast*(char_2=="fast acting") + b_char_double*(char_2=="double strength") 
+                  + b_risk*side_effects_2
+                  + b_price*price_2 
+                  + lambda*LV )
+  V[['alt3']] = ( b_brand_BestValue*(brand_3=="BestValue") + b_brand_Supermarket*(brand_3=="Supermarket") + b_brand_PainAway*(brand_3=="PainAway") 
+                  + b_country_USA*(country_3=="USA") + b_country_IND*(country_3=="India") + b_country_RUS*(country_3=="Russia") + b_country_BRA*(country_3=="Brazil") 
+                  + b_char_standard*(char_3=="standard") + b_char_fast*(char_3=="fast acting") 
+                  + b_risk*side_effects_3
+                  + b_price*price_3 )
+  V[['alt4']] = ( b_brand_BestValue*(brand_4=="BestValue") + b_brand_Supermarket*(brand_4=="Supermarket") + b_brand_PainAway*(brand_4=="PainAway") 
+                  + b_country_USA*(country_4=="USA") + b_country_IND*(country_4=="India") + b_country_RUS*(country_4=="Russia") + b_country_BRA*(country_4=="Brazil") 
+                  + b_char_standard*(char_4=="standard") + b_char_fast*(char_4=="fast acting") 
+                  + b_risk*side_effects_4
+                  + b_price*price_4 )
+  
+  ### Define settings for MNL model component
+  mnl_settings = list(
+    alternatives = c(alt1=1, alt2=2, alt3=3, alt4=4),
+    avail        = list(alt1=1, alt2=1, alt3=1, alt4=1),
+    choiceVar    = best,
+    V            = V,
+    componentName= "choice"
+  )
+  
+  ### Compute probabilities for MNL model component
+  P[["choice"]] = apollo_mnl(mnl_settings, functionality)
+  
+  ### Likelihood of the whole model
+  P = apollo_combineModels(P, apollo_inputs, functionality)
+  
+  ### Take product across observation for same individual
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  
+  ### Average across inter-individual draws
+  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
+  
+  ### Prepare and return outputs of function
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+### MODEL ESTIMATION
+
+## Optional: calculate LL before model estimation
+# apollo_llCalc(apollo_beta, apollo_probabilities, apollo_inputs)
+
+### Estimate model
+model = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+
+apollo_modelOutput(model)
+
+forecast <- apollo_prediction(model, apollo_probabilities, apollo_inputs,
+                              prediction_settings=list(modelComponent="indic_quality"))
+
+
+# ################################################################# #
+#### LOAD LIBRARY AND DEFINE CORE SETTINGS                       ####
+# ################################################################# #
+
+### Clear memory
+rm(list = ls())
+
+### Load Apollo library
+library(apollo)
+
+### Initialise code
+apollo_initialise()
+
+### Set core controls
+apollo_control = list(
+  modelName ="Apollo_example_16",
+  modelDescr ="Mixed logit model on Swiss route choice data, WTP space with correlated and flexible distributions, inter and intra-individual heterogeneity",
+  indivID   ="ID",  
+  mixing    = TRUE, 
+  nCores    = 5
+)
+
+database = read.csv("apollo_swissRouteChoiceData.csv",header=TRUE)
+
+### Vector of parameters, including any that are kept fixed in estimation
+apollo_beta = c(asc_1                     = 0,
+                asc_2                     = 0,
+                mu_log_b_tc               =-3,
+                sigma_log_b_tc_inter      = 0,
+                mu_log_v_tt               =-3,
+                sigma_log_v_tt_inter      = 0,
+                sigma_log_v_tt_inter_2    = 0,
+                sigma_log_v_tt_intra      = 0,
+                mu_log_v_hw               =-3,
+                sigma_log_v_hw_inter      = 0,
+                sigma_log_v_hw_v_tt_inter = 0,
+                v_ch                      = 0,
+                gamma_vtt_business        = 0)
+
+### Vector with names (in quotes) of parameters to be kept fixed at their starting value in apollo_beta, use apollo_beta_fixed = c() if none
+apollo_fixed = c("asc_2")
+
+### Set parameters for generating draws
+apollo_draws = list(
+  interDrawsType = "halton",
+  interNDraws    = 100,
+  interUnifDraws = c("draws_tc_inter"),
+  interNormDraws = c("draws_hw_inter","draws_tt_inter"),
+  intraDrawsType = "mlhs",
+  intraNDraws    = 100,
+  intraUnifDraws = c(),
+  intraNormDraws = c("draws_tt_intra")
+)
+
+### Create random parameters
+apollo_randCoeff = function(apollo_beta, apollo_inputs){
+  randcoeff = list()
+  
+  randcoeff[["b_tc"]] = -exp( mu_log_b_tc
+                              + sigma_log_b_tc_inter      * draws_tc_inter )
+  
+  randcoeff[["v_tt"]] =  ( exp( mu_log_v_tt
+                                + sigma_log_v_tt_inter      * draws_tt_inter
+                                + sigma_log_v_tt_inter_2    * draws_tt_inter ^ 2
+                                + sigma_log_v_tt_intra      * draws_tt_intra   ) 
+                           * ( gamma_vtt_business    * business + ( 1 - business ) ) )
+  
+  randcoeff[["v_hw"]] =  exp( mu_log_v_hw
+                              + sigma_log_v_hw_inter      * draws_hw_inter
+                              + sigma_log_v_hw_v_tt_inter * draws_tt_inter )
+  
+  return(randcoeff)
+}
+
+apollo_inputs = apollo_validateInputs()
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  
+  ### Function initialisation: do not change the following three commands
+  ### Attach inputs and detach after function exit
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  
+  ### Create list of probabilities P
+  P = list()
+  
+  ### List of utilities: these must use the same names as in mnl_settings, order is irrelevant
+  V = list()
+  V[['alt1']] = asc_1 + b_tc*(v_tt*tt1 + tc1 + v_hw*hw1 + v_ch*ch1)
+  V[['alt2']] = asc_2 + b_tc*(v_tt*tt2 + tc2 + v_hw*hw2 + v_ch*ch2)
+  
+  ### Define settings for MNL model component
+  mnl_settings = list(
+    alternatives  = c(alt1=1, alt2=2),
+    avail         = list(alt1=1, alt2=1),
+    choiceVar     = choice,
+    V             = V
+  )
+  
+  ### Compute probabilities using MNL model
+  P[['model']] = apollo_mnl(mnl_settings, functionality)
+  
+  ### Average across intra-individual draws
+  P = apollo_avgIntraDraws(P, apollo_inputs, functionality)
+  
+  ### Take product across observation for same individual
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  
+  ### Average across inter-individual draws
+  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
+  
+  ### Prepare and return outputs of function
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+### Optional speedTest
+#speedTest_settings=list(
+#   nDrawsTry = c(50, 75, 100),
+#   nCoresTry = 1:3,
+#   nRep      = 10
+#)
+
+#apollo_speedTest(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs, speedTest_settings)
+
+model = apollo_estimate(apollo_beta, apollo_fixed,
+                        apollo_probabilities, apollo_inputs, 
+                        estimate_settings=list(hessianRoutine="maxLik"))
+
+apollo_modelOutput(model)
+
+unconditionals <- apollo_unconditionals(model,apollo_probabilities, apollo_inputs)
+
+plot(density(as.vector(unconditionals[["v_tt"]])))
+
+conditionals <- apollo_conditionals(model,apollo_probabilities, apollo_inputs)
+
+mean(unconditionals[["v_tt"]])
+
+sd(unconditionals[["v_tt"]])
+
+summary(conditionals[["v_tt"]])
+
+income_n = apollo_firstRow(database$hh_inc_abs, apollo_inputs)
+
+summary(lm(conditionals[["v_tt"]][,2]~income_n))
+
+###############################################################
+##  END OF SCRIPT
+############################################################### 
