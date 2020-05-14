@@ -314,6 +314,50 @@ Full_Cons <- Full_Certain[Full_Certain$Q20Consequentiality == 1]
 
 
 ##########################################################  
+####### Descriptive Statistics
+##########################################################  
+
+
+## Gender: 
+100/nrow(FullSurvey)*length(FullSurvey$Q1Gender[FullSurvey$Q1Gender=="Male"]) ## Proportion of the sample that is male. Actual: 46, Target: 49
+100/nrow(FullSurvey)*length(FullSurvey$Q1Gender[FullSurvey$Q1Gender=="Female"]) ## Proportion of the sample that is female. Actual: 53, Target: 51 
+100/nrow(FullSurvey)*length(FullSurvey$Q1Gender[(FullSurvey$Q1Gender !="Female")  & (FullSurvey$Q1Gender != "Male")]) ## Estimating the percentage who reported otherwise
+
+## Age: 
+mean(FullSurvey2$Q2Age) ## Estimating average age
+
+## Trips: 
+mean(FullSurvey2$Q4Trips) ## Estimating average annual trips
+
+## Charity: 
+100/nrow(FullSurvey)*length(FullSurvey$Q18Charity[FullSurvey$Q18Charity=="No"])
+100/nrow(FullSurvey)*length(FullSurvey$Q18Charity[FullSurvey$Q18Charity=="Yes"])
+100/nrow(FullSurvey)*length(FullSurvey$Q18Charity[FullSurvey$Q18Charity=="Prefer not to say"])
+
+## Education: 
+100/nrow(FullSurvey2)*length(FullSurvey2$Q22Education[FullSurvey2$Q22Education==0]) ## 0 = Prefer not to say 2.23%
+100/nrow(FullSurvey2)*length(FullSurvey2$Q22Education[FullSurvey2$Q22Education==1]) ## 1 = GCSE 21.94%
+100/nrow(FullSurvey2)*length(FullSurvey2$Q22Education[FullSurvey2$Q22Education==2]) ## 2 = A level 26.56%
+100/nrow(FullSurvey2)*length(FullSurvey2$Q22Education[FullSurvey2$Q22Education==3]) ## 3 = Bachelors 31.64%
+100/nrow(FullSurvey2)*length(FullSurvey2$Q22Education[FullSurvey2$Q22Education==4]) ## 4 = PG 17.61%
+# Less than University: 50.74%
+100/nrow(FullSurvey2)*length(FullSurvey2$Q22Education[FullSurvey2$Q22Education==0]) + 100/nrow(FullSurvey2)*length(FullSurvey2$Q22Education[FullSurvey2$Q22Education==1]) + 100/nrow(FullSurvey2)*length(FullSurvey2$Q22Education[FullSurvey2$Q22Education==2])
+# Bachelors or more: 49.25%
+100/nrow(FullSurvey2)*length(FullSurvey2$Q22Education[FullSurvey2$Q22Education==3]) + 100/nrow(FullSurvey2)*length(FullSurvey2$Q22Education[FullSurvey2$Q22Education==4])
+
+## Employment: 
+100/nrow(FullSurvey2)*length(FullSurvey2$Q23Employment[FullSurvey2$Q23Employment==0]) ## 0 = Prefer not to say 2.68%
+100/nrow(FullSurvey2)*length(FullSurvey2$Q23Employment[FullSurvey2$Q23Employment==1]) ## 1 = NEET 11.34%
+100/nrow(FullSurvey2)*length(FullSurvey2$Q23Employment[FullSurvey2$Q23Employment==2]) ## 2 = Retired 7.76%
+100/nrow(FullSurvey2)*length(FullSurvey2$Q23Employment[FullSurvey2$Q23Employment==3]) ## 3 = Student 4.47%
+100/nrow(FullSurvey2)*length(FullSurvey2$Q23Employment[FullSurvey2$Q23Employment==4]) ## 4 = Part-time 14.95%
+100/nrow(FullSurvey2)*length(FullSurvey2$Q23Employment[FullSurvey2$Q23Employment==4]) ## 5 = Self 6.85%
+100/nrow(FullSurvey2)*length(FullSurvey2$Q23Employment[FullSurvey2$Q23Employment==4]) ## 6 = Full-time 51.94
+
+## Income: 
+mean(FullSurvey2$Q24AIncome) ## Estimating sample income
+
+##########################################################  
 ####### Descriptive Graphics
 ##########################################################  
 
@@ -453,8 +497,9 @@ PriceCurve <- ggplot(Fulls, aes(Choice,Price_B)) +
   theme(plot.title = element_text(hjust = 0.5),
         plot.margin=unit(c(1,1,-0.5,1),"cm"),
         axis.title.y = element_text(size = 10)) +
-  labs(x = "Likelihood of accepting option B",y="Price attribute levels")+
-  scale_x_continuous(breaks = 0:1, labels=c(0,1))
+  labs(x = "Likelihood of accepting option B",y="Attribute levels")+
+  scale_x_continuous(breaks = 0:1, labels=c(0,1))+
+  scale_y_continuous(breaks = 0:3, labels=c(0.5,1.0,2.5,5.0))
 
 
 ## Emission Curve: Plotting choice versus emission levels 
@@ -465,7 +510,7 @@ EmissionsCurve <- ggplot(Fulls, aes(Choice,Emission_B)) +
   theme(plot.title = element_text(hjust = 0.5),
         plot.margin=unit(c(1,1,-0.5,1),"cm"),
         axis.title.y = element_text(size = 10)) +
-  labs(x = "Likelihood of accepting option B",y="Emission attribute")+
+  labs(x = "Likelihood of accepting option B",y="Attribute levels")+
   scale_x_continuous(breaks = 0:1, labels=c(0,1))
 
 ## Performance Curve: Plotting choice versus performance levels 
@@ -476,7 +521,7 @@ PerformanceCurve <- ggplot(Fulls, aes(Choice,Performance_B)) +
   theme(plot.title = element_text(hjust = 0.5),
         plot.margin=unit(c(1,1,-0.5,1),"cm"),
         axis.title.y = element_text(size = 10)) +
-  labs(x = "Likelihood of accepting option B",y="Performance attribute")+
+  labs(x = "Likelihood of accepting option B",y="Attribute levels")+
   scale_x_continuous(breaks = 0:1,labels=c(0,1))
 
 grid.arrange(PriceCurve, EmissionsCurve, PerformanceCurve)
