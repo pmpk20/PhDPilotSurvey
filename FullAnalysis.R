@@ -11,17 +11,24 @@
 # - Decide whether to report MLOGIT or GMNL
 
 ############ Packages:
+pkgbuild::find_rtools(debug = TRUE)
+install.packages("randtoolbox")
+install.packages("apollo")
 install.packages("mlogit") ## MLOGIT is the best DCE package in R so far.
 install.packages("gmnl") ## Very similar to MLOGIT but more flexibility.
 install.packages("stargazer") ## To export to LaTeX code.
 install.packages("dplyr")
+install.packages("Hmisc")
+library(Hmisc)
 library(dplyr)
 setwd("H:/PhDPilotSurvey") ## Sets working directory. This is where my Github repo is cloned to.
 
 ############ Setup and manipulation:
 FullSurvey <- data.frame(read.csv("FullSurvey.csv")) ## Imports from the excel file straight from the survey companies website.
 
-FullSurvey <- FullSurvey[ -c(2,4,14,15,16,23,24,26,27,53,54,55,56,57,58,68,69)] ## Drop rows of no importance to the quantitative analysis, namely text responses.
+FullSurvey <- FullSurvey[ -c(2,4,14,15,16,23,24,26,27,53,54,55,56,57,58,68,69)] ## Drop columns of no importance to the quantitative analysis, namely text responses.
+FullSurvey <- FullSurvey[ !(FullSurvey$ï..Respondent %in% c(24,33,44,61,121,127,182,200,211,219,239,251,275,306,320,326,341,360,363,371,399,464,467,479,480,506,579,591,649,654,931,932,935,953,989,1002,1011,1024,14,35,39,54,79,106,130,146,149,155,163,203,214,215,217,244,246,249,252,267,268,282,290,327,343,362,364,374,380,393,398,407,414,425,426,433,477,519,524,536,543,545,547,557,567,575,589,590,595,614,617,629,637,638,639,651,665,674,680,915,933,940,950,959,960,975,978,996,1026,1027,1028)), ] ## Drop protest rows
+
 
 colnames(FullSurvey) <- c("ID","Order","Q1Gender","Q2Age","Q3Distance","Q4Trips",
                            "Q5Knowledge","Q6Bid","Q7Bid","Q6ResearchResponse",
@@ -69,7 +76,8 @@ FullSurvey2$Q3Distance[FullSurvey2$Q3Distance == 1] <- 6.5
 FullSurvey2$Q3Distance[FullSurvey2$Q3Distance == 2] <- 15.5
 FullSurvey2$Q3Distance[FullSurvey2$Q3Distance == 3] <- 35
 FullSurvey2$Q3Distance[FullSurvey2$Q3Distance == 4] <- 50
-FullSurvey2$Q3Distance[FullSurvey2$Q3Distance == 5] <- mean(FullSurvey2$Q3Distance) ## I replace the missing with the mean value although they could also be dropped or set to zero.
+FullSurvey2$Q3Distance[FullSurvey2$Q3Distance == 5] <- NA
+FullSurvey2$Q3Distance <- with(FullSurvey2, impute(FullSurvey2$Q3Distance, 'random')) ## I replace the missing with a random imputed value
 
 ## Reordering the knowledge categories to reflect higher knowledge = higher value
 FullSurvey2$Q5Knowledge[FullSurvey2$Q5Knowledge == 4] <- 5
@@ -214,7 +222,8 @@ FullSurvey2$Q24AIncome[FullSurvey2$Q24AIncome == 2] <- 1750.00
 FullSurvey2$Q24AIncome[FullSurvey2$Q24AIncome == 1] <- 1250.00
 FullSurvey2$Q24AIncome[FullSurvey2$Q24AIncome == 3] <- 2250.00
 FullSurvey2$Q24AIncome[FullSurvey2$Q24AIncome == 6] <- 4500.00
-FullSurvey2$Q24AIncome[FullSurvey2$Q24AIncome == 9] <- mean(FullSurvey2$Q24AIncome) ## Using mean-replacement but could also drop
+FullSurvey2$Q24AIncome[FullSurvey2$Q24AIncome == 9] <- NA 
+FullSurvey2$Q24AIncome <- with(FullSurvey2, impute(FullSurvey2$Q24AIncome, 'random')) ## Using random imputation for missing values
 FullSurvey2$Q24AIncome[FullSurvey2$Q24AIncome == 7] <- 5000
 FullSurvey2$Q24AIncome[FullSurvey2$Q24AIncome == 0] <- 250.00
 
@@ -304,17 +313,20 @@ Full_Long <- mlogit.data(Full, shape = "wide", choice = "Choice",
                           varying = 15:20, sep = "_", id.var = "ID")
 
 ################  Sample truncation:
+## Calculating failure rates:
+
+
 # Passing the Q8 dominated test scenario
 Full_Dominated <- Full_Long[Full_Long$Q8DominatedTest == 0]
-# 28.65% failure rate (192/670 failed)
+# 30.30% failure rate (170/561 failed)
 
 ### Trimming by having certainty in their CE choices.
 Full_Certain <- Full_Dominated[Full_Dominated$Q12CECertainty == 2]
-# 68% failure (368/670 failed)
+# 68% failure (368/591 failed)
 
 ###  Believing the survey responses to be consequential.
 Full_Cons <- Full_Certain[Full_Certain$Q20Consequentiality == 1]
-# Only 16% (112/670 passed everything)
+# Only 17% (112/670 passed everything)
 
 
 ##########################################################  
@@ -584,7 +596,7 @@ MXLFull <- mlogit(
   +  Q24AIncome,
   Full_Long, rpar=c(Price="n"),
   R=1000,correlation = FALSE,
-  reflevel="A",halton=NA,method="bfgs",panel=TRUE,seed=123)
+  reflevel="A",halton=NA,method="bfgs",panel=FALSE,seed=123)
 summary(MXLFull)
 
 ## Same as above but with only certain responses
@@ -596,7 +608,7 @@ MXLFullD <- mlogit(
   +  Q24AIncome,
   Full_Cons, rpar=c(Price="n"),
   R=1000,correlation = FALSE,
-  reflevel="A",halton=NA,method="bfgs",panel=TRUE,seed=123)
+  reflevel="A",halton=NA,method="bfgs",panel=FALSE,seed=123)
 summary(MXLFullD)
 
 ## Compare attribute MWTP by sample
@@ -613,8 +625,8 @@ WTPs
 
 ## Plot conditional distribution of MWTP. 
 layout(matrix(c(1,1,2,2), 2, 2, byrow = TRUE), widths=c(1,1), heights=c(4,4))
-plot(rpar(MXLFull,"Price"), main="Scatterplot of wt vs. mpg")
-plot(rpar(MXLFullD,"Price"), main="Scatterplot of wt vs disp")
+plot(rpar(MXLFull,"Price"), main="MXL: Full sample")
+plot(rpar(MXLFullD,"Price"), main="MXL: Truncation")
 AIC(MXLFullD)
 
 ## Bootstrapped clustered individual standard errors: 
@@ -625,9 +637,9 @@ WTPbs <- data.frame("Emission" = c(CBSM$ci[4,1]/CBSM$ci[2,1],CBSM$ci[4,2]/CBSM$c
                     "Performance"=c(CBSM$ci[3,1]/CBSM$ci[2,1],CBSM$ci[3,2]/CBSM$ci[2,2]))
 WTPbs <- t(WTPbs)
 WTPbs <- -1* WTPbs
-WTPs <- cbind(WTPbs[,1],WTPs[,2],WTPbs[,2])
-colnames(WTPs) <- c("Lower","Mean","Upper")
-round(WTPs,3)
+WTPbs <- cbind(WTPbs[,1],WTPs[,2],WTPbs[,2])
+colnames(WTPbs) <- c("Lower","Mean","Upper")
+round(WTPbs,3)
 
 
 ##############  GMNL is an alternative to MLOGIT
@@ -654,11 +666,11 @@ GMNL_MXLDefault <- gmnl(Choice ~ Price + Performance + Emission | 1 | 0|
                         + Q4Trips + Q16BP + Q18Charity 
                         + Q20Consequentiality
                         + Q21Experts +Q22Education+ Q23Employment
-                        +  Q24AIncome, data = Full_Long,
+                        +  Q24AIncome, data = Full_Cons,
                         model = "mixl",
                         ranp = c( Price = "n"),
                         mvar = list(Price = c("Q18Charity")),
-                        R = 10,
+                        R = 1000,
                         haltons = NA
                         ,seed = 123,reflevel = "A")
 summary(GMNL_MXLDefault)
@@ -678,13 +690,13 @@ LC_GM <- gmnl(Choice ~ Price + Performance + Emission | 0 |
               + Q4Trips + Q16BP + Q18Charity
               + Q21Experts +Q22Education+ Q23Employment
               +  Q24AIncome,
-              data = Full_Cons,
+              data = Full_Long,
               model = 'lc',
               panel = TRUE,
               Q = 2)
 summary(LC_GM)
-AIC(LC_GM) ## 516.2835
-BIC(LC_GM) ## 586.065
+AIC(LC_GM) ## 1749.514
+BIC(LC_GM) ## 1839.79
 
 ## Three class model:
 LC_GM3 <- gmnl(Choice ~ Price + Performance + Emission | 0 |
@@ -692,26 +704,26 @@ LC_GM3 <- gmnl(Choice ~ Price + Performance + Emission | 0 |
                + Q4Trips + Q16BP + Q18Charity
                + Q21Experts +Q22Education+ Q23Employment
                +  Q24AIncome,
-               data = Full_Cons,
+               data = Full_Long,
                model = 'lc',
                panel = TRUE,
                Q = 3)
 summary(LC_GM3)
-AIC(LC_GM3) # 502.6724
-BIC(LC_GM3) # 629.921
+AIC(LC_GM3) # 1691.97
+BIC(LC_GM3) # 1856.605
 
 LC_GM4 <- gmnl(Choice ~ Price + Performance + Emission | 0 |
                  0 | 0 | 1+  Q1Gender + Q2Age + Q3Distance
                + Q4Trips + Q16BP + Q18Charity
                + Q21Experts +Q22Education+ Q23Employment
                +  Q24AIncome,
-               data = Full_Cons,
+               data = Full_Long,
                model = 'lc',
                panel = TRUE,
                Q = 4)
 summary(LC_GM4)
-AIC(LC_GM4) # 502.6724
-BIC(LC_GM4) # 629.921
+AIC(LC_GM4) # 1680.126
+BIC(LC_GM4) # 1919.10
 
 
 ## The following two Functions are from https://rpubs.com/msarrias1986/335556 which calculates the share of the sample in each class
@@ -775,7 +787,7 @@ shares(LC_GM3)
 ClassProbs <- LC_GM$Qir ## Thankfully GMNL has an inbuilt method of calculating individual likelihood of class-memberships
 colnames(ClassProbs) <- c(1,2) ## Name columns as one of the classes. Here I'm using the 2-class model but this can easily be augmented if the 2+ models fit better. 
 Classes <- data.frame("Classes" = as.integer(colnames(ClassProbs)[apply(round(ClassProbs,4),1,which.max)])) ## This picks the class that is most likely for each individual
-Full_Cons <- cbind(Full_Cons,slice(.data = Classes,rep(1:n(), times = nrow(Full_Cons)/length(unique(Full_Cons$ID)))))
+Full_Long <- cbind(Full_Long,slice(.data = Classes,rep(1:n(), times = nrow(Full_Long)/length(unique(Full_Long$ID)))))
 
 
 ## Plotting the confidence intervals of coefficients:
@@ -788,9 +800,12 @@ plot_ci_lc(LC_GM,var = c("Price"))
 -1* (coef(LC_GM)["class.2.Emission"]/coef(LC_GM)["class.2.Price"])
 
 ## Sample average WTP 
-wtp_bar <- (-coef(LC_GM)["class.1.Emission"] / coef(LC_GM)["class.1.Price"]) * shares(LC_GM)[1] + 
-  (-coef(LC_GM)["class.2.Emission"] / coef(LC_GM)["class.2.Price"]) * shares(LC_GM)[2]
+wtp_bar <- data.frame("Emissions" = (-coef(LC_GM)["class.1.Emission"] / coef(LC_GM)["class.1.Price"]) * shares(LC_GM)[1] + 
+  (-coef(LC_GM)["class.2.Emission"] / coef(LC_GM)["class.2.Price"]) * shares(LC_GM)[2],
+"Performance" = (-coef(LC_GM)["class.1.Performance"] / coef(LC_GM)["class.1.Price"]) * shares(LC_GM)[1] + 
+  (-coef(LC_GM)["class.2.Performance"] / coef(LC_GM)["class.2.Price"]) * shares(LC_GM)[2])
 wtp_bar
+wtp_bar*100
 
 
 ##########################################################  
