@@ -547,7 +547,7 @@ grid.arrange(PriceCurve, EmissionsCurve, PerformanceCurve)
 ####### CE
 ##########################################################  
 
-
+Full <- cbind(Full,Classes)
 ## Have to do the manipulation section again to ignore the changes made in the graphics section
 library(mlogit) #Already have package installed
 Full_Long <- mlogit.data(Full, shape = "wide", choice = "Choice",
@@ -784,11 +784,11 @@ shares(LC_GM)
 shares(LC_GM3)
 
 ## Assigning classes to individuals:
-ClassProbs <- LC_GM$Qir ## Thankfully GMNL has an inbuilt method of calculating individual likelihood of class-memberships
-colnames(ClassProbs) <- c(1,2) ## Name columns as one of the classes. Here I'm using the 2-class model but this can easily be augmented if the 2+ models fit better. 
+ClassProbs <- LC_GM3$Qir ## Thankfully GMNL has an inbuilt method of calculating individual likelihood of class-memberships
+colnames(ClassProbs) <- c(1,2,3) ## Name columns as one of the classes. Here I'm using the 2-class model but this can easily be augmented if the 2+ models fit better. 
 Classes <- data.frame("Classes" = as.integer(colnames(ClassProbs)[apply(round(ClassProbs,4),1,which.max)])) ## This picks the class that is most likely for each individual
-Full_Long <- cbind(Full_Long,slice(.data = Classes,rep(1:n(), times = nrow(Full_Long)/length(unique(Full_Long$ID)))))
-
+Full_Long <- cbind(Full_Long,slice(.data = Classes,rep(1:n(), each = 8)))
+Full_Long$Classes <- as.double(Full_Long$Classes)
 
 ## Plotting the confidence intervals of coefficients:
 plot_ci_lc(LC_GM,var = c("Price"))
