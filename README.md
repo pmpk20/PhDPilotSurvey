@@ -1,8 +1,7 @@
 # PhDPilotSurvey
-PhD First 100 analysis:
+PhD full survey analysis:
 
 To-Do:
-- Fix the attributes problem
-- Apply APOLLO package
-- Fix the HCM
+- Adjust APOLLO MXL and LCM
+- Translate APOLLO ICLV
 - Train SVM in Python
