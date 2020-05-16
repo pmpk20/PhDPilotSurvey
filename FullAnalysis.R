@@ -4,7 +4,6 @@
 ####################################################################################
 
 ############ TO DO:
-# - Report LCM further
 # - Add other attributes to the Apollo RRM
 # - Fix Apollo ICLV
 # - Estimate an Apollo MXL
@@ -571,7 +570,7 @@ Full_Cons <- Full_Certain[Full_Certain$Q20Consequentiality == 1]
 
 
 ## A very basic MNL model to test whether the method works 
-Base_MNL <- mlogit(Choice ~  Price + Performance + Emission, 
+Base_MNL <- mlogit(Choice ~  Price + Performance + Emission | Q1Gender, 
                    Full_Long,
                    alt.subset = c("A","B"),reflevel = "A") 
 summary(Base_MNL) ## Estimates a simplistic mlogit model before adding in individual-specifics
@@ -1121,33 +1120,25 @@ install.packages("apollo")
 
 ### Load Apollo library
 library(apollo)
-
-library(apollo)
 apollo_initialise()
 
-### Set core controls
-apollo_control = list(
-  modelName  ="MY_Apollo_example",
-  modelDescr ="Simple MNL model on my Pilot data",
-  indivID    ="ID",
-  HB = FALSE,
-  mixing=FALSE
-)
-
 Test_Apollo <- data.frame(Fulls$ID,Fulls$Task, Fulls$Q1Gender,
-                          Fulls$Q2Age,Fulls$Q3Distance,Fulls$Q4Trips,
+                          Fulls$Q2Age,as.numeric(Fulls$Q3Distance),Fulls$Q4Trips,
                           Fulls$Q16BP,Fulls$Q18Charity,
                           Fulls$Q20Consequentiality,Fulls$Q21Experts,
                           Fulls$Q22Education,Fulls$Q23Employment,
                           Fulls$Q25Understanding,Fulls[,15:20],
-                          Fulls$Choice,mean(Fulls$Q24AIncome))
+                          Fulls$Choice,as.numeric(Fulls$Q24AIncome),
+                          Fulls$Order, as.numeric(Fulls$Task), Fulls$Q20Consequentiality,
+                          Fulls$Q21Experts)
 colnames(Test_Apollo) <- c("ID","Task","Q1Gender","Age","Distance",
                            "Trips","BP","Charity",
                            "Consequentiality",
                            "Experts","Education","Employment","Survey",
                            "Price_B","Performance_B","Emission_B",
                            "Performance_A","Emission_A","Price_A"
-                           ,"Choice","Income")
+                           ,"Choice","Income", "Order","Task",
+                           "Consequentiality","Experts")
 
 # Tests_Dominated <- Test_Apollo[!Test_Apollo$ID %in% c(Test_Apollo$ID[ ((Test_Apollo$Task == 1) & (Test_Apollo$Choice ==1) & (grepl("SQ",rownames(Test_Apollo),fixed = TRUE) == FALSE)) ]),]
 # Tests_Understanding <- Tests_Dominated[!Tests_Dominated$ID %in% c( unique(Tests_Dominated$ID[Tests_Dominated$Survey <= 5])),]
@@ -1158,24 +1149,19 @@ Test_Apollo$Choice[Test_Apollo$Choice == 0] <- 1
 database = Test_Apollo
 
 
-choiceAnalysis_settings <- list(
-  alternatives = c(A=1, B=2),
-  avail        = list(A=1, B=1),
-  choiceVar    = Test_Apollo$Choice,
-  explanators  = Test_Apollo[,c("Price_B","Performance_B","Emission_B","Q1Gender","Age","Distance",
-                                "Trips","BP","Charity",
-                                "Education","Employment",
-                                "Income")]
+apollo_control = list(
+  modelName  ="Replicating Full_MNL",
+  indivID    ="ID"
 )
 
-apollo_choiceAnalysis(choiceAnalysis_settings, apollo_control, Test_Apollo)
 
+## Set parameters and their initial values here 
 apollo_beta=c(asc_A      = 0,
               asc_B      = 0,
               b_Price    = 0,
               b_Performance   = 0,
               b_Emission      = 0,
-              b_Q1Gender = 0,
+              b_Gender = 0,
               b_Age      = 0,
               b_Distance = 0,
               b_Trips    = 0,
@@ -1183,50 +1169,77 @@ apollo_beta=c(asc_A      = 0,
               b_Charity  = 0,
               b_Education  = 0,
               b_Employment = 0,
-              b_Income     = 0)
+              b_Income     = 0,
+              b_Order      = 0,
+              b_Task       = 0,
+              b_Cons       = 0,
+              b_Experts    = 0)
 
+## Set one of the ASCs as zero using the utility-difference approach: 
 apollo_fixed = c("asc_A")
-database <- Test_Apollo
+
+## Check model is good so far 
 apollo_inputs = apollo_validateInputs()
 
+
 apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  
+  ## Attach inputs and detach after function exit
   apollo_attach(apollo_beta, apollo_inputs)
   on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  
+  ## Create list of probabilities P
   P = list()
+  
+  ## Must specify SDs against the ASC directly
+  asc_B = asc_B + b_Gender*Q1Gender + b_Age*Age +
+    b_Distance * Distance + 
+    b_Trips * Trips +
+    b_BP * BP +
+    b_Charity * Charity + 
+    b_Education * Education +
+    b_Employment * Employment + 
+    b_Income * Income +
+    b_Order * Order +      
+    b_Task * Task +       
+    b_Cons * Consequentiality +       
+    b_Experts * Experts    
+  
+  
+  ### List of utilities: these must use the same names as in mnl_settings, order is irrelevant
   V = list()
-  V[['A']]  = asc_A  + 
-    b_Price * Test_Apollo$Price_A +
-    b_Performance * Test_Apollo$Performance_A +
-    b_Emission * Test_Apollo$Emission_A
-  
-  V[['B']]  = asc_B  + b_Price * Test_Apollo$Price_B +
-    b_Performance * Test_Apollo$Performance_B  +
-    b_Emission * Test_Apollo$Emission_B +
-    b_Q1Gender * Test_Apollo$Q1Gender + 
-    b_Age * Test_Apollo$Age +
-    b_Distance * Test_Apollo$Distance + 
-    b_Trips * Test_Apollo$Trips +
-    b_BP * Test_Apollo$BP +
-    b_Charity * Test_Apollo$Charity + 
-    b_Education * Test_Apollo$Education +
-    b_Employment * Test_Apollo$Employment + 
-    b_Income * Test_Apollo$Income
-  
+  V[['A']]  = asc_A        + b_Performance  * Performance_A + b_Emission * Emission_A + b_Price * Price_A
+  V[['B']]  = asc_B  + b_Performance  * Performance_B  + b_Emission * Emission_B + b_Price * Price_B
+
+  ### Define settings for MNL model component
   mnl_settings = list(
-    alternatives  = c(A=1, B=2), 
-    avail         = list(A=1, B=1), 
-    choiceVar     = Choice,
-    V             = V
+    alternatives = c(A=1, B=2),
+    avail        = list(A=1, B=1),
+    choiceVar    = Choice,
+    V            = V
   )
-  P[['model']] = apollo_mnl(mnl_settings, functionality)
+  
+  ### Compute probabilities using MNL model
+  P[["model"]] = apollo_mnl(mnl_settings, functionality)
+  
+  ### Take product across observation for same individual
   P = apollo_panelProd(P, apollo_inputs, functionality)
+  
+  ### Prepare and return outputs of function
   P = apollo_prepareProb(P, apollo_inputs, functionality)
   return(P)
 }
 
+model = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
 
-model = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs, estimate_settings=list(hessianRoutine="maxLik")) 
 apollo_modelOutput(model)
+
+## WTP calculations: 
+deltaMethod_settings=list(operation="ratio", parName1="b_Performance", parName2="b_Price")
+apollo_deltaMethod(model, deltaMethod_settings)
+
+deltaMethod_settings=list(operation="ratio", parName1="b_Emission", parName2="b_Price")
+apollo_deltaMethod(model, deltaMethod_settings)
 
 
 
