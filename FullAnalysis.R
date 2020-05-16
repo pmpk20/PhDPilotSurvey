@@ -1242,6 +1242,148 @@ deltaMethod_settings=list(operation="ratio", parName1="b_Emission", parName2="b_
 apollo_deltaMethod(model, deltaMethod_settings)
 
 
+# ################################################################# #
+#### Apollo MXL                       
+# ################################################################# #
+
+library(apollo)
+apollo_initialise()
+
+## Set core controls
+apollo_control = list(
+  modelName ="MXL",
+  indivID   ="ID",  
+  mixing    = TRUE, 
+  nCores    = 5
+)
+
+
+## Vector of parameters, including any that are kept fixed in estimation
+apollo_beta = c(asc_A      = 0,
+                asc_B      = 0,
+                b_Performance   = 0,
+                b_Emission      = 0,
+                b_Gender = 0,
+                b_Age      = 0,
+                b_Distance = 0,
+                b_Trips    = 0,
+                b_BP       = 0,
+                b_Charity  = 0,
+                b_Education  = 0,
+                b_Employment = 0,
+                b_Income     = 0,
+                b_Order      = 0,
+                b_Task       = 0,
+                b_Cons       = 0,
+                b_Experts    = 0,
+                mu_log_b_Price    =-3,
+                sigma_log_b_Price = 0)
+
+## Vector with names (in quotes) of parameters to be kept fixed at their starting value in apollo_beta, use apollo_beta_fixed = c() if none
+apollo_fixed = c("asc_A")
+
+
+### Set parameters for generating draws
+apollo_draws = list(
+  interDrawsType = "halton",
+  interNDraws    = 100,
+  interUnifDraws = c("draws_Price_inter"),
+  interNormDraws = c(),
+  intraDrawsType = "mlhs",
+  intraNDraws    = 100,
+  intraUnifDraws = c(),
+  intraNormDraws = c()
+)
+### Create random parameters
+apollo_randCoeff = function(apollo_beta, apollo_inputs){
+  randcoeff = list()
+  
+  randcoeff[["b_Price"]] = -exp( mu_log_b_Price + sigma_log_b_Price * draws_Price_inter )
+
+  return(randcoeff)
+}
+
+apollo_inputs = apollo_validateInputs()
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  
+  ## Function initialisation: do not change the following three commands
+  ## Attach inputs and detach after function exit
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  
+  ## Create list of probabilities P
+  P = list()
+  
+  ## Must specify SDs against the ASC directly
+  asc_B = asc_B + b_Gender*Q1Gender + b_Age*Age +
+    b_Distance * Distance + 
+    b_Trips * Trips +
+    b_BP * BP +
+    b_Charity * Charity + 
+    b_Education * Education +
+    b_Employment * Employment + 
+    b_Income * Income +
+    b_Order * Order +      
+    b_Task * Task +       
+    b_Cons * Consequentiality +       
+    b_Experts * Experts    
+  
+  ## List of utilities: these must use the same names as in mnl_settings, order is irrelevant
+  V = list()
+  V[['A']] = asc_A + b_Price*(b_Performance*Performance_A + Price_A + b_Emission*Emission_A)
+  V[['B']] = asc_B + b_Price*(b_Performance*Performance_B + Price_B + b_Emission*Emission_B)
+  
+  ## Define settings for MNL model component
+  mnl_settings = list(
+    alternatives  = c(A=1, B=2),
+    avail         = list(A=1, B=1),
+    choiceVar     = Choice,
+    V             = V
+  )
+  
+  ## Compute probabilities using MNL model
+  P[['model']] = apollo_mnl(mnl_settings, functionality)
+  
+  ## Take product across observation for same individual
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  
+  ## Average across inter-individual draws
+  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
+  
+  ## Prepare and return outputs of function
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+### Optional speedTest
+#speedTest_settings=list(
+#   nDrawsTry = c(50, 75, 100),
+#   nCoresTry = 1:3,
+#   nRep      = 10
+#)
+
+#apollo_speedTest(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs, speedTest_settings)
+
+model = apollo_estimate(apollo_beta, apollo_fixed,
+                        apollo_probabilities, apollo_inputs, 
+                        estimate_settings=list(hessianRoutine="maxLik"))
+
+apollo_modelOutput(model)
+
+
+unconditionals <- apollo_unconditionals(model,apollo_probabilities, apollo_inputs)
+
+plot(density(as.vector(unconditionals[["b_Price"]])))
+
+conditionals <- apollo_conditionals(model,apollo_probabilities, apollo_inputs)
+
+mean(unconditionals[["b_Price"]])
+
+sd(unconditionals[["b_Price"]])
+
+summary(conditionals[["b_Price"]])
+
 
 #############################################################################
 ## LCM with RRM and RUM classes
@@ -1582,153 +1724,6 @@ apollo_modelOutput(model)
 forecast <- apollo_prediction(model, apollo_probabilities, apollo_inputs,
                               prediction_settings=list(modelComponent="indic_quality"))
 
-
-# ################################################################# #
-#### LOAD LIBRARY AND DEFINE CORE SETTINGS                       ####
-# ################################################################# #
-
-### Clear memory
-rm(list = ls())
-
-### Load Apollo library
-library(apollo)
-
-### Initialise code
-apollo_initialise()
-
-### Set core controls
-apollo_control = list(
-  modelName ="Apollo_example_16",
-  modelDescr ="Mixed logit model on Swiss route choice data, WTP space with correlated and flexible distributions, inter and intra-individual heterogeneity",
-  indivID   ="ID",  
-  mixing    = TRUE, 
-  nCores    = 5
-)
-
-database = read.csv("apollo_swissRouteChoiceData.csv",header=TRUE)
-
-### Vector of parameters, including any that are kept fixed in estimation
-apollo_beta = c(asc_1                     = 0,
-                asc_2                     = 0,
-                mu_log_b_tc               =-3,
-                sigma_log_b_tc_inter      = 0,
-                mu_log_v_tt               =-3,
-                sigma_log_v_tt_inter      = 0,
-                sigma_log_v_tt_inter_2    = 0,
-                sigma_log_v_tt_intra      = 0,
-                mu_log_v_hw               =-3,
-                sigma_log_v_hw_inter      = 0,
-                sigma_log_v_hw_v_tt_inter = 0,
-                v_ch                      = 0,
-                gamma_vtt_business        = 0)
-
-### Vector with names (in quotes) of parameters to be kept fixed at their starting value in apollo_beta, use apollo_beta_fixed = c() if none
-apollo_fixed = c("asc_2")
-
-### Set parameters for generating draws
-apollo_draws = list(
-  interDrawsType = "halton",
-  interNDraws    = 100,
-  interUnifDraws = c("draws_tc_inter"),
-  interNormDraws = c("draws_hw_inter","draws_tt_inter"),
-  intraDrawsType = "mlhs",
-  intraNDraws    = 100,
-  intraUnifDraws = c(),
-  intraNormDraws = c("draws_tt_intra")
-)
-
-### Create random parameters
-apollo_randCoeff = function(apollo_beta, apollo_inputs){
-  randcoeff = list()
-  
-  randcoeff[["b_tc"]] = -exp( mu_log_b_tc
-                              + sigma_log_b_tc_inter      * draws_tc_inter )
-  
-  randcoeff[["v_tt"]] =  ( exp( mu_log_v_tt
-                                + sigma_log_v_tt_inter      * draws_tt_inter
-                                + sigma_log_v_tt_inter_2    * draws_tt_inter ^ 2
-                                + sigma_log_v_tt_intra      * draws_tt_intra   ) 
-                           * ( gamma_vtt_business    * business + ( 1 - business ) ) )
-  
-  randcoeff[["v_hw"]] =  exp( mu_log_v_hw
-                              + sigma_log_v_hw_inter      * draws_hw_inter
-                              + sigma_log_v_hw_v_tt_inter * draws_tt_inter )
-  
-  return(randcoeff)
-}
-
-apollo_inputs = apollo_validateInputs()
-
-apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
-  
-  ### Function initialisation: do not change the following three commands
-  ### Attach inputs and detach after function exit
-  apollo_attach(apollo_beta, apollo_inputs)
-  on.exit(apollo_detach(apollo_beta, apollo_inputs))
-  
-  ### Create list of probabilities P
-  P = list()
-  
-  ### List of utilities: these must use the same names as in mnl_settings, order is irrelevant
-  V = list()
-  V[['alt1']] = asc_1 + b_tc*(v_tt*tt1 + tc1 + v_hw*hw1 + v_ch*ch1)
-  V[['alt2']] = asc_2 + b_tc*(v_tt*tt2 + tc2 + v_hw*hw2 + v_ch*ch2)
-  
-  ### Define settings for MNL model component
-  mnl_settings = list(
-    alternatives  = c(alt1=1, alt2=2),
-    avail         = list(alt1=1, alt2=1),
-    choiceVar     = choice,
-    V             = V
-  )
-  
-  ### Compute probabilities using MNL model
-  P[['model']] = apollo_mnl(mnl_settings, functionality)
-  
-  ### Average across intra-individual draws
-  P = apollo_avgIntraDraws(P, apollo_inputs, functionality)
-  
-  ### Take product across observation for same individual
-  P = apollo_panelProd(P, apollo_inputs, functionality)
-  
-  ### Average across inter-individual draws
-  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
-  
-  ### Prepare and return outputs of function
-  P = apollo_prepareProb(P, apollo_inputs, functionality)
-  return(P)
-}
-
-### Optional speedTest
-#speedTest_settings=list(
-#   nDrawsTry = c(50, 75, 100),
-#   nCoresTry = 1:3,
-#   nRep      = 10
-#)
-
-#apollo_speedTest(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs, speedTest_settings)
-
-model = apollo_estimate(apollo_beta, apollo_fixed,
-                        apollo_probabilities, apollo_inputs, 
-                        estimate_settings=list(hessianRoutine="maxLik"))
-
-apollo_modelOutput(model)
-
-unconditionals <- apollo_unconditionals(model,apollo_probabilities, apollo_inputs)
-
-plot(density(as.vector(unconditionals[["v_tt"]])))
-
-conditionals <- apollo_conditionals(model,apollo_probabilities, apollo_inputs)
-
-mean(unconditionals[["v_tt"]])
-
-sd(unconditionals[["v_tt"]])
-
-summary(conditionals[["v_tt"]])
-
-income_n = apollo_firstRow(database$hh_inc_abs, apollo_inputs)
-
-summary(lm(conditionals[["v_tt"]][,2]~income_n))
 
 ###############################################################
 ##  END OF SCRIPT
