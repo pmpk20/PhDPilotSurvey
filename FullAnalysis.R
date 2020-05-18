@@ -25,11 +25,11 @@ setwd("H:/PhDPilotSurvey") ## Sets working directory. This is where my Github re
 ############ Setup and manipulation:
 FullSurvey <- data.frame(read.csv("FullSurvey.csv")) ## Imports from the excel file straight from the survey companies website.
 
-FullSurvey <- FullSurvey[ -c(2,4,14,15,16,23,24,26,27,53,54,55,56,57,58,68,69)] ## Drop columns of no importance to the quantitative analysis, namely text responses.
+FullSurvey <- FullSurvey[ -c(4,14,15,16,23,24,26,27,53,54,55,56,57,58,68,69)] ## Drop columns of no importance to the quantitative analysis, namely text responses.
 FullSurvey <- FullSurvey[ !(FullSurvey$ï..Respondent %in% c(24,33,44,61,121,127,182,200,211,219,239,251,275,306,320,326,341,360,363,371,399,464,467,479,480,506,579,591,649,654,931,932,935,953,989,1002,1011,1024,14,35,39,54,79,106,130,146,149,155,163,203,214,215,217,244,246,249,252,267,268,282,290,327,343,362,364,374,380,393,398,407,414,425,426,433,477,519,524,536,543,545,547,557,567,575,589,590,595,614,617,629,637,638,639,651,665,674,680,915,933,940,950,959,960,975,978,996,1026,1027,1028)), ] ## Drop protest rows
 
 
-colnames(FullSurvey) <- c("ID","Order","Q1Gender","Q2Age","Q3Distance","Q4Trips",
+colnames(FullSurvey) <- c("ID","Timing","Order","Q1Gender","Q2Age","Q3Distance","Q4Trips",
                            "Q5Knowledge","Q6Bid","Q7Bid","Q6ResearchResponse",
                            "Q6ResearchCertainty","Q7TreatmentResponse",
                            "Q7TreatmentCertainty","Q7Bid2Upper","Q7Bid2Lower",
@@ -276,17 +276,17 @@ DBEmission_B <- data.frame(Emission_B =
 
 ##  Creating a single column that contains all respondents CE choices. 
 Choices <- data.frame(Choice = c(t(
-  data.frame(rep(FullSurvey2[,35:38], times=1)))[,]))
+  data.frame(rep(FullSurvey2[,36:39], times=1)))[,]))
 
 ##  Chopping and reorganising the columns of the Full dataframe into a new order which includes the attributes and their levels alongside all the choices in a single vector.
 ### The final argument creates a variable called TASK
-Full <- data.frame(Full[,1:13],Full[,18],DBPrice_B, DBPerformance_B, DBEmission_B,
-                    Full[,55:57],Choices, Full[,19],Full[,23],Full[,27],
-                    Full[,31],Full[,39:54],
+Full <- data.frame(Full[,1:14],Full[,19],DBPrice_B, DBPerformance_B, DBEmission_B,
+                    Full[,56:58],Choices, Full[,20],Full[,24],Full[,28],
+                    Full[,32],Full[,40:55],
                     rep(1:4,times=nrow(FullSurvey2)))
 
 ##  Assigning column names for ease of analysis.
-colnames(Full) <- c("ID","Order","Q1Gender","Q2Age","Q3Distance","Q4Trips",
+colnames(Full) <- c("ID","Timing","Order","Q1Gender","Q2Age","Q3Distance","Q4Trips",
                      "Q5Knowledge","Q6Bid","Q7Bid","Q6ResearchResponse",
                      "Q6ResearchCertainty","Q7TreatmentResponse",
                      "Q7TreatmentCertainty","Q8DominatedTest",
@@ -309,24 +309,45 @@ library(mlogit)
 
 ## Here the dataframe Full is reshaped from wide to long format for use in the MLOGIT estimations.
 Full_Long <- mlogit.data(Full, shape = "wide", choice = "Choice",
-                          varying = 15:20, sep = "_", id.var = "ID")
+                          varying = 16:21, sep = "_", id.var = "ID")
+
 
 ################  Sample truncation:
 ## Calculating failure rates:
 
+
+# Reporting a high understanding of the survey
+Full_Understanding <- Full_Long[Full_Long$Q25Understanding >= 7]
+# 6.4% failure rate (43/670 failed)
+
+# Speeders:
+Full_Timing <- Full_Long[Full_Long$Timing >= (median(Full_Long$Timing)/60)/100*48]
+# 30.30% failure rate (170/561 failed)
 
 # Passing the Q8 dominated test scenario
 Full_Dominated <- Full_Long[Full_Long$Q8DominatedTest == 0]
 # 30.30% failure rate (170/561 failed)
 
 ### Trimming by having certainty in their CE choices.
-Full_Certain <- Full_Dominated[Full_Dominated$Q12CECertainty == 2]
-# 68% failure (368/591 failed)
+Full_Certain <- Full_Long[Full_Long$Q12CECertainty >= 1]
+# 6% failure (40/670 failed)
 
 ###  Believing the survey responses to be consequential.
-Full_Cons <- Full_Certain[Full_Certain$Q20Consequentiality == 1]
-# Only 17% (112/670 passed everything)
+Full_Cons <- Full_Long[Full_Long$Q20Consequentiality >= 1]
+# Only 16% (110/670 failed)
 
+### Fully-truncated sample:
+AllCriteria <- data.frame("IDs" = unique(Full_Long$ID[ (Full_Long$Q25Understanding >=7) &
+                                  (Full_Long$Timing >= (median(Full_Long$Timing)/60)/100*48) &
+                                  (Full_Long$Q8DominatedTest == 0) &
+                                  (Full_Long$Q12CECertainty >= 1) &
+                                  (Full_Long$Q20Consequentiality >= 1) ])) 
+
+## Here checking if any of the remaining respondents were on the protest list: 
+AllCriteria <- AllCriteria[ !(AllCriteria$IDs %in% c(24,33,44,61,121,127,182,200,211,219,239,251,275,306,320,326,341,360,363,371,399,464,467,479,480,506,579,591,649,654,931,932,935,953,989,1002,1011,1024,14,35,39,54,79,106,130,146,149,155,163,203,214,215,217,244,246,249,252,267,268,282,290,327,343,362,364,374,380,393,398,407,414,425,426,433,477,519,524,536,543,545,547,557,567,575,589,590,595,614,617,629,637,638,639,651,665,674,680,915,933,940,950,959,960,975,978,996,1026,1027,1028)),]
+
+## Fully truncated:
+Full_Full <- Full_Long[ (Full_Long$ID) %in% c(Idz)  ]
 
 ##########################################################  
 ####### Descriptive Statistics
@@ -371,6 +392,30 @@ mean(FullSurvey2$Q4Trips) ## Estimating average annual trips
 
 ## Income: 
 mean(FullSurvey2$Q24AIncome) ## Estimating sample income
+
+## Timing (faster than 48% time)
+(median(Full_Long$Timing)/60)/100*48
+library(ggplot2)
+ggplot(FullSurvey2, aes(x=Timing/60)) + 
+  geom_histogram(color="black", fill="white",binwidth = 1)+
+  geom_vline(aes(xintercept=(median(FullSurvey2$Timing)/60)/100*48),
+             color="blue", linetype="dashed", size=1)+
+  scale_x_continuous(name="Completion length in minutes")+
+  geom_vline(xintercept=((median(FullSurvey2$Timing)/60)/100*48), colour="grey") +
+  geom_text(aes(x=((median(FullSurvey2$Timing)/60)/100*48)-2, label="Speeders", y=100), colour="red", angle=0) +
+  geom_text(aes(x=((median(FullSurvey2$Timing)/60)/100*48)+2, label="Included", y=100), colour="blue", angle=0)+
+  ggtitle("Distribution of survey completion timings.")
+
+
+### Plotting survey understanding
+ggplot(FullSurvey2, aes(x=Q25Understanding)) + 
+  geom_histogram(color="black", fill="white",binwidth = 1)+
+  geom_vline(aes(xintercept=7),color="blue", linetype="dashed", size=1)+
+  scale_x_continuous(name="Self-reported survey undertanding in 1-10")+
+  geom_vline(xintercept=(7), colour="grey") +
+  geom_text(aes(x=5, label="Excluded", y=400), colour="red", angle=0) +
+  geom_text(aes(x=8, label="Included", y=400), colour="blue", angle=0)+
+  ggtitle("Distribution of survey understanding")
 
 ##########################################################  
 ####### Descriptive Graphics
@@ -454,9 +499,9 @@ Full_Cons <- data.frame(Full_Cons) ## Change into dataframe format
 Full_Long <- data.frame(Full_Long) ## Same here - ggplot2 throws a fit without it.
 
 ## Here the Blue-Planet question is manipulated to be either of two values
-Full_Cons$Q14BP[Full_Cons$Q16BP == 0] <- "Not watched" 
-Full_Cons$Q14BP[Full_Cons$Q16BP == 1] <- "Watched"
-Full_Cons$Q14BP[Full_Cons$Q16BP == 2] <- "Watched"
+Full_Cons$Q16BP[Full_Cons$Q16BP == 0] <- "Not watched" 
+Full_Cons$Q16BP[Full_Cons$Q16BP == 1] <- "Watched"
+Full_Cons$Q16BP[Full_Cons$Q16BP == 2] <- "Watched"
 
 ## Categorising charity involvement.
 Full_Cons$Q18Charity[Full_Cons$Q18Charity == 0] <- "No involvement"
@@ -546,11 +591,11 @@ grid.arrange(PriceCurve, EmissionsCurve, PerformanceCurve)
 ####### CE
 ##########################################################  
 
-Full <- cbind(Full,Classes)
+# Full <- cbind(Full,Classes)
 ## Have to do the manipulation section again to ignore the changes made in the graphics section
 library(mlogit) #Already have package installed
 Full_Long <- mlogit.data(Full, shape = "wide", choice = "Choice",
-                          varying = 15:20, sep = "_", id.var = "ID")
+                          varying = 16:21, sep = "_", id.var = "ID")
 
 Full_Long$Performance[Full_Long$Performance == 0.05] <- 5
 Full_Long$Performance[Full_Long$Performance == 0.10] <- 10
@@ -581,7 +626,7 @@ Full_MNL <- mlogit(Choice ~ Price + Performance + Emission |
                     + Q4Trips + Q16BP + Q18Charity 
                     + Q20Consequentiality
                     + Q21Experts +Q22Education+ Q23Employment
-                    +  Q24AIncome, 
+                    +  Q24AIncome + Timing, 
                     Full_Long, alt.subset = c("A", "B"), 
                     reflevel = "A") 
 summary(Full_MNL) ## Summarises the MNL output
@@ -592,45 +637,59 @@ MXLFull <- mlogit(
     Order + Task + Q1Gender + Q2Age + Q3Distance
   + Q4Trips + Q16BP + Q18Charity
   + Q21Experts +Q22Education+ Q23Employment
-  +  Q24AIncome,
+  +  Q24AIncome + Timing,
   Full_Long, rpar=c(Price="n"),
   R=1000,correlation = FALSE,
   reflevel="A",halton=NA,method="bfgs",panel=FALSE,seed=123)
 summary(MXLFull)
 
-## Same as above but with only certain responses
-MXLFullD <- mlogit(
-  Choice ~ Price + Performance + Emission | 
+## Adding in quadratic terms
+MXLFullTruncated <- mlogit(
+  Choice ~ Price + I(Performance^2) + I(Emission^2) |  
     Order + Task + Q1Gender + Q2Age + Q3Distance
   + Q4Trips + Q16BP + Q18Charity
   + Q21Experts +Q22Education+ Q23Employment
-  +  Q24AIncome,
-  Full_Cons, rpar=c(Price="n"),
+  +  Q24AIncome + Timing,
+  Full_Long, rpar=c(Price="n"),
   R=1000,correlation = FALSE,
   reflevel="A",halton=NA,method="bfgs",panel=FALSE,seed=123)
-summary(MXLFullD)
+summary(MXLFullTruncated)
+
+## Attribute only specification: 
+MXLAttributes <- mlogit(
+  Choice ~ Price + Performance + Emission,
+  Full_Long, rpar=c(Price="n",Performance="n",Emission="n"),
+  R=1000,correlation = FALSE,
+  reflevel="A",halton=NA,method="bfgs",panel=FALSE,seed=123)
+summary(MXLAttributes)
+
+c(-1*coef(MXLAttributes)["Emission"]/coef(MXLAttributes)["Price"],
+  -1*coef(MXLAttributes)["Performance"]/coef(MXLAttributes)["Price"])
 
 ## Compare attribute MWTP by sample
-WTPs <- data.frame("Full sample" = 
+FullWTPs <- data.frame("Full sample" = 
                      c(-1*coef(MXLFull)["Emission"]/coef(MXLFull)["Price"],
                        -1*coef(MXLFull)["Performance"]/coef(MXLFull)["Price"])
-                   ,"Truncated" = 
-                     c(-1*coef(MXLFullD)["Emission"]/coef(MXLFullD)["Price"],
-                       -1*coef(MXLFullD)["Performance"]/coef(MXLFullD)["Price"]),
+                   ,"Welfare" = 
+                     c(-1*(coef(MXLFull)["Emission"]/coef(MXLFull)["Price"] * 100),
+                       -1*(coef(MXLFull)["Performance"]/coef(MXLFull)["Price"] *100)),
+                   "Truncated" = 
+                     c(-1*coef(MXLFullTruncated)["Emission"]/coef(MXLFullTruncated)["Price"],
+                       -1*coef(MXLFullTruncated)["Performance"]/coef(MXLFullTruncated)["Price"]),
                    "Welfare" = 
-                     c(-1*(coef(MXLFullD)["Emission"]/coef(MXLFullD)["Price"] * 100),
-                       -1*(coef(MXLFullD)["Performance"]/coef(MXLFullD)["Price"] *100)))
-WTPs
+                     c(-1*(coef(MXLFullTruncated)["Emission"]/coef(MXLFullTruncated)["Price"] * 100),
+                       -1*(coef(MXLFullTruncated)["Performance"]/coef(MXLFullTruncated)["Price"] *100)))
+FullWTPs
 
 ## Plot conditional distribution of MWTP. 
 layout(matrix(c(1,1,2,2), 2, 2, byrow = TRUE), widths=c(1,1), heights=c(4,4))
 plot(rpar(MXLFull,"Price"), main="MXL: Full sample")
-plot(rpar(MXLFullD,"Price"), main="MXL: Truncation")
-AIC(MXLFullD)
+plot(rpar(MXLFullTruncated,"Price"), main="MXL: Truncation")
+AIC(MXLFullTruncated)
 
 ## Bootstrapped clustered individual standard errors: 
 library(clusterSEs)
-CBSM <- cluster.bs.mlogit(MXLFullD, Full_Cons, ~ ID, boot.reps=100,seed = 123)
+CBSM <- cluster.bs.mlogit(MXLFullTruncated, Full_Cons, ~ ID, boot.reps=100,seed = 123)
 
 WTPbs <- data.frame("Emission" = c(CBSM$ci[4,1]/CBSM$ci[2,1],CBSM$ci[4,2]/CBSM$ci[2,2]),
                     "Performance"=c(CBSM$ci[3,1]/CBSM$ci[2,1],CBSM$ci[3,2]/CBSM$ci[2,2]))
@@ -1085,7 +1144,8 @@ colnames(FullSurvey2)[57] <- "Precaution"
 ggplot(FullSurvey2) + 
   facet_grid( ~ Q1Gender, labeller = as_labeller(c(
     `0` = "Female",
-    `1` = "Male")))+
+    `1` = "Male",
+    `2` = "Other")))+
   geom_smooth(aes(x=Q24AIncome,y=Q6WTP,color="red"),method="lm",se=F) +
   geom_smooth(aes(x=Q24AIncome,y=Q7WTP,color="blue"),method="lm",se=F) +
   scale_color_discrete(name = "Lines", 
@@ -1263,19 +1323,6 @@ apollo_beta = c(asc_A      = 0,
                 asc_B      = 0,
                 b_Performance   = 0,
                 b_Emission      = 0,
-                b_Gender = 0,
-                b_Age      = 0,
-                b_Distance = 0,
-                b_Trips    = 0,
-                b_BP       = 0,
-                b_Charity  = 0,
-                b_Education  = 0,
-                b_Employment = 0,
-                b_Income     = 0,
-                b_Order      = 0,
-                b_Task       = 0,
-                b_Cons       = 0,
-                b_Experts    = 0,
                 mu_log_b_Price    =-3,
                 sigma_log_b_Price = 0)
 
@@ -1315,19 +1362,19 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
   ## Create list of probabilities P
   P = list()
   
-  ## Must specify SDs against the ASC directly
-  asc_B = asc_B + b_Gender*Q1Gender + b_Age*Age +
-    b_Distance * Distance + 
-    b_Trips * Trips +
-    b_BP * BP +
-    b_Charity * Charity + 
-    b_Education * Education +
-    b_Employment * Employment + 
-    b_Income * Income +
-    b_Order * Order +      
-    b_Task * Task +       
-    b_Cons * Consequentiality +       
-    b_Experts * Experts    
+  # ## Must specify SDs against the ASC directly
+  # asc_B = asc_B + b_Gender*Q1Gender + b_Age*Age +
+  #   b_Distance * Distance + 
+  #   b_Trips * Trips +
+  #   b_BP * BP +
+  #   b_Charity * Charity + 
+  #   b_Education * Education +
+  #   b_Employment * Employment + 
+  #   b_Income * Income +
+  #   b_Order * Order +      
+  #   b_Task * Task +       
+  #   b_Cons * Consequentiality +       
+  #   b_Experts * Experts    
   
   ## List of utilities: these must use the same names as in mnl_settings, order is irrelevant
   V = list()
