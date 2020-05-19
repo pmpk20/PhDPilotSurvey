@@ -347,7 +347,7 @@ AllCriteria <- data.frame("IDs" = unique(Full_Long$ID[ (Full_Long$Q25Understandi
 AllCriteria <- AllCriteria[ !(AllCriteria$IDs %in% c(24,33,44,61,121,127,182,200,211,219,239,251,275,306,320,326,341,360,363,371,399,464,467,479,480,506,579,591,649,654,931,932,935,953,989,1002,1011,1024,14,35,39,54,79,106,130,146,149,155,163,203,214,215,217,244,246,249,252,267,268,282,290,327,343,362,364,374,380,393,398,407,414,425,426,433,477,519,524,536,543,545,547,557,567,575,589,590,595,614,617,629,637,638,639,651,665,674,680,915,933,940,950,959,960,975,978,996,1026,1027,1028)),]
 
 ## Fully truncated:
-Full_Full <- Full_Long[ (Full_Long$ID) %in% c(Idz)  ]
+Full_Full <- Full_Long[ (Full_Long$ID) %in% c(AllCriteria)  ]
 
 ##########################################################  
 ####### Descriptive Statistics
@@ -607,21 +607,32 @@ Full_Long$Emission[Full_Long$Emission == 0.4] <- 40
 ## To trim the sample: 
 Full_Dominated <- Full_Long[Full_Long$Q8DominatedTest == 0]
 # Full_Understanding <- Full_Dominated[Full_Dominated$Q25Understanding >= 5]
-Full_Certain <- Full_Dominated[Full_Dominated$Q12CECertainty == 2]
-Full_Cons <- Full_Certain[Full_Certain$Q20Consequentiality == 1]
+Full_Certain <- Full_Dominated[Full_Dominated$Q12CECertainty >= 2]
+Full_Cons <- Full_Certain[Full_Certain$Q20Consequentiality >= 1]
 
 
 ######################## Estimation section:
 
+###### Aim is here to estimate a range of possible specifications 
 
-## A very basic MNL model to test whether the method works 
-Base_MNL <- mlogit(Choice ~  Price + Performance + Emission | Q1Gender, 
+## Model 1: Attributes only MNL
+MNL_1 <- mlogit(Choice ~  Price + Performance + Emission, 
                    Full_Long,
                    alt.subset = c("A","B"),reflevel = "A") 
-summary(Base_MNL) ## Estimates a simplistic mlogit model before adding in individual-specifics
+summary(MNL_1) ## Estimates a simplistic mlogit model before adding in individual-specifics
+MNL_1_WTP <- c(-1*coef(MNL_1)["Emission"]/coef(MNL_1)["Price"],-1*coef(MNL_1)["Performance"]/coef(MNL_1)["Price"])
 
-## The full MNL with all covariates:
-Full_MNL <- mlogit(Choice ~ Price + Performance + Emission | 
+
+## Model 2: Attributes only with quadratic terms: 
+MNL_2 <- mlogit(Choice ~  Price + I(Performance^2) + I(Emission^2), 
+                   Full_Long,
+                   alt.subset = c("A","B"),reflevel = "A") 
+summary(MNL_2) ## Estimates a simplistic mlogit model before adding in individual-specifics
+MNL_2_WTP <- c(-1*coef(MNL_2)["I(Emission^2)"]/coef(MNL_2)["Price"],-1*coef(MNL_2)["I(Performance^2)"]/coef(MNL_2)["Price"])
+
+
+## Model 3: MNL with all sociodemographics:
+MNL_3 <- mlogit(Choice ~ Price + Performance + Emission | 
                       Order + Task + Q1Gender + Q2Age + Q3Distance
                     + Q4Trips + Q16BP + Q18Charity 
                     + Q20Consequentiality
@@ -629,73 +640,148 @@ Full_MNL <- mlogit(Choice ~ Price + Performance + Emission |
                     +  Q24AIncome + Timing, 
                     Full_Long, alt.subset = c("A", "B"), 
                     reflevel = "A") 
-summary(Full_MNL) ## Summarises the MNL output
+summary(MNL_3) ## Summarises the MNL output
+MNL_3_WTP <- c(-1*coef(MNL_3)["Emission"]/coef(MNL_3)["Price"],-1*coef(MNL_3)["Performance"]/coef(MNL_3)["Price"])
 
-## I then estimate the same specification but with a MIXED LOGIT specification.
-MXLFull <- mlogit(
+
+## Model 4: Now MIXED LOGIT - Attributes Only
+MXL_1 <- mlogit(
+  Choice ~ Price + Performance + Emission ,
+  Full_Long, rpar=c(Price="n"),
+  R=1000,correlation = FALSE,
+  reflevel="A",halton=NA,method="bfgs",panel=FALSE,seed=123)
+summary(MXL_1)
+MXL_1_WTP <- c(-1*coef(MXL_1)["Emission"]/coef(MXL_1)["Price"],-1*coef(MXL_1)["Performance"]/coef(MXL_1)["Price"])
+
+
+## Model 5: MXL quadratic attributes only
+MXL_2 <- mlogit(
+  Choice ~ Price + I(Performance^2) + I(Emission^2) ,
+  Full_Long, rpar=c(Price="n"),
+  R=1000,correlation = FALSE,
+  reflevel="A",halton=NA,method="bfgs",panel=FALSE,seed=123)
+summary(MXL_2)
+MXL_2_WTP <- c(-1*coef(MXL_2)["I(Emission^2)"]/coef(MXL_2)["Price"],-1*coef(MXL_2)["I(Performance^2)"]/coef(MXL_2)["Price"])
+
+
+## Model 6: MXL all sociodemographics, utility-space
+MXL_3 <- mlogit(
   Choice ~ Price + Performance + Emission | 
     Order + Task + Q1Gender + Q2Age + Q3Distance
-  + Q4Trips + Q16BP + Q18Charity
+  + Q4Trips + Q16BP + Q18Charity 
+  + Q20Consequentiality
   + Q21Experts +Q22Education+ Q23Employment
   +  Q24AIncome + Timing,
-  Full_Long, rpar=c(Price="n"),
-  R=1000,correlation = FALSE,
-  reflevel="A",halton=NA,method="bfgs",panel=FALSE,seed=123)
-summary(MXLFull)
-
-## Adding in quadratic terms
-MXLFullTruncated <- mlogit(
-  Choice ~ Price + I(Performance^2) + I(Emission^2) |  
-    Order + Task + Q1Gender + Q2Age + Q3Distance
-  + Q4Trips + Q16BP + Q18Charity
-  + Q21Experts +Q22Education+ Q23Employment
-  +  Q24AIncome + Timing,
-  Full_Long, rpar=c(Price="n"),
-  R=1000,correlation = FALSE,
-  reflevel="A",halton=NA,method="bfgs",panel=FALSE,seed=123)
-summary(MXLFullTruncated)
-
-## Attribute only specification: 
-MXLAttributes <- mlogit(
-  Choice ~ Price + Performance + Emission,
   Full_Long, rpar=c(Price="n",Performance="n",Emission="n"),
   R=1000,correlation = FALSE,
   reflevel="A",halton=NA,method="bfgs",panel=FALSE,seed=123)
-summary(MXLAttributes)
+summary(MXL_3)
+MXL_3_WTP <- c(-1*coef(MXL_3)["Emission"]/coef(MXL_3)["Price"],-1*coef(MXL_3)["Performance"]/coef(MXL_3)["Price"])
 
-c(-1*coef(MXLAttributes)["Emission"]/coef(MXLAttributes)["Price"],
-  -1*coef(MXLAttributes)["Performance"]/coef(MXLAttributes)["Price"])
+
+## Model 7: MXL all sociodemographics, WTP-space
+MXL_4 <- mlogit(
+  Choice ~ Price + Performance + Emission | 
+    Order + Task + Q1Gender + Q2Age + Q3Distance
+  + Q4Trips + Q16BP + Q18Charity 
+  + Q20Consequentiality
+  + Q21Experts +Q22Education+ Q23Employment
+  +  Q24AIncome + Timing,
+  Full_Long, rpar=c(Price="n"),
+  R=1000,correlation = FALSE,
+  reflevel="A",halton=NA,method="bfgs",panel=FALSE,seed=123)
+summary(MXL_4)
+MXL_4_WTP <- c(-1*coef(MXL_4)["Emission"]/coef(MXL_4)["Price"],-1*coef(MXL_4)["Performance"]/coef(MXL_4)["Price"])
+
+
+# Can truncate sample by protest votes:
+# Full_Cons <- Full_Cons[ !(Full_Cons$ï..Respondent %in% c(24,33,44,61,121,127,182,200,211,219,239,251,275,306,320,326,341,360,363,371,399,464,467,479,480,506,579,591,649,654,931,932,935,953,989,1002,1011,1024,14,35,39,54,79,106,130,146,149,155,163,203,214,215,217,244,246,249,252,267,268,282,290,327,343,362,364,374,380,393,398,407,414,425,426,433,477,519,524,536,543,545,547,557,567,575,589,590,595,614,617,629,637,638,639,651,665,674,680,915,933,940,950,959,960,975,978,996,1026,1027,1028)), ] ## Drop protest rows
+
+## Model 8: MXL all sociodemographics, WTP-space, truncated sample
+MXL_5 <- mlogit(
+  Choice ~ Price + Performance + Emission | 
+    Order + Task + Q1Gender + Q2Age + Q3Distance
+  + Q4Trips + Q16BP + Q18Charity 
+  + Q20Consequentiality
+  + Q21Experts +Q22Education+ Q23Employment
+  +  Q24AIncome + Timing,
+  Full_Cons, rpar=c(Price="n"),
+  R=1000,correlation = FALSE,
+  reflevel="A",halton=NA,method="bfgs",panel=FALSE,seed=123)
+summary(MXL_5)
+MXL_5_WTP <- c(-1*coef(MXL_5)["Emission"]/coef(MXL_5)["Price"],-1*coef(MXL_5)["Performance"]/coef(MXL_5)["Price"])
+
+
+AllWTPs <- round(t(data.frame("Model 1: MNL - Attributes only" = c(MNL_1_WTP),
+                   "Model 2: MNL - Quadratic attributes:"=c(MNL_2_WTP),
+                   "Model 3: MNL - All sociodemographics:"=c(MNL_3_WTP),
+                   "Model 4: MXL - Attributes Only"=c(MXL_1_WTP),
+                   "Model 5: MXL - Quadratic attributes"=c(MXL_2_WTP),
+                   "Model 6: MXL - SDs, utility-space"=c(MXL_3_WTP),
+                   "Model 7: MXL - SDs, WTP-space"=c(MXL_4_WTP),
+                   "Model 8: MXL - SDs, WTP-space, truncated sample"=c(MXL_5_WTP))),6)
+AllWTPs <- data.frame(AllWTPs)
+AllWTP <- rownames(AllWTPs)
+colnames(AllWTPs) <- c("Emission","Performance")
+AllWTPs <- data.frame(cbind(AllWTPs$Emission,AllWTPs$Emission*100,AllWTPs$Performance,AllWTPs$Performance*100))
+colnames(AllWTPs) <- c("Emission MWTP","Emission Total","Performance MWTP", "Performance Total")
+rownames(AllWTPs) <- AllWTP
+## The aim above is to create a data.frame which stores all the MWTP and total WTP by model specification
+
+## Storing all models AICs as an indicator of goodness-of-fit
+Models_AIC <- round(t(data.frame("Model 1: MNL - Attributes only" = AIC(MNL_1),
+                                 "Model 2: MNL - Quadratic attributes:"=AIC(MNL_2),
+                                 "Model 3: MNL - All sociodemographics:"=AIC(MNL_3),
+                                 "Model 4: MXL - Attributes Only"=AIC(MXL_1),
+                                 "Model 5: MXL - Quadratic attributes"=AIC(MXL_2),
+                                 "Model 6: MXL - SDs, utility-space"=AIC(MXL_3),
+                                 "Model 7: MXL - SDs, WTP-space"=AIC(MXL_4),
+                                 "Model 8: MXL - SDs, WTP-space, truncated sample"=AIC(MXL_5))),6) 
+
+## Storing all models loglikelihoods as an indicator of goodness-of-fit 
+Models_LogLik <- round(t(data.frame("Model 1: MNL - Attributes only" = logLik(MNL_1)[1],
+                                    "Model 2: MNL - Quadratic attributes:"=logLik(MNL_2)[1],
+                                    "Model 3: MNL - All sociodemographics:"=logLik(MNL_3)[1],
+                                    "Model 4: MXL - Attributes Only"=logLik(MXL_1)[1],
+                                    "Model 5: MXL - Quadratic attributes"=logLik(MXL_2)[1],
+                                    "Model 6: MXL - SDs, utility-space"=logLik(MXL_3)[1],
+                                    "Model 7: MXL - SDs, WTP-space"=logLik(MXL_4)[1],
+                                    "Model 8: MXL - SDs, WTP-space, truncated sample"=logLik(MXL_5)[1])),6) 
+
+Models_Evaluation <- cbind(AllWTPs,Models_AIC,Models_LogLik)
+xtable::xtable(Models_Evaluation,digits=3)
 
 ## Compare attribute MWTP by sample
 FullWTPs <- data.frame("Full sample" = 
-                     c(-1*coef(MXLFull)["Emission"]/coef(MXLFull)["Price"],
-                       -1*coef(MXLFull)["Performance"]/coef(MXLFull)["Price"])
-                   ,"Welfare" = 
-                     c(-1*(coef(MXLFull)["Emission"]/coef(MXLFull)["Price"] * 100),
-                       -1*(coef(MXLFull)["Performance"]/coef(MXLFull)["Price"] *100)),
+                     c(-1*coef(MXL_4)["Emission"]/coef(MXL_4)["Price"],
+                       -1*coef(MXL_4)["Performance"]/coef(MXL_4)["Price"])
+                   ,"x100%" = 
+                     c(-1*(coef(MXL_4)["Emission"]/coef(MXL_4)["Price"] * 100),
+                       -1*(coef(MXL_4)["Performance"]/coef(MXL_4)["Price"] *100)),
                    "Truncated" = 
-                     c(-1*coef(MXLFullTruncated)["Emission"]/coef(MXLFullTruncated)["Price"],
-                       -1*coef(MXLFullTruncated)["Performance"]/coef(MXLFullTruncated)["Price"]),
-                   "Welfare" = 
-                     c(-1*(coef(MXLFullTruncated)["Emission"]/coef(MXLFullTruncated)["Price"] * 100),
-                       -1*(coef(MXLFullTruncated)["Performance"]/coef(MXLFullTruncated)["Price"] *100)))
+                     c(-1*coef(MXL_5)["Emission"]/coef(MXL_5)["Price"],
+                       -1*coef(MXL_5)["Performance"]/coef(MXL_5)["Price"]),
+                   " x100%" = 
+                     c(-1*(coef(MXL_5)["Emission"]/coef(MXL_5)["Price"] * 100),
+                       -1*(coef(MXL_5)["Performance"]/coef(MXL_5)["Price"] *100)))
 FullWTPs
+
 
 ## Plot conditional distribution of MWTP. 
 layout(matrix(c(1,1,2,2), 2, 2, byrow = TRUE), widths=c(1,1), heights=c(4,4))
-plot(rpar(MXLFull,"Price"), main="MXL: Full sample")
-plot(rpar(MXLFullTruncated,"Price"), main="MXL: Truncation")
+plot(rpar(MXL_4,"Price"), main="MXL: Full sample")
+plot(rpar(MXL_5,"Price"), main="MXL: Truncation")
 AIC(MXLFullTruncated)
 
 ## Bootstrapped clustered individual standard errors: 
 library(clusterSEs)
-CBSM <- cluster.bs.mlogit(MXLFullTruncated, Full_Cons, ~ ID, boot.reps=100,seed = 123)
+CBSM <- cluster.bs.mlogit(MXL_5, Full_Cons, ~ ID, boot.reps=100,seed = 123)
 
 WTPbs <- data.frame("Emission" = c(CBSM$ci[4,1]/CBSM$ci[2,1],CBSM$ci[4,2]/CBSM$ci[2,2]),
                     "Performance"=c(CBSM$ci[3,1]/CBSM$ci[2,1],CBSM$ci[3,2]/CBSM$ci[2,2]))
 WTPbs <- t(WTPbs)
 WTPbs <- -1* WTPbs
-WTPbs <- cbind(WTPbs[,1],WTPs[,2],WTPbs[,2])
+WTPbs <- cbind(WTPbs[,1],FullWTPs[,2],FullWTPs[,2])
 colnames(WTPbs) <- c("Lower","Mean","Upper")
 round(WTPbs,3)
 
@@ -741,6 +827,7 @@ plot(GMNL_MXLDefault, par = "Price",type = "density", col = "grey",wrt="Price")
 
 
 ############ Estimating LATENT-CLASS MODELS
+
 
 ## Two class model:
 LC_GM <- gmnl(Choice ~ Price + Performance + Emission | 0 |
@@ -955,14 +1042,22 @@ plot(TreatmentKMT, main="Q7 Kaplan-Meier-Turnbull survival function.")
 #################### Estimating WTP. Q6 then Q7 and exploring ordering and consequentiality
 
 
-## The Q6 model
+## The Q6 model basic:
 Research_SB <- sbchoice(Q6ResearchResponse ~ Order + Q1Gender + Q2Age + Q3Distance
                         + Q4Trips + Q16BP + Q18Charity
                         + Q21Experts + Q22Education + Q23Employment
-                        +  Q24AIncome | Q6Bid, data = Full_Long,dist="logistic")
+                        +  Q24AIncome + Timing | Q6Bid, data = Full_Long,dist="logistic")
 summary(Research_SB) ## Reports the SBDC analysis for Q6 with mean, median and coefficients.
 krCI(Research_SB)
 bootCI(Research_SB)
+
+## Q6 on truncated sample:
+Research_Truncated <- sbchoice(Q6ResearchResponse ~ Order + Q1Gender + Q2Age + Q3Distance
+                        + Q4Trips + Q16BP + Q18Charity
+                        + Q21Experts + Q22Education + Q23Employment
+                        +  Q24AIncome + Timing | Q6Bid, data = Full_Cons,dist="logistic")
+summary(Research_Truncated)
+krCI(Research_Truncated)
 
 ####### Testing ordering effects: 
 Research_Order1 <- sbchoice(Q6ResearchResponse ~ Q1Gender + Q2Age + Q3Distance
@@ -988,10 +1083,19 @@ krCI(Research_Order2)
 Treatment_DB <- dbchoice(Q7TreatmentResponse + Q7Response2 ~ Order + Q1Gender + Q2Age + Q3Distance
                          + Q4Trips + Q16BP + Q18Charity
                          + Q21Experts + Q22Education + Q23Employment
-                         +  Q24AIncome | Q7Bid + Q7Bid2,data = Full_Long,dist="logistic")
+                         +  Q24AIncome + Timing | Q7Bid + Q7Bid2,data = Full_Long,dist="logistic")
 summary(Treatment_DB)
 krCI(Treatment_DB)
 bootCI(Treatment_DB)
+
+## Q7 on truncated sample:
+Treatment_Truncated <- dbchoice(Q7TreatmentResponse + Q7Response2 ~ Order + Q1Gender + Q2Age + Q3Distance
+                         + Q4Trips + Q16BP + Q18Charity
+                         + Q21Experts + Q22Education + Q23Employment
+                         +  Q24AIncome + Timing | Q7Bid + Q7Bid2,data = Full_Cons,dist="logistic")
+summary(Treatment_Truncated)
+krCI(Treatment_Truncated)
+bootCI(Treatment_Truncated)
 
 ## Analysing only the firt bound if anchoring is an issue
 Treatment1_SB <- sbchoice(Q7TreatmentResponse ~ Order  + Q1Gender + Q2Age + Q3Distance
@@ -1321,6 +1425,7 @@ apollo_control = list(
 ## Vector of parameters, including any that are kept fixed in estimation
 apollo_beta = c(asc_A      = 0,
                 asc_B      = 0,
+                b_Price = 0,
                 b_Performance   = 0,
                 b_Emission      = 0,
                 mu_log_b_Price    =-3,
@@ -1450,9 +1555,11 @@ apollo_control = list(
 apollo_beta = c(# Class 1
   B_Price_1 = 0,
   B_Performance_1 = 0,
+  B_Emission_1 = 0,
   # Class 2
   B_Price_2 = 0,
   B_Performance_2  = -0.2,
+  B_Emission_2 = 0,
   # Class membership parameters
   s_1     = 0,
   s_2     = 0)
@@ -1474,7 +1581,7 @@ apollo_lcPars = function(apollo_beta, apollo_inputs){
   lcpars = list()
   lcpars[["B_Price"]] = list(B_Price_1, B_Price_2)
   lcpars[["B_Performance"]] = list(B_Performance_1, B_Performance_2)
-  
+  lcpars[["B_Emission"]] = list(B_Emission_1, B_Emission_2)  
   
   V=list()
   V[["class_1"]] = s_1
@@ -1510,6 +1617,8 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
   Price2_sc =( 1 / 1000 ) * Price_B
   Performance1_sc =( 1 / 1000 ) * Performance_A
   Performance2_sc =( 1 / 1000 ) * Performance_B
+  Emission1_sc =( 1 / 1000 ) * Emission_A
+  Emission2_sc =( 1 / 1000 ) * Emission_B
   
   
   # Compute P-RRM Atrribute levels
@@ -1518,6 +1627,9 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
   
   X_Performance1 = pmax( 0 , Performance2_sc - Performance1_sc ) 
   X_Performance2 = pmax( 0 , Performance1_sc - Performance2_sc ) 
+  
+  X_Emission1 = pmax( 0 , Emission2_sc - Emission1_sc ) 
+  X_Emission2 = pmax( 0 , Emission1_sc - Emission2_sc ) 
   
   ###Create list for probabilities
   P = list()
@@ -1531,8 +1643,8 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
   
   ### Compute class-specific utilities
   V=list()
-  V[['Alt1']]  = B_Price_1 * Price1_sc + B_Performance_1 * Performance1_sc 
-  V[['Alt2']]  = B_Price_1 * Price2_sc + B_Performance_1 * Performance2_sc 
+  V[['Alt1']]  = B_Price_1 * Price1_sc + B_Performance_1 * Performance1_sc + B_Emission_1 * Emission1_sc
+  V[['Alt2']]  = B_Price_1 * Price2_sc + B_Performance_1 * Performance2_sc + B_Emission_1 * Emission2_sc 
   
   ###Calculating probabilities based on MNL function for class 1
   mnl_settings$V = V
@@ -1541,8 +1653,8 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
   
   ### Compute class-specific regrets
   R=list()
-  R[['Alt1']]  = B_Price_2 * X_Price1 + B_Performance_2 * X_Performance1
-  R[['Alt2']]  = B_Price_2 * X_Price2 + B_Performance_2 * X_Performance2 
+  R[['Alt1']]  = B_Price_2 * X_Price1 + B_Performance_2 * X_Performance1 + B_Emission_2 * X_Emission1
+  R[['Alt2']]  = B_Price_2 * X_Price2 + B_Performance_2 * X_Performance2 + B_Emission_2 * X_Emission2
   
   ###Calculating probabilities based on MNL function for class 2
   mnl_settings$V = lapply(R, "*", -1) ###the regrets must be negative (and used in MNL-settings as V)
