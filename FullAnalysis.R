@@ -1218,56 +1218,109 @@ ggplot() +
 Research_WTP <- sbchoice(Q6ResearchResponse ~ Order +  Q1Gender + Q2Age + Q3Distance
                          + Q4Trips + Q16BP + Q18Charity
                          + Q21Experts + Q22Education + Q23Employment
-                         +  Q24AIncome | Q6Bid, data = FullSurvey2,dist="logistic")
-O1 <- krCI(Research_WTP,individual = data.frame(Order=0, Q1Gender = mean(FullSurvey2$Q1Gender), Q2Age = mean(FullSurvey2$Q2Age), Q3Distance = mean(FullSurvey2$Q3Distance),Q4Trips = mean(FullSurvey2$Q4Trips), Q16BP = mean(FullSurvey2$Q16BP),Q18Charity = mean(FullSurvey2$Q18Charity),Q21Experts = mean(FullSurvey2$Q21Experts),Q22Education = mean(FullSurvey2$Q22Education), Q23Employment = mean(FullSurvey2$Q23Employment), Q24AIncome = mean(FullSurvey2$Q24AIncome)))
-O2 <- krCI(Research_WTP,individual = data.frame(Order=1, Q1Gender = mean(FullSurvey2$Q1Gender), Q2Age = mean(FullSurvey2$Q2Age), Q3Distance = mean(FullSurvey2$Q3Distance),Q4Trips = mean(FullSurvey2$Q4Trips), Q16BP = mean(FullSurvey2$Q16BP),Q18Charity = mean(FullSurvey2$Q18Charity),Q21Experts = mean(FullSurvey2$Q21Experts),Q22Education = mean(FullSurvey2$Q22Education), Q23Employment = mean(FullSurvey2$Q23Employment), Q24AIncome = mean(FullSurvey2$Q24AIncome)))
+                         +  Q24AIncome + Timing | Q6Bid, data = FullSurvey2,dist="logistic")
+O1 <- krCI(Research_WTP,individual = data.frame(Order=0, Q1Gender = mean(FullSurvey2$Q1Gender), Q2Age = mean(FullSurvey2$Q2Age), Q3Distance = mean(FullSurvey2$Q3Distance),Q4Trips = mean(FullSurvey2$Q4Trips), Q16BP = mean(FullSurvey2$Q16BP),Q18Charity = mean(FullSurvey2$Q18Charity),Q21Experts = mean(FullSurvey2$Q21Experts),Q22Education = mean(FullSurvey2$Q22Education), Q23Employment = mean(FullSurvey2$Q23Employment), Q24AIncome = mean(FullSurvey2$Q24AIncome),Timing = mean(FullSurvey2$Timing)))
+O2 <- krCI(Research_WTP,individual = data.frame(Order=1, Q1Gender = mean(FullSurvey2$Q1Gender), Q2Age = mean(FullSurvey2$Q2Age), Q3Distance = mean(FullSurvey2$Q3Distance),Q4Trips = mean(FullSurvey2$Q4Trips), Q16BP = mean(FullSurvey2$Q16BP),Q18Charity = mean(FullSurvey2$Q18Charity),Q21Experts = mean(FullSurvey2$Q21Experts),Q22Education = mean(FullSurvey2$Q22Education), Q23Employment = mean(FullSurvey2$Q23Employment), Q24AIncome = mean(FullSurvey2$Q24AIncome),Timing = mean(FullSurvey2$Timing)))
 data.frame("Order 1" = c(median(O1$medWTP)), "Order 2" = c(median(O2$medWTP)),"Ordering effect" = c(abs(median(O1$medWTP)-median(O2$medWTP))))
 Treatment_DBWTP <- dbchoice(Q7TreatmentResponse + Q7Response2 ~ Order +  Q1Gender + Q2Age + Q3Distance
                             + Q4Trips + Q16BP + Q18Charity
                             + Q21Experts + Q22Education + Q23Employment
-                            +  Q24AIncome | Q7Bid + Q7Bid2,data = FullSurvey2,dist="logistic")
-O1 <- krCI(Treatment_DBWTP,individual = data.frame(Order=0, Q1Gender = mean(FullSurvey2$Q1Gender), Q2Age = mean(FullSurvey2$Q2Age), Q3Distance = mean(FullSurvey2$Q3Distance),Q4Trips = mean(FullSurvey2$Q4Trips), Q16BP = mean(FullSurvey2$Q16BP),Q18Charity = mean(FullSurvey2$Q18Charity),Q21Experts = mean(FullSurvey2$Q21Experts),Q22Education = mean(FullSurvey2$Q22Education), Q23Employment = mean(FullSurvey2$Q23Employment), Q24AIncome = mean(FullSurvey2$Q24AIncome)))
-O2 <- krCI(Treatment_DBWTP,individual = data.frame(Order=1, Q1Gender = mean(FullSurvey2$Q1Gender), Q2Age = mean(FullSurvey2$Q2Age), Q3Distance = mean(FullSurvey2$Q3Distance),Q4Trips = mean(FullSurvey2$Q4Trips), Q16BP = mean(FullSurvey2$Q16BP),Q18Charity = mean(FullSurvey2$Q18Charity),Q21Experts = mean(FullSurvey2$Q21Experts),Q22Education = mean(FullSurvey2$Q22Education), Q23Employment = mean(FullSurvey2$Q23Employment), Q24AIncome = mean(FullSurvey2$Q24AIncome)))
+                            +  Q24AIncome + Timing | Q7Bid + Q7Bid2,data = FullSurvey2,dist="logistic")
+O1 <- krCI(Treatment_DBWTP,individual = data.frame(Order=0, Q1Gender = mean(FullSurvey2$Q1Gender), Q2Age = mean(FullSurvey2$Q2Age), Q3Distance = mean(FullSurvey2$Q3Distance),Q4Trips = mean(FullSurvey2$Q4Trips), Q16BP = mean(FullSurvey2$Q16BP),Q18Charity = mean(FullSurvey2$Q18Charity),Q21Experts = mean(FullSurvey2$Q21Experts),Q22Education = mean(FullSurvey2$Q22Education), Q23Employment = mean(FullSurvey2$Q23Employment), Q24AIncome = mean(FullSurvey2$Q24AIncome),Timing = mean(FullSurvey2$Timing)))
+O2 <- krCI(Treatment_DBWTP,individual = data.frame(Order=1, Q1Gender = mean(FullSurvey2$Q1Gender), Q2Age = mean(FullSurvey2$Q2Age), Q3Distance = mean(FullSurvey2$Q3Distance),Q4Trips = mean(FullSurvey2$Q4Trips), Q16BP = mean(FullSurvey2$Q16BP),Q18Charity = mean(FullSurvey2$Q18Charity),Q21Experts = mean(FullSurvey2$Q21Experts),Q22Education = mean(FullSurvey2$Q22Education), Q23Employment = mean(FullSurvey2$Q23Employment), Q24AIncome = mean(FullSurvey2$Q24AIncome),Timing = mean(FullSurvey2$Timing)))
 data.frame("Order 1" = c(median(O1$medWTP)), "Order 2" = c(median(O2$medWTP)),"Ordering effect" = c(abs(median(O1$medWTP)-median(O2$medWTP))))
 i=1
 ## With this function I append bootstrapped individual WTP to the original dataframe 
 FullSurvey2 <- cbind(FullSurvey2,
                       apply(FullSurvey2, 
                             1, 
-                            function(i) c(krCI(Research_WTP,individual = data.frame(Order= FullSurvey2$Order[i], Q1Gender = FullSurvey2$Q1Gender[i], Q2Age = FullSurvey2$Q2Age[i], Q3Distance = FullSurvey2$Q3Distance[i],Q4Trips = FullSurvey2$Q4Trips[i], Q16BP = FullSurvey2$Q16BP[i],Q18Charity = FullSurvey2$Q18Charity[i],Q21Experts = FullSurvey2$Q21Experts[i],Q22Education = FullSurvey2$Q22Education[i], Q23Employment = FullSurvey2$Q23Employment[i], Q24AIncome = FullSurvey2$Q24AIncome[i]))$out[4,1])))
+                            function(i) c(krCI(Research_WTP,individual = data.frame(Order= FullSurvey2$Order[abs(i)], Q1Gender = FullSurvey2$Q1Gender[abs(i)], Q2Age = FullSurvey2$Q2Age[abs(i)], Q3Distance = FullSurvey2$Q3Distance[abs(i)],Q4Trips = FullSurvey2$Q4Trips[abs(i)], Q16BP = FullSurvey2$Q16BP[abs(i)],Q18Charity = FullSurvey2$Q18Charity[abs(i)],Q21Experts = FullSurvey2$Q21Experts[abs(i)],Q22Education = FullSurvey2$Q22Education[abs(i)], Q23Employment = FullSurvey2$Q23Employment[abs(i)], Q24AIncome = FullSurvey2$Q24AIncome[abs(i)],Timing = FullSurvey2$Timing[abs(i)]))$out[4,1])))
 colnames(FullSurvey2)[55] <- "Q6WTP"
+i=0
 FullSurvey2 <- cbind(FullSurvey2,
                       apply(FullSurvey2, 
                             1, 
-                            function(i) c(krCI(Treatment_DBWTP,individual = data.frame(Order= FullSurvey2$Order[abs(i)], Q1Gender = FullSurvey2$Q1Gender[abs(i)], Q2Age = FullSurvey2$Q2Age[abs(i)], Q3Distance = FullSurvey2$Q3Distance[abs(i)],Q4Trips = FullSurvey2$Q4Trips[abs(i)], Q16BP = FullSurvey2$Q16BP[abs(i)],Q18Charity = FullSurvey2$Q18Charity[abs(i)],Q21Experts = FullSurvey2$Q21Experts[abs(i)],Q22Education = FullSurvey2$Q22Education[abs(i)], Q23Employment = FullSurvey2$Q23Employment[abs(i)], Q24AIncome = FullSurvey2$Q24AIncome[abs(i)]))$out[4,1])))
+                            function(i) c(krCI(Treatment_DBWTP,individual = data.frame(Order= FullSurvey2$Order[abs(i)], Q1Gender = FullSurvey2$Q1Gender[abs(i)], Q2Age = FullSurvey2$Q2Age[abs(i)], Q3Distance = FullSurvey2$Q3Distance[abs(i)],Q4Trips = FullSurvey2$Q4Trips[abs(i)], Q16BP = FullSurvey2$Q16BP[abs(i)],Q18Charity = FullSurvey2$Q18Charity[abs(i)],Q21Experts = FullSurvey2$Q21Experts[abs(i)],Q22Education = FullSurvey2$Q22Education[abs(i)], Q23Employment = FullSurvey2$Q23Employment[abs(i)], Q24AIncome = FullSurvey2$Q24AIncome[abs(i)],Timing=FullSurvey2$Timing[abs(i)]))$out[4,1])))
 colnames(FullSurvey2)[56] <- "Q7WTP"
 
 FullSurvey2 <- cbind(FullSurvey2,(FullSurvey2$Q7WTP - FullSurvey2$Q6WTP ))
 colnames(FullSurvey2)[57] <- "Precaution"
 ### NOTE: Q6 is research (delaying, preserving, postponing), Q7 is tackling (immediately) 
-ggplot(FullSurvey2) + 
+FullSurvey2 <- FullSurvey2[ (FullSurvey2$Q1Gender == 0) | (FullSurvey2$Q1Gender == 1),]
+
+Precaution <- ggplot(FullSurvey2) + 
   facet_grid( ~ Q1Gender, labeller = as_labeller(c(
     `0` = "Female",
-    `1` = "Male",
-    `2` = "Other")))+
-  geom_smooth(aes(x=Q24AIncome,y=Q6WTP,color="red"),method="lm",se=F) +
-  geom_smooth(aes(x=Q24AIncome,y=Q7WTP,color="blue"),method="lm",se=F) +
+    `1` = "Male")))+
+  geom_smooth(aes(x=Q24AIncome,y=Precaution,color="red"),method="lm",se=T) +
   scale_color_discrete(name = "Lines", 
-                       labels = c("WTP for Research", "WTP for treatment"))+
+                       labels = c("Precautionary premium", "WTP for treatment"))+
   ggtitle("Relationship between precaution and income") +
+  scale_x_continuous(name="Income",breaks = waiver(),limits = c(0,5000),
+                     n.breaks = 5, labels = function(x) paste0("£",x))+
+  scale_y_continuous(name="WTP",
+                     breaks=waiver(),limits = c(10,30),
+                     n.breaks = 10, labels = function(x) paste0("£",x))+
   theme(plot.title = element_text(hjust = 0.5),
-        plot.margin=unit(c(1,1,-0.5,1),"cm"),
-        axis.title.y = element_text(size = 12)) +
-  labs(x = "Income",y="Difference between Q6 and Q7 WTP")
+        axis.title.y = element_text(size = 10)) +
+  labs(x = "Income",y="WTP")
 
-## Full look at sample QOV:
-summary(Full_Order1$Q6WTP - Full_Order2$Q7WTP)
+Precaution
 ## Individual QOV within the sample:
 summary(FullSurvey2$Precaution)
 
+## Here I make a dataframe which has Q6, Q7 WTP and the precautionary premium and is truncated according to all criteria 
+FS <- FullSurvey2[ (FullSurvey2$ID) %in% c(Full_Full$ID),  ]
+
+Q13Graph <- ggplot(FS) + 
+  geom_smooth(aes(x=Q13CurrentThreatToSelf,y=Q7WTP,color="red"),method="lm",se=T) +
+  geom_smooth(aes(x=Q13CurrentThreatToSelf,y=Q6WTP,color="blue"),method="lm",se=T) +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("WTP for research", "WTP for treatment"))+
+  ggtitle("WTP by Q13: Current Threat To Self") +
+  scale_x_continuous(name="Likert scale levels",breaks = 1:5, 
+                     labels=c(1,2,3,4,5))+
+  scale_y_continuous(name="WTP",
+                     breaks=waiver(),limits = c(10,60),
+                     n.breaks = 10, labels = function(x) paste0("£",x))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 10)) +
+  labs(x = "Likert scale levels",y="Precautionary premium WTP")
+
+Q14Graph <- ggplot(FS) + 
+  geom_smooth(aes(x=Q14FutureThreatToSelf,y=Q7WTP,color="red"),method="lm",se=T) +
+  geom_smooth(aes(x=Q14FutureThreatToSelf,y=Q6WTP,color="blue"),method="lm",se=T) +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("WTP for research", "WTP for treatment"))+
+  ggtitle("WTP by Q14: Future Threat To Self") +
+  scale_x_continuous(name="Likert scale levels",breaks = 1:5, 
+                     labels=c(1,2,3,4,5))+
+  scale_y_continuous(name="WTP in £",
+                     breaks=waiver(),limits = c(10,60),
+                     n.breaks = 10, labels = function(x) paste0("£",x))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 10)) +
+  labs(x = "Likert scale levels",y="Precautionary premium WTP")
+
+Q15Graph <- ggplot(FS) + 
+  geom_smooth(aes(x=Q15ThreatToEnvironment,y=Q7WTP,color="red"),method="lm",se=T) +
+  geom_smooth(aes(x=Q15ThreatToEnvironment,y=Q6WTP,color="blue"),method="lm",se=T) +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("WTP for research", "WTP for treatment"))+
+  ggtitle("WTP by Q15: Threat To Environment") +
+  scale_x_continuous(name="Likert scale levels",breaks = 1:5, 
+                     labels=c(1,2,3,4,5))+
+  scale_y_continuous(name="WTP in £",
+                     breaks=waiver(),limits = c(10,60),
+                     n.breaks = 10, labels = function(x) paste0("£",x))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 10)) +
+  labs(x = "Likert scale levels",y="Precautionary premium WTP")
 
 
-
+Q13Graph
+Q14Graph
+Q15Graph
 ##########################################################  
 ## The following code is experimental:
 ##########################################################  
