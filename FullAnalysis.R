@@ -1055,7 +1055,7 @@ bootCI(Research_SB)
 Research_Truncated <- sbchoice(Q6ResearchResponse ~ Order + Q1Gender + Q2Age + Q3Distance
                         + Q4Trips + Q16BP + Q18Charity
                         + Q21Experts + Q22Education + Q23Employment
-                        +  Q24AIncome + Timing | Q6Bid, data = Full_Cons,dist="logistic")
+                        +  Q24AIncome + Timing | Q6Bid, data = Full_Full,dist="logistic")
 summary(Research_Truncated)
 krCI(Research_Truncated)
 
@@ -1064,16 +1064,30 @@ Research_Order1 <- sbchoice(Q6ResearchResponse ~ Q1Gender + Q2Age + Q3Distance
                             + Q4Trips + Q16BP + Q18Charity 
                             + Q20Consequentiality
                             + Q21Experts +Q22Education+ Q23Employment
-                            +  Q24AIncome | Q6Bid, data = Full_NormalOrder,dist="logistic")
+                            +  Q24AIncome + Timing| Q6Bid, data = Full_NormalOrder,dist="logistic",seed=123)
 summary(Research_Order1) ## Reports the SBDC analysis for Q6 with mean, median and coefficients.
 Research_Order2 <- sbchoice(Q6ResearchResponse ~  Q1Gender + Q2Age + Q3Distance
                             + Q4Trips + Q16BP + Q18Charity 
                             + Q20Consequentiality
                             + Q21Experts +Q22Education+ Q23Employment
-                            +  Q24AIncome | Q6Bid, data = Full_OtherOrder,dist="logistic")
+                            +  Q24AIncome + Timing | Q6Bid, data = Full_OtherOrder,dist="logistic",seed=123)
 summary(Research_Order2) ## Reports the SBDC analysis for Q6 with mean, median and coefficients.
 krCI(Research_Order1)
 krCI(Research_Order2)
+
+## Testing the effect of consequentiality beliefs
+Research_Consequential <- sbchoice(Q6ResearchResponse ~ Q1Gender + Q2Age + Q3Distance
+                                   + Q4Trips + Q16BP + Q18Charity 
+                                   + Q21Experts +Q22Education+ Q23Employment
+                                   +  Q24AIncome | Q6Bid, data = Full_Consequential,dist="logistic")
+summary(Research_Consequential) ## Reports the SBDC analysis for Q6 with mean, median and coefficients.
+Research_Inconsequential <- sbchoice(Q6ResearchResponse ~  Q1Gender + Q2Age + Q3Distance
+                                     + Q4Trips + Q16BP + Q18Charity
+                                     + Q21Experts +Q22Education+ Q23Employment
+                                     +  Q24AIncome | Q6Bid, data = Full_Inconsequential,dist="logistic")
+summary(Research_Inconsequential) ## Reports the SBDC analysis for Q6 with mean, median and coefficients.
+krCI(Research_Consequential)
+krCI(Research_Inconsequential)
 
 
 #################### Q7 WTP elicitation:
@@ -1101,7 +1115,7 @@ bootCI(Treatment_Truncated)
 Treatment1_SB <- sbchoice(Q7TreatmentResponse ~ Order  + Q1Gender + Q2Age + Q3Distance
                           + Q4Trips + Q16BP + Q18Charity
                           + Q21Experts + Q22Education + Q23Employment
-                          +  Q24AIncome | Q7Bid ,data = Full_Long,dist="logistic")
+                          +  Q24AIncome  + Timing | Q7Bid ,data = Full_Long,dist="logistic")
 summary(Treatment1_SB)
 krCI(Treatment1_SB)
 
@@ -1110,15 +1124,15 @@ Treatment_DBOrder1 <- dbchoice(Q7TreatmentResponse + Q7Response2 ~ Q1Gender + Q2
                                + Q4Trips + Q16BP + Q18Charity 
                                + Q20Consequentiality
                                + Q21Experts +Q22Education+ Q23Employment
-                               +  Q24AIncome | Q7Bid + Q7Bid2,data = Full_NormalOrder,dist="logistic")
+                               +  Q24AIncome + Timing | Q7Bid + Q7Bid2,data = Full_NormalOrder,dist="logistic")
 summary(Treatment_DBOrder1)
-krCI(Treatment_DBOrder1)
 Treatment_DBOrder2 <- dbchoice(Q7TreatmentResponse + Q7Response2 ~ Q1Gender + Q2Age + Q3Distance
                                + Q4Trips + Q16BP + Q18Charity 
                                + Q20Consequentiality
                                + Q21Experts +Q22Education+ Q23Employment
-                               +  Q24AIncome | Q7Bid + Q7Bid2,data = Full_OtherOrder,dist="logistic")
+                               +  Q24AIncome + Timing  | Q7Bid + Q7Bid2,data = Full_OtherOrder,dist="logistic")
 summary(Treatment_DBOrder2)
+krCI(Treatment_DBOrder1)
 krCI(Treatment_DBOrder2)
 
 ###### Still testing ordering effects using SBDC:
@@ -1128,29 +1142,17 @@ Treatment_SBOrder1 <- sbchoice(Q7TreatmentResponse  ~ Q1Gender + Q2Age + Q3Dista
                                + Q21Experts +Q22Education+ Q23Employment
                                +  Q24AIncome | Q7Bid,data = Full_NormalOrder,dist="logistic")
 summary(Treatment_SBOrder1)
-krCI(Treatment_SBOrder1)
 Treatment_SBOrder2 <- sbchoice(Q7TreatmentResponse  ~ Q1Gender + Q2Age + Q3Distance
                                + Q4Trips + Q16BP + Q18Charity 
                                + Q20Consequentiality
                                + Q21Experts +Q22Education+ Q23Employment
                                +  Q24AIncome | Q7Bid,data = Full_OtherOrder,dist="logistic")
 summary(Treatment_SBOrder2)
+krCI(Treatment_SBOrder1)
 krCI(Treatment_SBOrder2)
 
 
 ## Splitting CVM by consequentiality beliefs:
-Research_Consequential <- sbchoice(Q6ResearchResponse ~ Q1Gender + Q2Age + Q3Distance
-                                   + Q4Trips + Q16BP + Q18Charity 
-                                   + Q21Experts +Q22Education+ Q23Employment
-                                   +  Q24AIncome | Q6Bid, data = Full_Consequential,dist="logistic")
-summary(Research_Consequential) ## Reports the SBDC analysis for Q6 with mean, median and coefficients.
-Research_Inconsequential <- sbchoice(Q6ResearchResponse ~  Q1Gender + Q2Age + Q3Distance
-                                     + Q4Trips + Q16BP + Q18Charity
-                                     + Q21Experts +Q22Education+ Q23Employment
-                                     +  Q24AIncome | Q6Bid, data = Full_Inconsequential,dist="logistic")
-summary(Research_Inconsequential) ## Reports the SBDC analysis for Q6 with mean, median and coefficients.
-krCI(Research_Consequential)
-krCI(Research_Inconsequential)
 Treatment_Consequential <- dbchoice(Q7TreatmentResponse + Q7Response2 ~ Q1Gender + Q2Age + Q3Distance
                                     + Q4Trips + Q16BP + Q18Charity 
                                     + Q21Experts +Q22Education+ Q23Employment
@@ -1173,23 +1175,23 @@ krCI(Treatment_Inconsequential)
 Research <- sbchoice(Q6ResearchResponse ~ Q1Gender + Q2Age + Q3Distance
                      + Q4Trips + Q16BP + Q18Charity
                      + Q21Experts + Q22Education + Q23Employment
-                     +  Q24AIncome| Q6Bid, data = Full_Order1,dist="logistic")
+                     +  Q24AIncome + Timing| Q6Bid, data = Full_Order1,dist="logistic")
 Treatment <- sbchoice(Q7TreatmentResponse ~ Q1Gender + Q2Age + Q3Distance
                       + Q4Trips + Q16BP + Q18Charity
                       + Q21Experts + Q22Education + Q23Employment
-                      +  Q24AIncome| Q7Bid, data = Full_Order2,dist="logistic")
+                      +  Q24AIncome + Timing| Q7Bid, data = Full_Order2,dist="logistic")
 summary(Research)
 summary(Treatment)
 Full_Order1 <- cbind(Full_Order1,
                       apply(Full_Order1, 
                             1, 
-                            function(i) c(krCI(Research,individual = data.frame(Q1Gender = Full_Order1$Q1Gender[i], Q2Age = Full_Order1$Q2Age[i], Q3Distance = Full_Order1$Q3Distance[i],Q4Trips = Full_Order1$Q4Trips[i], Q16BP = Full_Order1$Q16BP[i],Q18Charity = Full_Order1$Q18Charity[i],Q21Experts = Full_Order1$Q21Experts[i],Q22Education = Full_Order1$Q22Education[i], Q23Employment = Full_Order1$Q23Employment[i], Q24AIncome = Full_Order1$Q24AIncome[i]))$out[4,1])))
-colnames(Full_Order1)[55] <- "Q6WTP"
+                            function(i) c(krCI(Research,individual = data.frame(Q1Gender = Full_Order1$Q1Gender[i], Q2Age = Full_Order1$Q2Age[i], Q3Distance = Full_Order1$Q3Distance[i],Q4Trips = Full_Order1$Q4Trips[i], Q16BP = Full_Order1$Q16BP[i],Q18Charity = Full_Order1$Q18Charity[i],Q21Experts = Full_Order1$Q21Experts[i],Q22Education = Full_Order1$Q22Education[i], Q23Employment = Full_Order1$Q23Employment[i], Q24AIncome = Full_Order1$Q24AIncome[i],Timing=Full_Order1$Timing[i]))$out[4,1])))
+colnames(Full_Order1)[56] <- "Q6WTP"
 Full_Order2 <- cbind(Full_Order2,
                       apply(Full_Order2, 
                             1, 
-                            function(i) c(krCI(Treatment,individual = data.frame(Q1Gender = Full_Order2$Q1Gender[i], Q2Age = Full_Order2$Q2Age[i], Q3Distance = Full_Order2$Q3Distance[i],Q4Trips = Full_Order2$Q4Trips[i], Q16BP = Full_Order2$Q16BP[i],Q18Charity = Full_Order2$Q18Charity[i],Q21Experts = Full_Order2$Q21Experts[i],Q22Education = Full_Order2$Q22Education[i], Q23Employment = Full_Order2$Q23Employment[i], Q24AIncome = Full_Order2$Q24AIncome[i]))$out[4,1])))
-colnames(Full_Order2)[55] <- "Q7WTP"
+                            function(i) c(krCI(Treatment,individual = data.frame(Q1Gender = Full_Order2$Q1Gender[i], Q2Age = Full_Order2$Q2Age[i], Q3Distance = Full_Order2$Q3Distance[i],Q4Trips = Full_Order2$Q4Trips[i], Q16BP = Full_Order2$Q16BP[i],Q18Charity = Full_Order2$Q18Charity[i],Q21Experts = Full_Order2$Q21Experts[i],Q22Education = Full_Order2$Q22Education[i], Q23Employment = Full_Order2$Q23Employment[i], Q24AIncome = Full_Order2$Q24AIncome[i],Timing=Full_Order1$Timing[i]))$out[4,1])))
+colnames(Full_Order2)[56] <- "Q7WTP"
 
 
 ## Plotting precaution  
@@ -1235,16 +1237,16 @@ FullSurvey2 <- cbind(FullSurvey2,
                       apply(FullSurvey2, 
                             1, 
                             function(i) c(krCI(Research_WTP,individual = data.frame(Order= FullSurvey2$Order[abs(i)], Q1Gender = FullSurvey2$Q1Gender[abs(i)], Q2Age = FullSurvey2$Q2Age[abs(i)], Q3Distance = FullSurvey2$Q3Distance[abs(i)],Q4Trips = FullSurvey2$Q4Trips[abs(i)], Q16BP = FullSurvey2$Q16BP[abs(i)],Q18Charity = FullSurvey2$Q18Charity[abs(i)],Q21Experts = FullSurvey2$Q21Experts[abs(i)],Q22Education = FullSurvey2$Q22Education[abs(i)], Q23Employment = FullSurvey2$Q23Employment[abs(i)], Q24AIncome = FullSurvey2$Q24AIncome[abs(i)],Timing = FullSurvey2$Timing[abs(i)]))$out[4,1])))
-colnames(FullSurvey2)[55] <- "Q6WTP"
+colnames(FullSurvey2)[56] <- "Q6WTP"
 i=0
 FullSurvey2 <- cbind(FullSurvey2,
                       apply(FullSurvey2, 
                             1, 
                             function(i) c(krCI(Treatment_DBWTP,individual = data.frame(Order= FullSurvey2$Order[abs(i)], Q1Gender = FullSurvey2$Q1Gender[abs(i)], Q2Age = FullSurvey2$Q2Age[abs(i)], Q3Distance = FullSurvey2$Q3Distance[abs(i)],Q4Trips = FullSurvey2$Q4Trips[abs(i)], Q16BP = FullSurvey2$Q16BP[abs(i)],Q18Charity = FullSurvey2$Q18Charity[abs(i)],Q21Experts = FullSurvey2$Q21Experts[abs(i)],Q22Education = FullSurvey2$Q22Education[abs(i)], Q23Employment = FullSurvey2$Q23Employment[abs(i)], Q24AIncome = FullSurvey2$Q24AIncome[abs(i)],Timing=FullSurvey2$Timing[abs(i)]))$out[4,1])))
-colnames(FullSurvey2)[56] <- "Q7WTP"
+colnames(FullSurvey2)[57] <- "Q7WTP"
 
 FullSurvey2 <- cbind(FullSurvey2,(FullSurvey2$Q7WTP - FullSurvey2$Q6WTP ))
-colnames(FullSurvey2)[57] <- "Precaution"
+colnames(FullSurvey2)[58] <- "Precaution"
 ### NOTE: Q6 is research (delaying, preserving, postponing), Q7 is tackling (immediately) 
 FullSurvey2 <- FullSurvey2[ (FullSurvey2$Q1Gender == 0) | (FullSurvey2$Q1Gender == 1),]
 
