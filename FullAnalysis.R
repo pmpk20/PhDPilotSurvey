@@ -11,6 +11,7 @@
 
 ############ Packages:
 pkgbuild::find_rtools(debug = TRUE)
+install.packages("rngWELL")
 install.packages("randtoolbox")
 install.packages("apollo")
 install.packages("mlogit") ## MLOGIT is the best DCE package in R so far.
@@ -26,7 +27,7 @@ setwd("H:/PhDPilotSurvey") ## Sets working directory. This is where my Github re
 FullSurvey <- data.frame(read.csv("FullSurvey.csv")) ## Imports from the excel file straight from the survey companies website.
 
 FullSurvey <- FullSurvey[ -c(4,14,15,16,23,24,26,27,53,54,55,56,57,58,68,69)] ## Drop columns of no importance to the quantitative analysis, namely text responses.
-FullSurvey <- FullSurvey[ !(FullSurvey$ï..Respondent %in% c(24,33,44,61,121,127,182,200,211,219,239,251,275,306,320,326,341,360,363,371,399,464,467,479,480,506,579,591,649,654,931,932,935,953,989,1002,1011,1024,14,35,39,54,79,106,130,146,149,155,163,203,214,215,217,244,246,249,252,267,268,282,290,327,343,362,364,374,380,393,398,407,414,425,426,433,477,519,524,536,543,545,547,557,567,575,589,590,595,614,617,629,637,638,639,651,665,674,680,915,933,940,950,959,960,975,978,996,1026,1027,1028)), ] ## Drop protest rows
+# FullSurvey <- FullSurvey[ !(FullSurvey$ï..Respondent %in% c(24,33,44,61,121,127,182,200,211,219,239,251,275,306,320,326,341,360,363,371,399,464,467,479,480,506,579,591,649,654,931,932,935,953,989,1002,1011,1024,14,35,39,54,79,106,130,146,149,155,163,203,214,215,217,244,246,249,252,267,268,282,290,327,343,362,364,374,380,393,398,407,414,425,426,433,477,519,524,536,543,545,547,557,567,575,589,590,595,614,617,629,637,638,639,651,665,674,680,915,933,940,950,959,960,975,978,996,1026,1027,1028)), ] ## Drop protest rows
 
 
 colnames(FullSurvey) <- c("ID","Timing","Order","Q1Gender","Q2Age","Q3Distance","Q4Trips",
@@ -1343,15 +1344,18 @@ apollo_initialise()
 
 Test_Apollo <- data.frame(Fulls$ID,Fulls$Task, Fulls$Q1Gender,
                           Fulls$Q2Age,as.numeric(Fulls$Q3Distance),Fulls$Q4Trips,
+                          Fulls$Q13CurrentThreatToSelf,Fulls$Q14FutureThreatToSelf,
+                          Fulls$Q15ThreatToEnvironment,
                           Fulls$Q16BP,Fulls$Q18Charity,
                           Fulls$Q20Consequentiality,Fulls$Q21Experts,
                           Fulls$Q22Education,Fulls$Q23Employment,
-                          Fulls$Q25Understanding,Fulls[,15:20],
+                          Fulls$Q25Understanding,Fulls[,16:21],
                           Fulls$Choice,as.numeric(Fulls$Q24AIncome),
                           Fulls$Order, as.numeric(Fulls$Task), Fulls$Q20Consequentiality,
                           Fulls$Q21Experts)
 colnames(Test_Apollo) <- c("ID","Task","Q1Gender","Age","Distance",
-                           "Trips","BP","Charity",
+                           "Trips","Q13CurrentThreatToSelf","Q14FutureThreatToSelf",
+                           "Q15ThreatToEnvironment","BP","Charity",
                            "Consequentiality",
                            "Experts","Education","Employment","Survey",
                            "Price_B","Performance_B","Emission_B",
@@ -1465,6 +1469,11 @@ apollo_deltaMethod(model, deltaMethod_settings)
 #### Apollo MXL                       
 # ################################################################# #
 
+
+# ################################################################# #
+#### Apollo MXL                       
+# ################################################################# #
+
 library(apollo)
 apollo_initialise()
 
@@ -1480,10 +1489,9 @@ apollo_control = list(
 ## Vector of parameters, including any that are kept fixed in estimation
 apollo_beta = c(asc_A      = 0,
                 asc_B      = 0,
-                b_Price = 0,
                 b_Performance   = 0,
                 b_Emission      = 0,
-                mu_log_b_Price    =-3,
+                mu_log_b_Price    =0,
                 sigma_log_b_Price = 0)
 
 ## Vector with names (in quotes) of parameters to be kept fixed at their starting value in apollo_beta, use apollo_beta_fixed = c() if none
@@ -1496,7 +1504,7 @@ apollo_draws = list(
   interNDraws    = 100,
   interUnifDraws = c("draws_Price_inter"),
   interNormDraws = c(),
-  intraDrawsType = "mlhs",
+  intraDrawsType = "halton",
   intraNDraws    = 100,
   intraUnifDraws = c(),
   intraNormDraws = c()
@@ -1506,7 +1514,7 @@ apollo_randCoeff = function(apollo_beta, apollo_inputs){
   randcoeff = list()
   
   randcoeff[["b_Price"]] = -exp( mu_log_b_Price + sigma_log_b_Price * draws_Price_inter )
-
+  
   return(randcoeff)
 }
 
@@ -1522,24 +1530,11 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
   ## Create list of probabilities P
   P = list()
   
-  # ## Must specify SDs against the ASC directly
-  # asc_B = asc_B + b_Gender*Q1Gender + b_Age*Age +
-  #   b_Distance * Distance + 
-  #   b_Trips * Trips +
-  #   b_BP * BP +
-  #   b_Charity * Charity + 
-  #   b_Education * Education +
-  #   b_Employment * Employment + 
-  #   b_Income * Income +
-  #   b_Order * Order +      
-  #   b_Task * Task +       
-  #   b_Cons * Consequentiality +       
-  #   b_Experts * Experts    
   
   ## List of utilities: these must use the same names as in mnl_settings, order is irrelevant
   V = list()
-  V[['A']] = asc_A + b_Price*(b_Performance*Performance_A + Price_A + b_Emission*Emission_A)
-  V[['B']] = asc_B + b_Price*(b_Performance*Performance_B + Price_B + b_Emission*Emission_B)
+  V[['A']] = asc_A + b_Price*(Price_A + b_Performance*Performance_A + b_Emission*Emission_A)
+  V[['B']] = asc_B + b_Price*(Price_B + b_Performance*Performance_B + b_Emission*Emission_B)
   
   ## Define settings for MNL model component
   mnl_settings = list(
@@ -1572,11 +1567,11 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
 
 #apollo_speedTest(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs, speedTest_settings)
 
-model = apollo_estimate(apollo_beta, apollo_fixed,
-                        apollo_probabilities, apollo_inputs, 
-                        estimate_settings=list(hessianRoutine="maxLik"))
+MXLmodel = apollo_estimate(apollo_beta, apollo_fixed,
+                           apollo_probabilities, apollo_inputs, 
+                           estimate_settings=list(hessianRoutine="numDeriv"))
 
-apollo_modelOutput(model)
+apollo_modelOutput(MXLmodel)
 
 
 unconditionals <- apollo_unconditionals(model,apollo_probabilities, apollo_inputs)
@@ -1730,8 +1725,8 @@ apollo_beta = apollo_searchStart(apollo_beta,
                                  apollo_inputs,
                                  searchStart_settings=list(nCandidates=20))
 
-model = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs, estimate_settings=list(hessianRoutine="numDeriv")) 
-apollo_modelOutput(model)
+RRmodel = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs, estimate_settings=list(hessianRoutine="numDeriv")) 
+apollo_modelOutput(RRmodel)
 
 
 #############################################################################
@@ -1741,6 +1736,7 @@ apollo_modelOutput(model)
 
 
 rm(list = ls())
+install.packages("rngWELL")
 install.packages("randtoolbox")
 install.packages("apollo")
 
@@ -1753,59 +1749,56 @@ apollo_initialise()
 ### Set core controls
 apollo_control = list(
   modelName  = "Apollo_example_24",
-  modelDescr = "ICLV model on drug choice data, using ordered measurement model for indicators",
+  modelDescr = "ICLV model attempt",
   indivID    = "ID",
   mixing     = TRUE,
   nCores     = 1
 )
-database = read.csv("apollo_drugChoiceData.csv",header=TRUE)
+
+Test_Apollo$Education[Test_Apollo$Education<3] <- 0
+Test_Apollo$Education[Test_Apollo$Education>=3] <- 1
+
+Test_Apollo$Age[Test_Apollo$Age < median(Test_Apollo$Age)] <- 0
+Test_Apollo$Age[Test_Apollo$Age >= median(Test_Apollo$Age)] <- 1
+
+database = Test_Apollo
+# database = read.csv("apollo_drugChoiceData.csv",header=TRUE)
+
+
 
 ## DEFINE MODEL PARAMETERS                                     
 
 ### Vector of parameters, including any that are kept fixed in estimation
-apollo_beta = c(b_brand_Artemis    = 0, 
-                b_brand_Novum      = 0, 
-                b_brand_BestValue  = 0, 
-                b_brand_Supermarket= 0, 
-                b_brand_PainAway   = 0, 
-                b_country_CH       = 0, 
-                b_country_DK       = 0, 
-                b_country_USA      = 0, 
-                b_country_IND      = 0, 
-                b_country_RUS      = 0, 
-                b_country_BRA      = 0, 
-                b_char_standard    = 0, 
-                b_char_fast        = 0, 
-                b_char_double      = 0, 
-                b_risk             = 0, 
-                b_price            = 0,  
+apollo_beta = c(b_Emission_Low     = 0, 
+                b_Emission_Medium  = 0, 
+                b_Emission_High    = 0, 
+                b_Emission_OA      = 0, 
+                b_Performance_Low       = 0, 
+                b_Performance_Middle       = 0, 
+                b_Performance_High      = 0, 
+                b_Performance_OA      = 0, 
+                b_Price            = 0,  
                 lambda             = 1, 
-                gamma_reg_user     = 0, 
-                gamma_university   = 0, 
-                gamma_age_50       = 0, 
-                zeta_quality       = 1, 
-                zeta_ingredient    = 1, 
-                zeta_patent        = 1, 
-                zeta_dominance     = 1, 
-                tau_quality_1      =-2, 
-                tau_quality_2      =-1, 
-                tau_quality_3      = 1, 
-                tau_quality_4      = 2, 
-                tau_ingredients_1  =-2, 
-                tau_ingredients_2  =-1, 
-                tau_ingredients_3  = 1, 
-                tau_ingredients_4  = 2, 
-                tau_patent_1       =-2, 
-                tau_patent_2       =-1, 
-                tau_patent_3       = 1, 
-                tau_patent_4       = 2, 
-                tau_dominance_1    =-2, 
-                tau_dominance_2    =-1, 
-                tau_dominance_3    = 1, 
-                tau_dominance_4    = 2)
+                gamma_Education   = 0, 
+                gamma_Age       = 0, 
+                zeta_Q13   = 1, 
+                zeta_Q14   = 1, 
+                zeta_Q15   = 1, 
+                tau_Q13_1  =-2, 
+                tau_Q13_2  =-1, 
+                tau_Q13_3  = 1, 
+                tau_Q13_4  = 2, 
+                tau_Q14_1  =-2, 
+                tau_Q14_2  =-1, 
+                tau_Q14_3  = 1, 
+                tau_Q14_4  = 2, 
+                tau_Q15_1  =-2, 
+                tau_Q15_2  =-1, 
+                tau_Q15_3  = 1, 
+                tau_Q15_4  = 2)
 
 ## Vector with names (in quotes) of parameters to be kept fixed at their starting value in apollo_beta, use apollo_beta_fixed = c() if none
-apollo_fixed = c("b_brand_Artemis", "b_country_USA", "b_char_standard")
+apollo_fixed = c("b_Emission_Low", "b_Performance_High")
 
 ## DEFINE RANDOM COMPONENTS                                    
 
@@ -1815,7 +1808,6 @@ apollo_draws = list(
   interNDraws=100,          
   interUnifDraws=c(),      
   interNormDraws=c("eta"), 
-  
   intraDrawsType='',
   intraNDraws=0,          
   intraUnifDraws=c(),     
@@ -1826,7 +1818,7 @@ apollo_draws = list(
 apollo_randCoeff=function(apollo_beta, apollo_inputs){
   randcoeff = list()
   
-  randcoeff[["LV"]] = gamma_reg_user*regular_user + gamma_university*university_educated + gamma_age_50*over_50 + eta
+  randcoeff[["LV"]] = gamma_Education*Education + gamma_Age*Age + eta
   
   return(randcoeff)
 }
@@ -1848,62 +1840,40 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
   P = list()
   
   ### Likelihood of indicators
-  ol_settings1 = list(outcomeOrdered = attitude_quality, 
-                      V              = zeta_quality*LV, 
-                      tau            = c(tau_quality_1, tau_quality_2, tau_quality_3, tau_quality_4),
-                      rows           = (task==1),
-                      componentName  = "indic_quality")
-  ol_settings2 = list(outcomeOrdered = attitude_ingredients, 
-                      V              = zeta_ingredient*LV, 
-                      tau            = c(tau_ingredients_1, tau_ingredients_2, tau_ingredients_3, tau_ingredients_4), 
-                      rows           = (task==1),
-                      componentName  = "indic_ingredients")
-  ol_settings3 = list(outcomeOrdered = attitude_patent, 
-                      V              = zeta_patent*LV, 
-                      tau            = c(tau_patent_1, tau_patent_2, tau_patent_3, tau_patent_4), 
-                      rows           = (task==1),
-                      componentName  = "indic_patent")
-  ol_settings4 = list(outcomeOrdered = attitude_dominance, 
-                      V              = zeta_dominance*LV, 
-                      tau            = c(tau_dominance_1, tau_dominance_2, tau_dominance_3, tau_dominance_4), 
-                      rows           = (task==1),
-                      componentName  = "indic_dominance")
-  P[["indic_quality"]]     = apollo_ol(ol_settings1, functionality)
-  P[["indic_ingredients"]] = apollo_ol(ol_settings2, functionality)
-  P[["indic_patent"]]      = apollo_ol(ol_settings3, functionality)
-  P[["indic_dominance"]]   = apollo_ol(ol_settings4, functionality)
+  op_settings1 = list(outcomeOrdered = Q13CurrentThreatToSelf, 
+                      V              = zeta_Q13*LV, 
+                      tau            = c(tau_Q13_1, tau_Q13_2, tau_Q13_3, tau_Q13_4),
+                      rows           = (Task==1),
+                      componentName  = "indic_Q13")
+  op_settings2 = list(outcomeOrdered = Q14FutureThreatToSelf, 
+                      V              = zeta_Q14*LV, 
+                      tau            = c(tau_Q14_1, tau_Q14_2, tau_Q14_3, tau_Q14_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q14")
+  op_settings3 = list(outcomeOrdered = Q15ThreatToEnvironment, 
+                      V              = zeta_Q15*LV, 
+                      tau            = c(tau_Q15_1, tau_Q15_2, tau_Q15_3, tau_Q15_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q15")
+  P[["indic_Q13"]]     = apollo_op(op_settings1, functionality)
+  P[["indic_Q14"]] = apollo_op(op_settings2, functionality)
+  P[["indic_Q15"]]      = apollo_op(op_settings3, functionality)
   
   ### Likelihood of choices
   ### List of utilities: these must use the same names as in mnl_settings, order is irrelevant
   V = list()
-  V[['alt1']] = ( b_brand_Artemis*(brand_1=="Artemis") + b_brand_Novum*(brand_1=="Novum") 
-                  + b_country_CH*(country_1=="Switzerland") + b_country_DK*(country_1=="Denmark") + b_country_USA*(country_1=="USA") 
-                  + b_char_standard*(char_1=="standard") + b_char_fast*(char_1=="fast acting") + b_char_double*(char_1=="double strength") 
-                  + b_risk*side_effects_1
-                  + b_price*price_1 
-                  + lambda*LV )
-  V[['alt2']] = ( b_brand_Artemis*(brand_2=="Artemis") + b_brand_Novum*(brand_2=="Novum") 
-                  + b_country_CH*(country_2=="Switzerland") + b_country_DK*(country_2=="Denmark") + b_country_USA*(country_2=="USA") 
-                  + b_char_standard*(char_2=="standard") + b_char_fast*(char_2=="fast acting") + b_char_double*(char_2=="double strength") 
-                  + b_risk*side_effects_2
-                  + b_price*price_2 
-                  + lambda*LV )
-  V[['alt3']] = ( b_brand_BestValue*(brand_3=="BestValue") + b_brand_Supermarket*(brand_3=="Supermarket") + b_brand_PainAway*(brand_3=="PainAway") 
-                  + b_country_USA*(country_3=="USA") + b_country_IND*(country_3=="India") + b_country_RUS*(country_3=="Russia") + b_country_BRA*(country_3=="Brazil") 
-                  + b_char_standard*(char_3=="standard") + b_char_fast*(char_3=="fast acting") 
-                  + b_risk*side_effects_3
-                  + b_price*price_3 )
-  V[['alt4']] = ( b_brand_BestValue*(brand_4=="BestValue") + b_brand_Supermarket*(brand_4=="Supermarket") + b_brand_PainAway*(brand_4=="PainAway") 
-                  + b_country_USA*(country_4=="USA") + b_country_IND*(country_4=="India") + b_country_RUS*(country_4=="Russia") + b_country_BRA*(country_4=="Brazil") 
-                  + b_char_standard*(char_4=="standard") + b_char_fast*(char_4=="fast acting") 
-                  + b_risk*side_effects_4
-                  + b_price*price_4 )
+  V[['A']] = ( b_Emission_OA*(Emission_A==0) + b_Performance_OA*(Performance_A==0)  +
+                 b_Price*Price_A )
+  V[['B']] = ( b_Emission_Low*(Emission_B==0.1) + b_Emission_Medium*(Emission_B==0.4) + b_Emission_High*(Emission_B==0.9) 
+               + b_Performance_Low*(Performance_B==0.05) + b_Performance_Middle*(Performance_B==0.10) + b_Performance_High*(Performance_B==0.50) 
+               + b_Price*Price_B 
+               + lambda*LV )
   
   ### Define settings for MNL model component
   mnl_settings = list(
-    alternatives = c(alt1=1, alt2=2, alt3=3, alt4=4),
-    avail        = list(alt1=1, alt2=1, alt3=1, alt4=1),
-    choiceVar    = best,
+    alternatives = c(A=1, B=2),
+    avail        = list(A=1, B=1),
+    choiceVar    = Choice,
     V            = V,
     componentName= "choice"
   )
@@ -1931,12 +1901,16 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
 # apollo_llCalc(apollo_beta, apollo_probabilities, apollo_inputs)
 
 ### Estimate model
-model = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+ICLVmodel = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
 
-apollo_modelOutput(model)
+apollo_modelOutput(ICLVmodel)
 
 forecast <- apollo_prediction(model, apollo_probabilities, apollo_inputs,
-                              prediction_settings=list(modelComponent="indic_quality"))
+                              prediction_settings=list(modelComponent="indic_Q13"))
+
+conditionals <- apollo_conditionals(model,apollo_probabilities,apollo_inputs)
+
+unconditionals <- apollo_unconditionals(model,apollo_probabilities,apollo_inputs)
 
 
 ###############################################################
