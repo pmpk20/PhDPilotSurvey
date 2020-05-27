@@ -1272,6 +1272,15 @@ Precaution
 ## Individual QOV within the sample:
 summary(FullSurvey2$Precaution)
 
+## Plotting a histogram for the precautionary premia
+ggplot(FullSurvey2, aes(x=Precaution)) + 
+  geom_histogram(color="black", fill="white",binwidth = 1)+
+  scale_x_continuous(breaks=waiver(),limits = c(0,40),
+                     n.breaks = 10, labels = function(x) paste0("£",x))+
+  ggtitle("Histogram of respondent precautionary premia.")
+
+
+
 ## Here I make a dataframe which has Q6, Q7 WTP and the precautionary premium and is truncated according to all criteria 
 FS <- FullSurvey2[ (FullSurvey2$ID) %in% c(Full_Full$ID),  ]
 
