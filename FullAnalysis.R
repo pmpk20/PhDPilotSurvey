@@ -4,13 +4,15 @@
 ####################################################################################
 
 ############ TO DO:
-# - Add other attributes to the Apollo RRM
-# - Fix Apollo ICLV
-# - Estimate an Apollo MXL
-# - Decide whether to report MLOGIT or GMNL
+# - Graph effect of each truncation rule
+# - Test for Q6, Q7 certainty on WTP rather than Q12 for CVM
+# - Estimate sample mean CVM WTP as WTP~bid
+# - Report the ICLV in Apollo
+# - Fix the MXL in Apollo
 
 ############ Packages:
 pkgbuild::find_rtools(debug = TRUE)
+install.packages("Rcpp")
 install.packages("rngWELL")
 install.packages("randtoolbox")
 install.packages("apollo")
@@ -78,6 +80,7 @@ FullSurvey2$Q3Distance[FullSurvey2$Q3Distance == 3] <- 35
 FullSurvey2$Q3Distance[FullSurvey2$Q3Distance == 4] <- 50
 FullSurvey2$Q3Distance[FullSurvey2$Q3Distance == 5] <- NA
 FullSurvey2$Q3Distance <- with(FullSurvey2, impute(FullSurvey2$Q3Distance, 'random')) ## I replace the missing with a random imputed value
+FullSurvey2$Q3Distance <- as.numeric(FullSurvey2$Q3Distance)
 
 ## Reordering the knowledge categories to reflect higher knowledge = higher value
 FullSurvey2$Q5Knowledge[FullSurvey2$Q5Knowledge == 4] <- 5
@@ -226,6 +229,7 @@ FullSurvey2$Q24AIncome[FullSurvey2$Q24AIncome == 9] <- NA
 FullSurvey2$Q24AIncome <- with(FullSurvey2, impute(FullSurvey2$Q24AIncome, 'random')) ## Using random imputation for missing values
 FullSurvey2$Q24AIncome[FullSurvey2$Q24AIncome == 7] <- 5000
 FullSurvey2$Q24AIncome[FullSurvey2$Q24AIncome == 0] <- 250.00
+FullSurvey2$Q24RonaImpact <- as.numeric(FullSurvey2$Q24RonaImpact)
 
 ## Updating the final survey question
 FullSurvey2$Q25Understanding[FullSurvey2$Q25Understanding == 1] <- 9
@@ -417,6 +421,8 @@ ggplot(FullSurvey2, aes(x=Q25Understanding)) +
   geom_text(aes(x=5, label="Excluded", y=400), colour="red", angle=0) +
   geom_text(aes(x=8, label="Included", y=400), colour="blue", angle=0)+
   ggtitle("Distribution of survey understanding")
+
+
 
 ##########################################################  
 ####### Descriptive Graphics
@@ -695,8 +701,73 @@ summary(MXL_4)
 MXL_4_WTP <- c(-1*coef(MXL_4)["Emission"]/coef(MXL_4)["Price"],-1*coef(MXL_4)["Performance"]/coef(MXL_4)["Price"])
 
 
+Fulls <- cbind(Fulls,
+                   "Price"=fitted(MXL_4,type = "parameters"),
+               "Emission"=-1*coef(MXL_4)["Emission"],
+               "Performance"=-1*coef(MXL_4)["Performance"])
+
+Fulls$Emission <- -1*Fulls$Emission/Fulls$Price
+Fulls$Performance <- -1*Fulls$Performance/Fulls$Price
+
+
+Full_Long <- cbind(Full_Long,
+               "PriceCoef"=slice(.data = data.frame(fitted(MXL_4,type = "parameters")),rep(1:n(), each = 2)),
+               "EmissionCoef"=-1*coef(MXL_4)["Emission"],
+               "PerformanceCoef"=-1*coef(MXL_4)["Performance"])
+names(Full_Long)[45] <- "PriceCoef"
+Full_Long$EmissionCoef <- -1*Full_Long$EmissionCoef/Full_Long$PriceCoef
+Full_Long$PerformanceCoef <- -1*Full_Long$PerformanceCoef/Full_Long$PriceCoef
+
+## Plotting a histogram of individual attribute-specific WTP 
+EmissionDistribution <- ggplot(Full_Long, aes(x=EmissionCoef)) + 
+  geom_histogram(color="black", fill="white",binwidth = 1)+
+  scale_x_continuous(breaks=waiver(),limits = c(-10,10),
+                     n.breaks = 20)+
+  ggtitle("Histogram of emission WTP.")
+
+## Plotting a histogram of individual attribute-specific WTP
+PerformanceDistribution <- ggplot(Full_Long, aes(x=PerformanceCoef)) + 
+  geom_histogram(color="black", fill="white",binwidth = 1)+
+  scale_x_continuous(breaks=waiver(),limits = c(-10,10),
+                     n.breaks = 20)+
+  ggtitle("Histogram of performance WTP.")
+
+### Plotting Q8 Dominance test
+PerformanceWTP <- ggplot(Full_Long, aes(y= PerformanceCoef,x=as.numeric(Q24AIncome))) + 
+  geom_point(shape = 1) +
+  facet_grid( ~ Q8DominatedTest, labeller = as_labeller(c(
+    `0` = "Pass",
+    `1` = "Fail")))+
+  geom_smooth(method="lm",se=F) +
+  ggtitle("Relationship between income and WTP by Q8") +
+  scale_y_continuous(name="Performance WTP",
+                     breaks=waiver(),limits = c(0,5),
+                     n.breaks = 10)+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  labs(x = "Income",y="Performance WTP")
+
+EmissionWTP <- ggplot(Full_Long, aes(y= EmissionCoef,x=as.numeric(Q24AIncome))) + 
+  geom_point(shape = 1) +
+  facet_grid( ~ Q8DominatedTest, labeller = as_labeller(c(
+    `0` = "Pass",
+    `1` = "Fail")))+
+  geom_smooth(method="lm",se=F) +
+  ggtitle("Relationship between income and WTP by Q8") +
+  scale_y_continuous(name="Performance WTP",
+                     breaks=waiver(),limits = c(-5,0),
+                     n.breaks = 10)+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  labs(x = "Income",y="Performance WTP")
+
+library(gridExtra)
+grid.arrange(PerformanceWTP, EmissionWTP )
+
+
 # Can truncate sample by protest votes:
 # Full_Cons <- Full_Cons[ !(Full_Cons$ï..Respondent %in% c(24,33,44,61,121,127,182,200,211,219,239,251,275,306,320,326,341,360,363,371,399,464,467,479,480,506,579,591,649,654,931,932,935,953,989,1002,1011,1024,14,35,39,54,79,106,130,146,149,155,163,203,214,215,217,244,246,249,252,267,268,282,290,327,343,362,364,374,380,393,398,407,414,425,426,433,477,519,524,536,543,545,547,557,567,575,589,590,595,614,617,629,637,638,639,651,665,674,680,915,933,940,950,959,960,975,978,996,1026,1027,1028)), ] ## Drop protest rows
+
 
 ## Model 8: MXL all sociodemographics, WTP-space, truncated sample
 MXL_5 <- mlogit(
@@ -785,6 +856,145 @@ WTPbs <- -1* WTPbs
 WTPbs <- cbind(WTPbs[,1],FullWTPs[,2],FullWTPs[,2])
 colnames(WTPbs) <- c("Lower","Mean","Upper")
 round(WTPbs,3)
+
+
+######################## Model prediction accuracy:
+
+
+## MN_1 prediction accuracy
+MNL_1_Predictions <- MNL_1$probabilities ## Getting probabilities of choosing each option from the model
+colnames(MNL_1_Predictions) <- c(0,1) ## Name columns as each option 
+MNL1Options <- data.frame("MNL1Options" = as.integer(colnames(MNL_1_Predictions)[apply(round(MNL_1_Predictions,4),1,which.max)])) ## This picks the class that is most likely for each individual
+Fulls <- cbind(Fulls,MNL1Options)
+MNL_1_Accuracy <- round(data.frame("Right"=c(
+  100/nrow(Fulls)*(length(Fulls$MNL1Options[ (Fulls$Choice == "A") & (Fulls$MNL1Options == 0)  ] ) + 
+                     length(Fulls$MNL1Options[ (Fulls$Choice == "B") & (Fulls$MNL1Options == 1)  ] ))),
+  "Wrong"=c(100/nrow(Fulls)*(length(Fulls$MNL1Options[ (Fulls$Choice == "A") & (Fulls$MNL1Options == 1)  ] ) + 
+                               length(Fulls$MNL1Options[ (Fulls$Choice == "B") & (Fulls$MNL1Options == 0)  ])))),3)
+MNL_1_Accuracy
+
+
+## MN_2 prediction accuracy
+MNL_2_Predictions <- MNL_2$probabilities ## Getting probabilities of choosing each option from the model
+colnames(MNL_2_Predictions) <- c(0,1) ## Name columns as each option 
+MNL2Options <- data.frame("MNL2Options" = as.integer(colnames(MNL_2_Predictions)[apply(round(MNL_2_Predictions,4),1,which.max)])) ## This picks the class that is most likely for each individual
+Fulls <- cbind(Fulls,MNL2Options)
+MNL_2_Accuracy <- round(data.frame("Right"=c(
+  100/nrow(Fulls)*(length(Fulls$MNL2Options[ (Fulls$Choice == "A") & (Fulls$MNL2Options == 0)  ] ) + 
+                     length(Fulls$MNL2Options[ (Fulls$Choice == "B") & (Fulls$MNL2Options == 1)  ] ))),
+  "Wrong"=c(100/nrow(Fulls)*(length(Fulls$MNL2Options[ (Fulls$Choice == "A") & (Fulls$MNL2Options == 1)  ] ) + 
+                               length(Fulls$MNL2Options[ (Fulls$Choice == "B") & (Fulls$MNL2Options == 0)  ])))),3)
+MNL_2_Accuracy
+
+
+## MN_3 prediction accuracy
+MNL_3_Predictions <- MNL_3$probabilities ## Getting probabilities of choosing each option from the model
+colnames(MNL_3_Predictions) <- c(0,1) ## Name columns as each option 
+MNL3Options <- data.frame("MNL3Options" = as.integer(colnames(MNL_3_Predictions)[apply(round(MNL_3_Predictions,4),1,which.max)])) ## This picks the class that is most likely for each individual
+Fulls <- cbind(Fulls,MNL3Options)
+MNL_3_Accuracy <- round(data.frame("Right"=c(
+  100/nrow(Fulls)*(length(Fulls$MNL3Options[ (Fulls$Choice == "A") & (Fulls$MNL3Options == 0)  ] ) + 
+                     length(Fulls$MNL3Options[ (Fulls$Choice == "B") & (Fulls$MNL3Options == 1)  ] ))),
+  "Wrong"=c(100/nrow(Fulls)*(length(Fulls$MNL3Options[ (Fulls$Choice == "A") & (Fulls$MNL3Options == 1)  ] ) + 
+                               length(Fulls$MNL3Options[ (Fulls$Choice == "B") & (Fulls$MNL3Options == 0)  ])))),3)
+MNL_3_Accuracy
+
+
+## MXL_1 prediction accuracy
+MXL_1_Predictions <- MXL_1$probabilities ## Getting probabilities of choosing each option from the model
+colnames(MXL_1_Predictions) <- c(0,1) ## Name columns as each option 
+MXL1Options <- data.frame("MXL1Options" = as.integer(colnames(MXL_1_Predictions)[apply(round(MXL_1_Predictions,4),1,which.max)])) ## This picks the class that is most likely for each individual
+Fulls <- cbind(Fulls,MXL1Options)
+MXL_1_Accuracy <- round(data.frame("Right"=c(
+  100/nrow(Fulls)*(length(Fulls$MXL1Options[ (Fulls$Choice == "A") & (Fulls$MXL1Options == 0)  ] ) + 
+                     length(Fulls$MXL1Options[ (Fulls$Choice == "B") & (Fulls$MXL1Options == 1)  ] ))),
+  "Wrong"=c(100/nrow(Fulls)*(length(Fulls$MXL1Options[ (Fulls$Choice == "A") & (Fulls$MXL1Options == 1)  ] ) + 
+                               length(Fulls$MXL1Options[ (Fulls$Choice == "B") & (Fulls$MXL1Options == 0)  ])))),3)
+MXL_1_Accuracy
+
+
+## MXL_2 prediction accuracy
+MXL_2_Predictions <- MXL_2$probabilities ## Getting probabilities of choosing each option from the model
+colnames(MXL_2_Predictions) <- c(0,1) ## Name columns as each option 
+MXL2Options <- data.frame("MXL2Options" = as.integer(colnames(MXL_2_Predictions)[apply(round(MXL_2_Predictions,4),1,which.max)])) ## This picks the class that is most likely for each individual
+Fulls <- cbind(Fulls,MXL2Options)
+MXL_2_Accuracy <- round(data.frame("Right"=c(
+  100/nrow(Fulls)*(length(Fulls$MXL2Options[ (Fulls$Choice == "A") & (Fulls$MXL2Options == 0)  ] ) + 
+                     length(Fulls$MXL2Options[ (Fulls$Choice == "B") & (Fulls$MXL2Options == 1)  ] ))),
+  "Wrong"=c(100/nrow(Fulls)*(length(Fulls$MXL2Options[ (Fulls$Choice == "A") & (Fulls$MXL2Options == 1)  ] ) + 
+                               length(Fulls$MXL2Options[ (Fulls$Choice == "B") & (Fulls$MXL2Options == 0)  ])))),3)
+MXL_2_Accuracy
+
+
+## MXL_3 prediction accuracy
+MXL_3_Predictions <- MXL_3$probabilities ## Getting probabilities of choosing each option from the model
+colnames(MXL_3_Predictions) <- c(0,1) ## Name columns as each option 
+MXL3Options <- data.frame("MXL3Options" = as.integer(colnames(MXL_3_Predictions)[apply(round(MXL_3_Predictions,4),1,which.max)])) ## This picks the class that is most likely for each individual
+Fulls <- cbind(Fulls,MXL3Options)
+MXL_3_Accuracy <- round(data.frame("Right"=c(
+  100/nrow(Fulls)*(length(Fulls$MXL3Options[ (Fulls$Choice == "A") & (Fulls$MXL3Options == 0)  ] ) + 
+                     length(Fulls$MXL3Options[ (Fulls$Choice == "B") & (Fulls$MXL3Options == 1)  ] ))),
+  "Wrong"=c(100/nrow(Fulls)*(length(Fulls$MXL3Options[ (Fulls$Choice == "A") & (Fulls$MXL3Options == 1)  ] ) + 
+                               length(Fulls$MXL3Options[ (Fulls$Choice == "B") & (Fulls$MXL3Options == 0)  ])))),3)
+MXL_3_Accuracy
+
+
+## MXL_4 prediction accuracy
+MXL_4_Predictions <- MXL_4$probabilities ## Getting probabilities of choosing each option from the model
+colnames(MXL_4_Predictions) <- c(0,1) ## Name columns as each option 
+MXL4Options <- data.frame("MXL4Options" = as.integer(colnames(MXL_4_Predictions)[apply(round(MXL_4_Predictions,4),1,which.max)])) ## This picks the class that is most likely for each individual
+Fulls <- cbind(Fulls,MXL4Options)
+MXL_4_Accuracy <- round(data.frame("Right"=c(
+  100/nrow(Fulls)*(length(Fulls$MXL4Options[ (Fulls$Choice == "A") & (Fulls$MXL4Options == 0)  ] ) + 
+                     length(Fulls$MXL4Options[ (Fulls$Choice == "B") & (Fulls$MXL4Options == 1)  ] ))),
+  "Wrong"=c(100/nrow(Fulls)*(length(Fulls$MXL4Options[ (Fulls$Choice == "A") & (Fulls$MXL4Options == 1)  ] ) + 
+                               length(Fulls$MXL4Options[ (Fulls$Choice == "B") & (Fulls$MXL4Options == 0)  ])))),3)
+MXL_4_Accuracy
+
+## MXL_5 prediction accuracy
+MXL_5_Predictions <- MXL_5$probabilities ## Getting probabilities of choosing each option from the model
+colnames(MXL_5_Predictions) <- c(0,1) ## Name columns as each option 
+MXL5Options <- data.frame("MXL5Options" = as.integer(colnames(MXL_5_Predictions)[apply(round(MXL_5_Predictions,4),1,which.max)])) ## This picks the class that is most likely for each individual
+MXL5Full <- MXL5Full[ (MXL5Full$ID) %in% c(Full_Cons$ID) , ]
+MXL5Full <- cbind(MXL5Full,MXL5Options)
+MXL_5_Accuracy <- round(data.frame("Right"=c(
+  100/nrow(MXL5Full)*(length(MXL5Full$MXL5Options[ (MXL5Full$Choice == "A") & (MXL5Full$MXL5Options == 0)  ] ) + 
+                        length(MXL5Full$MXL5Options[ (MXL5Full$Choice == "B") & (MXL5Full$MXL5Options == 1)  ] ))),
+  "Wrong"=c(100/nrow(MXL5Full)*(length(MXL5Full$MXL5Options[ (MXL5Full$Choice == "A") & (MXL5Full$MXL5Options == 1)  ] ) + 
+                                  length(MXL5Full$MXL5Options[ (MXL5Full$Choice == "B") & (MXL5Full$MXL5Options == 0)  ])))),3)
+MXL_5_Accuracy
+
+## Data frame of all model's prediction accuracy: 
+Models_Predictions <- rbind("Model 1: MNL - Attributes only" = c(MNL_1_Accuracy),
+      "Model 2: MNL - Quadratic attributes:"=c(MNL_2_Accuracy),
+      "Model 3: MNL - All sociodemographics:"=c(MNL_3_Accuracy),
+      "Model 4: MXL - Attributes Only"=c(MXL_1_Accuracy),
+      "Model 5: MXL - Quadratic attributes"=c(MXL_2_Accuracy),
+      "Model 6: MXL - SDs, utility-space"=c(MXL_3_Accuracy),
+      "Model 7: MXL - SDs, WTP-space"=c(MXL_4_Accuracy),
+      "Model 8: MXL - SDs, WTP-space, truncated sample"=c(MXL_5_Accuracy))
+
+
+### Plotting Consequentiality effects
+ggplot(data=Fulls, aes(x=as.numeric(Q24AIncome))) + 
+  facet_grid( ~ Q20Consequentiality, labeller = as_labeller(c(
+    `0` = "Inconsequential",
+    `1` = "Consequential",
+    `2` = "Don't Know")))+
+  geom_smooth(aes(y=Performance,color="red"),method="lm",se=F) +
+  geom_smooth(aes(y=Emission,color="blue"),method="lm",se=F) +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("Performance MWTP", "Emission MWTP"))+
+  ggtitle("Relationship between income and WTP by consequentiality") +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("Performance MWTP", "Emission MWTP"))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Income",breaks = waiver(),limits = c(0,5000),
+                     n.breaks = 5, labels = function(x) paste0("£",x))+
+  scale_y_continuous(name="MWTP",breaks = waiver(),n.breaks = 10, 
+                     limits=c(-5,5),labels = function(x) paste0("£",x))+
+  labs(x = "Income",y="MWTP")
 
 
 ##############  GMNL is an alternative to MLOGIT
@@ -1167,6 +1377,12 @@ summary(Treatment_Inconsequential)
 krCI(Treatment_Consequential)
 krCI(Treatment_Inconsequential)
 
+Treatment_ConsequentialKMT <- turnbull.db(formula = Q7TreatmentResponse + Q7Response2 ~ Q7Bid + Q7Bid2,data = Full_Consequential)
+Treatment_InconsequentialKMT <- turnbull.db(formula = Q7TreatmentResponse + Q7Response2 ~ Q7Bid + Q7Bid2,data = Full_Inconsequential)
+layout(matrix(c(1,1,2,2), 2, 2, byrow = TRUE), widths=c(1,1), heights=c(4,4))
+plot(Treatment_ConsequentialKMT)
+plot(Treatment_InconsequentialKMT)
+
 
 #################### Estimating QOV:
 
@@ -1280,6 +1496,44 @@ ggplot(FullSurvey2, aes(x=Precaution)) +
   ggtitle("Histogram of respondent precautionary premia.")
 
 
+### Plotting Certainty effects
+ggplot(FullSurvey2, aes(x=as.numeric(Q24AIncome))) + 
+  facet_grid( ~ Q12CECertainty, labeller = as_labeller(c(
+    `0` = "Unsure",
+    `1` = "Quite Sure",
+    `2` = "Very Sure")))+
+  geom_smooth(aes(y=Q6WTP,color="blue"),method="lm",se=F) +
+  geom_smooth(aes(y=Q7WTP,color="red"),method="lm",se=F) +
+  ggtitle("Relationship between income and WTP by certainty") +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("WTP for research", "WTP for treatment"))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Income",breaks = waiver(),limits = c(0,5000),
+                     n.breaks = 5, labels = function(x) paste0("£",x))+
+  scale_y_continuous(name="Precautionary WTP",breaks = waiver(), 
+                     limits=c(20,50),labels = function(x) paste0("£",x))+
+  labs(x = "Income",y="Precaution")
+
+### Plotting Consequentiality effects
+ggplot(FullSurvey2, aes(x=as.numeric(Q24AIncome))) + 
+  facet_grid( ~ Q12CECertainty, labeller = as_labeller(c(
+    `0` = "Unsure",
+    `1` = "Quite Sure",
+    `2` = "Very Sure")))+
+  geom_smooth(aes(y=Q6WTP,color="blue"),method="lm",se=F) +
+  geom_smooth(aes(y=Q7WTP,color="red"),method="lm",se=F) +
+  ggtitle("Relationship between income and WTP by certainty") +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("WTP for research", "WTP for treatment"))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Income",breaks = waiver(),limits = c(0,5000),
+                     n.breaks = 5, labels = function(x) paste0("£",x))+
+  scale_y_continuous(name="Precautionary WTP",breaks = waiver(), 
+                     limits=c(20,50),labels = function(x) paste0("£",x))+
+  labs(x = "Income",y="Precaution")
+
 
 ## Here I make a dataframe which has Q6, Q7 WTP and the precautionary premium and is truncated according to all criteria 
 FS <- FullSurvey2[ (FullSurvey2$ID) %in% c(Full_Full$ID),  ]
@@ -1333,6 +1587,50 @@ Q15Graph <- ggplot(FS) +
 Q13Graph
 Q14Graph
 Q15Graph
+
+
+##########################################################  
+## Reporting Marginal Effects
+
+
+## Install required packages to estimate Probit and reqport the marginal effects 
+install.packages("aod")
+install.packages("mfx")
+library(mfx)
+require(aod)
+
+## Model for Q6:
+CVMProbit <-glm(Q6ResearchResponse ~ Order + Q1Gender + Q2Age + Q3Distance
+                                        + Q4Trips + Q16BP + Q18Charity
+                                        + Q21Experts + Q22Education + Q23Employment
+                                        +  Q24AIncome + Timing + Q6Bid, family = binomial(link = "probit"),data = FullSurvey2)
+summary(CVMProbit) ## Report the model
+confint(CVMProbit) ## Estimate confidence interval -default 95%
+wald.test(b = coef(CVMProbit), Sigma = vcov(CVMProbit), Terms=2) ## Attempt a Wald-test
+stargazer(CVMProbit, title = "CVMProbit", align = TRUE,report="p*") ## Export results to LaTeX code
+
+CVMME <- probitmfx(formula = Q6ResearchResponse ~ Order + Q1Gender + Q2Age + Q3Distance
+                   + Q4Trips + Q16BP + Q18Charity
+                   + Q21Experts + Q22Education + Q23Employment
+                   +  Q24AIncome + Timing + Q6Bid,data = FullSurvey2,robust = TRUE)
+CVMME ## Report Marginal Effects
+
+
+## Model for Q7:
+QOVProbit <-glm(Q7TreatmentResponse ~ Order + Q1Gender + Q2Age + Q3Distance
+                + Q4Trips + Q16BP + Q18Charity
+                + Q21Experts + Q22Education + Q23Employment
+                +  Q24AIncome + Timing + Q7Bid, 
+                family = binomial(link = "probit"),data = FullSurvey2)
+summary(QOVProbit)
+QOVME <- probitmfx(formula = Q7TreatmentResponse ~ Order + Q1Gender + Q2Age + Q3Distance
+                   + Q4Trips + Q16BP + Q18Charity
+                   + Q21Experts + Q22Education + Q23Employment
+                   +  Q24AIncome + Timing + Q7Bid,data = FullSurvey2,robust = TRUE)
+confint(QOVProbit)
+wald.test(b = coef(QOVProbit), Sigma = vcov(QOVProbit), Terms=2)
+## All the same commands as the Q6 models
+
 ##########################################################  
 ## The following code is experimental:
 ##########################################################  
@@ -1344,8 +1642,15 @@ Q15Graph
 ## APOLLO: MNL
 #############################################################################
 
+rm(list = ls())
+install.packages("Rcpp")
+library(Rcpp)
+install.packages("rngWELL")
+library(rngWELL)
 install.packages("randtoolbox")
+library(randtoolbox)
 install.packages("apollo")
+library(apollo)
 
 ### Load Apollo library
 library(apollo)
@@ -1361,7 +1666,10 @@ Test_Apollo <- data.frame(Fulls$ID,Fulls$Task, Fulls$Q1Gender,
                           Fulls$Q25Understanding,Fulls[,16:21],
                           Fulls$Choice,as.numeric(Fulls$Q24AIncome),
                           Fulls$Order, as.numeric(Fulls$Task), Fulls$Q20Consequentiality,
-                          Fulls$Q21Experts)
+                          Fulls$Q21Experts,
+                          Fulls$Q6ResearchResponse,Fulls$Q6Bid,
+                          Fulls$Q7Bid,Fulls$Q7Bid2,
+                          Fulls$Q7TreatmentResponse,Fulls$Q7Response2)
 colnames(Test_Apollo) <- c("ID","Task","Q1Gender","Age","Distance",
                            "Trips","Q13CurrentThreatToSelf","Q14FutureThreatToSelf",
                            "Q15ThreatToEnvironment","BP","Charity",
@@ -1370,11 +1678,17 @@ colnames(Test_Apollo) <- c("ID","Task","Q1Gender","Age","Distance",
                            "Price_B","Performance_B","Emission_B",
                            "Performance_A","Emission_A","Price_A"
                            ,"Choice","Income", "Order","Task",
-                           "Consequentiality","Experts")
+                           "Consequentiality","Experts",
+                           "Q6ResearchResponse","Q6Bid",
+                           "Q7Bid","Q7Bid2",
+                           "Q7TreatmentResponse","Q7Response2")
 
 # Tests_Dominated <- Test_Apollo[!Test_Apollo$ID %in% c(Test_Apollo$ID[ ((Test_Apollo$Task == 1) & (Test_Apollo$Choice ==1) & (grepl("SQ",rownames(Test_Apollo),fixed = TRUE) == FALSE)) ]),]
 # Tests_Understanding <- Tests_Dominated[!Tests_Dominated$ID %in% c( unique(Tests_Dominated$ID[Tests_Dominated$Survey <= 5])),]
 # Test_Apollo <- Tests_Understanding
+
+Test_Apollo$Q6ResearchResponse <- Test_Apollo$Q6ResearchResponse +1
+Test_Apollo$Bid_Alt <- rep(0,nrow(Test_Apollo))
 
 Test_Apollo$Choice[Test_Apollo$Choice == 1] <- 2
 Test_Apollo$Choice[Test_Apollo$Choice == 0] <- 1
@@ -1464,7 +1778,7 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
 
 model = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
 
-apollo_modelOutput(model)
+apollo_modelOutput(model,modelOutput_settings = list(printPVal=TRUE))
 
 ## WTP calculations: 
 deltaMethod_settings=list(operation="ratio", parName1="b_Performance", parName2="b_Price")
@@ -1483,7 +1797,16 @@ apollo_deltaMethod(model, deltaMethod_settings)
 #### Apollo MXL                       
 # ################################################################# #
 
+rm(list = ls())
+install.packages("Rcpp")
+library(Rcpp)
+install.packages("rngWELL")
+library(rngWELL)
+install.packages("randtoolbox")
+library(randtoolbox)
+install.packages("apollo")
 library(apollo)
+
 apollo_initialise()
 
 ## Set core controls
@@ -1580,8 +1903,7 @@ MXLmodel = apollo_estimate(apollo_beta, apollo_fixed,
                            apollo_probabilities, apollo_inputs, 
                            estimate_settings=list(hessianRoutine="numDeriv"))
 
-apollo_modelOutput(MXLmodel)
-
+apollo_modelOutput(MXLmodel,modelOutput_settings = list(printPVal=TRUE))
 
 unconditionals <- apollo_unconditionals(model,apollo_probabilities, apollo_inputs)
 
@@ -1600,6 +1922,16 @@ summary(conditionals[["b_Price"]])
 ## LCM with RRM and RUM classes
 ## https://www.advancedrrmmodels.com/latent-class-models
 #############################################################################
+
+rm(list = ls())
+install.packages("Rcpp")
+library(Rcpp)
+install.packages("rngWELL")
+library(rngWELL)
+install.packages("randtoolbox")
+library(randtoolbox)
+install.packages("apollo")
+library(apollo)
 
 library(apollo)
 apollo_initialise()
@@ -1735,19 +2067,33 @@ apollo_beta = apollo_searchStart(apollo_beta,
                                  searchStart_settings=list(nCandidates=20))
 
 RRmodel = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs, estimate_settings=list(hessianRoutine="numDeriv")) 
-apollo_modelOutput(RRmodel)
+apollo_modelOutput(RRmodel,modelOutput_settings = list(printPVal=TRUE))
 
 
 #############################################################################
-## ICLV model:
+## ICLV model: CE version
 ## http://www.apollochoicemodelling.com/files/Apollo_example_24.r
 #############################################################################
 
 
 rm(list = ls())
+install.packages("Rcpp")
+library(Rcpp)
 install.packages("rngWELL")
+library(rngWELL)
 install.packages("randtoolbox")
+library(randtoolbox)
 install.packages("apollo")
+library(apollo)
+
+Test_Apollo$Education[Test_Apollo$Education<3] <- 0
+Test_Apollo$Education[Test_Apollo$Education>=3] <- 1
+
+Test_Apollo$Age[Test_Apollo$Age < median(Test_Apollo$Age)] <- 0
+Test_Apollo$Age[Test_Apollo$Age >= median(Test_Apollo$Age)] <- 1
+
+database = Test_Apollo
+
 
 ### Load Apollo library
 library(apollo)
@@ -1758,24 +2104,14 @@ apollo_initialise()
 ### Set core controls
 apollo_control = list(
   modelName  = "Apollo_example_24",
-  modelDescr = "ICLV model attempt",
+  modelDescr = "ICLV model: CE",
   indivID    = "ID",
   mixing     = TRUE,
   nCores     = 1
 )
 
-Test_Apollo$Education[Test_Apollo$Education<3] <- 0
-Test_Apollo$Education[Test_Apollo$Education>=3] <- 1
-
-Test_Apollo$Age[Test_Apollo$Age < median(Test_Apollo$Age)] <- 0
-Test_Apollo$Age[Test_Apollo$Age >= median(Test_Apollo$Age)] <- 1
-
-database = Test_Apollo
 # database = read.csv("apollo_drugChoiceData.csv",header=TRUE)
 
-
-
-## DEFINE MODEL PARAMETERS                                     
 
 ### Vector of parameters, including any that are kept fixed in estimation
 apollo_beta = c(b_Emission_Low     = 0, 
@@ -1910,16 +2246,177 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
 # apollo_llCalc(apollo_beta, apollo_probabilities, apollo_inputs)
 
 ### Estimate model
-ICLVmodel = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+CEmodel = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
 
-apollo_modelOutput(ICLVmodel)
+apollo_modelOutput(CEmodel,modelOutput_settings = list(printPVal=TRUE))
 
-forecast <- apollo_prediction(model, apollo_probabilities, apollo_inputs,
-                              prediction_settings=list(modelComponent="indic_Q13"))
 
-conditionals <- apollo_conditionals(model,apollo_probabilities,apollo_inputs)
 
-unconditionals <- apollo_unconditionals(model,apollo_probabilities,apollo_inputs)
+
+#############################################################################
+## ICLV model: CVM edition based on Abate et al (2020)
+## http://www.apollochoicemodelling.com/files/Apollo_example_24.r
+#############################################################################
+
+
+
+
+rm(list = ls())
+install.packages("Rcpp")
+library(Rcpp)
+install.packages("rngWELL")
+library(rngWELL)
+install.packages("randtoolbox")
+library(randtoolbox)
+install.packages("apollo")
+library(apollo)
+
+database = Test_Apollo
+
+### Load Apollo library
+library(apollo)
+
+### Initialise code
+apollo_initialise()
+
+### Set core controls
+apollo_control = list(
+  modelName  = "ICLV",
+  modelDescr = "ICLV model: CV",
+  indivID    = "ID",
+  mixing     = TRUE,
+  nCores     = 1
+)
+
+# database = read.csv("apollo_drugChoiceData.csv",header=TRUE)
+
+
+### Vector of parameters, including any that are kept fixed in estimation
+apollo_beta = c(b_bid     = 0, 
+                b_bid_Alt = 0,
+                lambda            = 1, 
+                gamma_Education   = 0, 
+                gamma_Age         = 0, 
+                zeta_Q13   = 1, 
+                zeta_Q14   = 1, 
+                zeta_Q15   = 1, 
+                tau_Q13_1  =-2, 
+                tau_Q13_2  =-1, 
+                tau_Q13_3  = 1, 
+                tau_Q13_4  = 2, 
+                tau_Q14_1  =-2, 
+                tau_Q14_2  =-1, 
+                tau_Q14_3  = 1, 
+                tau_Q14_4  = 2, 
+                tau_Q15_1  =-2, 
+                tau_Q15_2  =-1, 
+                tau_Q15_3  = 1, 
+                tau_Q15_4  = 2)
+
+## Vector with names (in quotes) of parameters to be kept fixed at their starting value in apollo_beta, use apollo_beta_fixed = c() if none
+apollo_fixed = c()
+
+## DEFINE RANDOM COMPONENTS                                    
+
+### Set parameters for generating draws
+apollo_draws = list(
+  interDrawsType="halton", 
+  interNDraws=100,          
+  interUnifDraws=c(),      
+  interNormDraws=c("eta"), 
+  intraDrawsType='',
+  intraNDraws=0,          
+  intraUnifDraws=c(),     
+  intraNormDraws=c()      
+)
+
+### Create random parameters
+apollo_randCoeff=function(apollo_beta, apollo_inputs){
+  randcoeff = list()
+  
+  randcoeff[["LV"]] = gamma_Education*Education + gamma_Age*Age + eta
+  
+  return(randcoeff)
+}
+
+
+## GROUP AND VALIDATE INPUTS
+
+apollo_inputs = apollo_validateInputs()
+
+## DEFINE MODEL AND LIKELIHOOD FUNCTION                        
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  
+  ### Attach inputs and detach after function exit
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  
+  ### Create list of probabilities P
+  P = list()
+  
+  ### Likelihood of indicators
+  op_settings1 = list(outcomeOrdered = Q13CurrentThreatToSelf, 
+                      V              = zeta_Q13*LV, 
+                      tau            = c(tau_Q13_1, tau_Q13_2, tau_Q13_3, tau_Q13_4),
+                      rows           = (Task==1),
+                      componentName  = "indic_Q13")
+  op_settings2 = list(outcomeOrdered = Q14FutureThreatToSelf, 
+                      V              = zeta_Q14*LV, 
+                      tau            = c(tau_Q14_1, tau_Q14_2, tau_Q14_3, tau_Q14_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q14")
+  op_settings3 = list(outcomeOrdered = Q15ThreatToEnvironment, 
+                      V              = zeta_Q15*LV, 
+                      tau            = c(tau_Q15_1, tau_Q15_2, tau_Q15_3, tau_Q15_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q15")
+  P[["indic_Q13"]]     = apollo_op(op_settings1, functionality)
+  P[["indic_Q14"]] = apollo_op(op_settings2, functionality)
+  P[["indic_Q15"]]      = apollo_op(op_settings3, functionality)
+  
+  ### Likelihood of choices
+  ### List of utilities: these must use the same names as in mnl_settings, order is irrelevant
+  V = list()
+  V[['A']] = ( b_bid_Alt*(Bid_Alt==0) )
+  V[['B']] = ( b_bid*(Q6Bid)
+               + lambda*LV )
+  
+  ### Define settings for MNL model component
+  mnl_settings = list(
+    alternatives = c(A=1, B=2),
+    avail        = list(A=1, B=1),
+    choiceVar    = Q6ResearchResponse,
+    V            = V,
+    componentName= "choice"
+  )
+  
+  ### Compute probabilities for MNL model component
+  P[["choice"]] = apollo_mnl(mnl_settings, functionality)
+  
+  ### Likelihood of the whole model
+  P = apollo_combineModels(P, apollo_inputs, functionality)
+  
+  ### Take product across observation for same individual
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  
+  ### Average across inter-individual draws
+  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
+  
+  ### Prepare and return outputs of function
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+### MODEL ESTIMATION
+
+## Optional: calculate LL before model estimation
+# apollo_llCalc(apollo_beta, apollo_probabilities, apollo_inputs)
+
+### Estimate model
+CVmodel = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+
+apollo_modelOutput(CVmodel,modelOutput_settings = list(printPVal=TRUE))
 
 
 ###############################################################
