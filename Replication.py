@@ -199,18 +199,14 @@ FullSurvey2.Q24RonaImpact[FullSurvey2.Q24RonaImpact == 2] = 1.0
 FullSurvey2.Q24RonaImpact[FullSurvey2.Q24RonaImpact == 3] = 2.0
 
 
-################################
-## Translated until here:
-################################
-
-
 ## Previously skipped or missed questions were set = 2 now they're NAs for ease of merging the two columns.
-FullSurvey2.Q7TreatmentUpperResponse[FullSurvey2.Q7TreatmentUpperResponse == 2] = NA
-FullSurvey2.Q7TreatmentLowerResponse[FullSurvey2.Q7TreatmentLowerResponse == 2] = NA
+FullSurvey2.Q7TreatmentUpperResponse[FullSurvey2.Q7TreatmentUpperResponse == 2] = np.nan
+FullSurvey2.Q7TreatmentLowerResponse[FullSurvey2.Q7TreatmentLowerResponse == 2] = np.nan
 
 ## As respondents did EITHER the upper or lower question there should only be one column. This requires using mutate and coalesce to merge the lower and upper responses.
-FullSurvey2 = mutate(Q7Bid2 = coalesce(FullSurvey2.Q7Bid2Lower,FullSurvey2.Q7Bid2Upper),.data = FullSurvey2)
-FullSurvey2 = mutate(Q7Response2 = coalesce(FullSurvey2.Q7TreatmentUpperResponse,FullSurvey2.Q7TreatmentLowerResponse),.data = FullSurvey2)
+FullSurvey2['Q7Bid2'] = FullSurvey2['Q7Bid2Lower'].fillna(FullSurvey2['Q7Bid2Upper'])
+FullSurvey2['Q7Response2'] = FullSurvey2['Q7TreatmentUpperResponse'].fillna(FullSurvey2['Q7TreatmentLowerResponse'])
+
 
 ## The following section codes all the attributes as their actual values.
 FullSurvey2.Q9Performance[FullSurvey2.Q9Performance == 1] = 0.05
@@ -231,35 +227,27 @@ FullSurvey2.Q24AIncome[FullSurvey2.Q24AIncome == 2] = 1750.00
 FullSurvey2.Q24AIncome[FullSurvey2.Q24AIncome == 1] = 1250.00
 FullSurvey2.Q24AIncome[FullSurvey2.Q24AIncome == 3] = 2250.00
 FullSurvey2.Q24AIncome[FullSurvey2.Q24AIncome == 6] = 4500.00
-FullSurvey2.Q24AIncome[FullSurvey2.Q24AIncome == 9] = NA 
-FullSurvey2.Q24AIncome = with(FullSurvey2, impute(FullSurvey2.Q24AIncome, 'random')) ## Using random imputation for missing values
+FullSurvey2.Q24AIncome[FullSurvey2.Q24AIncome == 9] = np.nan
+FullSurvey2 = FullSurvey2.apply(lambda x: x.fillna(np.random.choice(x.dropna())), axis=1)
 FullSurvey2.Q24AIncome[FullSurvey2.Q24AIncome == 7] = 5000
 FullSurvey2.Q24AIncome[FullSurvey2.Q24AIncome == 0] = 250.00
-FullSurvey2.Q24RonaImpact = as.numeric(FullSurvey2.Q24RonaImpact)
 
 ## Updating the final survey question
 FullSurvey2.Q25Understanding[FullSurvey2.Q25Understanding == 1] = 9.0
 FullSurvey2.Q25Understanding = FullSurvey2.Q25Understanding +1.0
 
-## Adding an ID column which replaces the respondent category in the original dataset.
-FullSurvey2$ID = seq.int(nrow(FullSurvey2))
 
-## Aim of the function is to express all variables in the FullSurvey data as factors
-for (i in colnames(FullSurvey2)){
-  if (is.factor(FullSurvey[[i]]) == TRUE){
-    contrasts(FullSurvey2[,i]) = contr.sum(nlevels(FullSurvey2[,i]))
-  }
-} 
+OptionA = pd.DataFrame({'Performance':[0.0,0.0,0.0,0.0],'Emission':[0.0,0.0,0.0,0.0],'Price':[0.0,0.0,0.0,0.0]})
 
-OptionA = data.frame("Performance" =c(0,0,0,0), 
-                      "Emission" =c(0,0,0,0),
-                      "Price" =c(0,0,0,0))
+FullSurvey2 = FullSurvey2.loc[FullSurvey2.index.repeat(OptionA.shape[0])]
+OptionA = OptionA.loc[OptionA.index.repeat(FullSurvey2.shape[0]/4)]
+OptionA.index = FullSurvey2.index
+Full = pd.concat([FullSurvey2,OptionA],axis=1)
 
-library(dplyr) ## Essential library for data manipulation
+################################
+## Translated until here:
+################################
 
-## Full is a dataframe that transforms the FullSurvey data into an appropriate format for the estimation.
-### The code repeats each row of the FullSurvey data for each choice the respondent made. Therefore, each respondent now has four rows one for Q9, Q10, Q11, Q12
-Full = cbind(slice(.data = FullSurvey2,rep(1:n(), each = 4)),slice(.data = OptionA,rep(1:n(), times = nrow(FullSurvey2))))
 
 ##  Creating a dataframe with all the levels that the Price attribute took for alternative B in the CE. 
 DBPrice_B = data.frame(Price_B = 
