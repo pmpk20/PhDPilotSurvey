@@ -244,45 +244,31 @@ OptionA = OptionA.loc[OptionA.index.repeat(FullSurvey2.shape[0]/4)]
 OptionA.index = FullSurvey2.index
 Full = pd.concat([FullSurvey2,OptionA],axis=1)
 
+DBPrice_B = pd.concat([FullSurvey2["Q9Price"],FullSurvey2["Q10Price"],FullSurvey2["Q11Price"],FullSurvey2["Q12Price"]],axis=1)
+
+DBPerformance_B  = pd.concat([FullSurvey2["Q9Performance"],FullSurvey2["Q10Performance"],FullSurvey2["Q11Performance"],FullSurvey2["Q12Performance"]],axis=1)
+
+DBEmission_B = pd.concat([FullSurvey2["Q9Emission"],FullSurvey2["Q10Emission"],FullSurvey2["Q11Emission"],FullSurvey2["Q12Emission"]],axis=1)
+
+
+Choices = pd.concat([FullSurvey.iloc[:,35],FullSurvey.iloc[:,36],FullSurvey.iloc[:,37],FullSurvey.iloc[:,38]],axis=1)
+Choices = Choices.unstack().reset_index(drop=True)
+FullSurvey2.Q9Choice = Choices
+
+FullSurvey2 = FullSurvey2.drop([FullSurvey2.columns[36],FullSurvey2.columns[37],FullSurvey2.columns[38],FullSurvey2.columns[39]],axis='columns')
+
 ################################
 ## Translated until here:
 ################################
 
 
-##  Creating a dataframe with all the levels that the Price attribute took for alternative B in the CE. 
-DBPrice_B = data.frame(Price_B = 
-                          c(t(data.frame(rep(data.frame(FullSurvey2["Q9Price"],
-                                                        FullSurvey2["Q10Price"],
-                                                        FullSurvey2["Q11Price"],
-                                                        FullSurvey2["Q12Price"]),
-                                             times=1)))[,]))
-
-##  Creating a dataframe with all the levels that the Performance attribute took for alternative B in the CE. 
-DBPerformance_B = data.frame(Performance_B = 
-                                c(t(data.frame(rep(data.frame(FullSurvey2["Q9Performance"],
-                                                              FullSurvey2["Q10Performance"],
-                                                              FullSurvey2["Q11Performance"],
-                                                              FullSurvey2["Q12Performance"]),
-                                                   times=1)))[,]))
-
-##  Creating a dataframe with all the levels that the Emission attribute took for alternative B in the CE. 
-DBEmission_B = data.frame(Emission_B = 
-                             c(t(data.frame(rep(data.frame(FullSurvey2["Q9Emission"],
-                                                           FullSurvey2["Q10Emission"],
-                                                           FullSurvey2["Q11Emission"],
-                                                           FullSurvey2["Q12Emission"]),
-                                                times=1)))[,]))
-
-##  Creating a single column that contains all respondents CE choices. 
-Choices = data.frame(Choice = c(t(
-  data.frame(rep(FullSurvey2[,36:39], times=1)))[,]))
 
 ##  Chopping and reorganising the columns of the Full dataframe into a new order which includes the attributes and their levels alongside all the choices in a single vector.
 ### The final argument creates a variable called TASK
-Full = data.frame(Full[,1:14],Full[,19],DBPrice_B, DBPerformance_B, DBEmission_B,
-                    Full[,56:58],Choices, Full[,20],Full[,24],Full[,28],
-                    Full[,32],Full[,40:55],
-                    rep(1:4,times=nrow(FullSurvey2)))
+FullSurvey2 = data.frame(FullSurvey2[:,0:14],FullSurvey2[:,19],DBPrice_B, DBPerformance_B, DBEmission_B,
+                    FullSurvey2[:,56:58],Choices, FullSurvey2[:,20],FullSurvey2[:,24],FullSurvey2[:,28],
+                    FullSurvey2[:,32],FullSurvey2[:,40:55],
+                    rep(1:4,times=nrow(FullSurvey2Survey2)))
 
 ##  Assigning column names for ease of analysis.
 colnames(Full) = c("ID","Timing","Order","Q1Gender","Q2Age","Q3Distance","Q4Trips",
