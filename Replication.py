@@ -28,6 +28,7 @@ imp = IterativeImputer(max_iter=10, random_state=0)
 #Step 2: Import data
 FullSurvey = pd.read_csv("\\\\myfiles\pmpk20\PhDPilotSurvey\FullSurvey.csv")
 Full_Long = pd.read_csv("Full_Long.csv")
+Test_Apollo = pd.read_csv("Test_Apollo.csv")
 
 
 FullSurvey = FullSurvey.drop([FullSurvey.columns[3],FullSurvey.columns[13],FullSurvey.columns[14],FullSurvey.columns[15],FullSurvey.columns[22],FullSurvey.columns[23],FullSurvey.columns[25],FullSurvey.columns[26],FullSurvey.columns[52],FullSurvey.columns[53],FullSurvey.columns[54],FullSurvey.columns[55],FullSurvey.columns[56],FullSurvey.columns[57],FullSurvey.columns[67],FullSurvey.columns[68] ],axis='columns') ## Drop columns of no importance to the quantitative analysis, namely text responses.
@@ -257,6 +258,9 @@ FullSurvey2.Q9Choice = Choices
 
 FullSurvey2 = FullSurvey2.drop([FullSurvey2.columns[36],FullSurvey2.columns[37],FullSurvey2.columns[38],FullSurvey2.columns[39]],axis='columns')
 
+FullSurvey2['Task'] = list(itertools.chain.from_iterable(itertools.repeat([1,2,3,4], np.int(len(FullSurvey2)/4))))
+
+
 ################################
 ## Translated until here:
 ################################
@@ -265,9 +269,9 @@ FullSurvey2 = FullSurvey2.drop([FullSurvey2.columns[36],FullSurvey2.columns[37],
 
 ##  Chopping and reorganising the columns of the Full dataframe into a new order which includes the attributes and their levels alongside all the choices in a single vector.
 ### The final argument creates a variable called TASK
-FullSurvey2 = data.frame(FullSurvey2[:,0:14],FullSurvey2[:,19],DBPrice_B, DBPerformance_B, DBEmission_B,
-                    FullSurvey2[:,56:58],Choices, FullSurvey2[:,20],FullSurvey2[:,24],FullSurvey2[:,28],
-                    FullSurvey2[:,32],FullSurvey2[:,40:55],
+FullSurvey2 = data.frame(FullSurvey2.iloc[:,0:14],FullSurvey2.iloc[:,19],DBPrice_B, DBPerformance_B, DBEmission_B,
+                    FullSurvey2.iloc[:,56:58],Choices, FullSurvey2.iloc[:,20],FullSurvey2.iloc[:,24],FullSurvey2.iloc[:,28],
+                    FullSurvey2.iloc[:,32],FullSurvey2.iloc[:,40:55],
                     rep(1:4,times=nrow(FullSurvey2Survey2)))
 
 ##  Assigning column names for ease of analysis.
@@ -1651,154 +1655,113 @@ wald.test(b = coef(QOVProbit), Sigma = vcov(QOVProbit), Terms=2)
 
 
 
+
 #############################################################################
-## APOLLO: MNL
+## TRANSLATING APOLLO INTO BIOGEME
 #############################################################################
 
-rm(list = ls())
-install.packages("Rcpp")
-library(Rcpp)
-install.packages("rngWELL")
-library(rngWELL)
-install.packages("randtoolbox")
-library(randtoolbox)
-install.packages("apollo")
-library(apollo)
 
-### Load Apollo library
-library(apollo)
-apollo_initialise()
-
-Test_Apollo = data.frame(Fulls$ID,Fulls$Task, Fulls$Q1Gender,
-                          Fulls$Q2Age,as.numeric(Fulls$Q3Distance),Fulls$Q4Trips,
-                          Fulls$Q13CurrentThreatToSelf,Fulls$Q14FutureThreatToSelf,
-                          Fulls$Q15ThreatToEnvironment,
-                          Fulls$Q16BP,Fulls$Q18Charity,
-                          Fulls$Q20Consequentiality,Fulls$Q21Experts,
-                          Fulls$Q22Education,Fulls$Q23Employment,
-                          Fulls$Q25Understanding,Fulls[,16:21],
-                          Fulls$Choice,as.numeric(Fulls$Q24AIncome),
-                          Fulls$Order, as.numeric(Fulls$Task), Fulls$Q20Consequentiality,
-                          Fulls$Q21Experts,
-                          Fulls$Q6ResearchResponse,Fulls$Q6Bid,
-                          Fulls$Q7Bid,Fulls$Q7Bid2,
-                          Fulls$Q7TreatmentResponse,Fulls$Q7Response2)
-colnames(Test_Apollo) = c("ID","Task","Q1Gender","Age","Distance",
-                           "Trips","Q13CurrentThreatToSelf","Q14FutureThreatToSelf",
-                           "Q15ThreatToEnvironment","BP","Charity",
-                           "Consequentiality",
-                           "Experts","Education","Employment","Survey",
-                           "Price_B","Performance_B","Emission_B",
-                           "Performance_A","Emission_A","Price_A"
-                           ,"Choice","Income", "Order","Task",
-                           "Consequentiality","Experts",
-                           "Q6ResearchResponse","Q6Bid",
-                           "Q7Bid","Q7Bid2",
-                           "Q7TreatmentResponse","Q7Response2")
-
-# Tests_Dominated = Test_Apollo[!Test_Apollo$ID %in% c(Test_Apollo$ID[ ((Test_Apollo$Task == 1) & (Test_Apollo$Choice ==1) & (grepl("SQ",rownames(Test_Apollo),fixed = TRUE) == FALSE)) ]),]
-# Tests_Understanding = Tests_Dominated[!Tests_Dominated$ID %in% c( unique(Tests_Dominated$ID[Tests_Dominated$Survey <= 5])),]
-# Test_Apollo = Tests_Understanding
-
-Test_Apollo$Q6ResearchResponse = Test_Apollo$Q6ResearchResponse +1
-Test_Apollo$Bid_Alt = rep(0,nrow(Test_Apollo))
-
-Test_Apollo$Choice[Test_Apollo$Choice == 1] = 2
-Test_Apollo$Choice[Test_Apollo$Choice == 0] = 1
-database = Test_Apollo
+## Import necessary libraries:
+import biogeme.database as db
+import biogeme.biogeme as bio
+import biogeme.models as models
+from biogeme.expressions import Beta, Derive
+import biogeme.results as res
+import biogeme.messaging as msg
 
 
-apollo_control = list(
-  modelName  ="Replicating Full_MNL",
-  indivID    ="ID"
-)
+## Import data:
+Test_Apollo = pd.read_csv("Test_Apollo.csv")
+database = db.Database('Test_Apollo', Test_Apollo)
 
 
-## Set parameters and their initial values here 
-apollo_beta=c(asc_A      = 0,
-              asc_B      = 0,
-              b_Price    = 0,
-              b_Performance   = 0,
-              b_Emission      = 0,
-              b_Gender = 0,
-              b_Age      = 0,
-              b_Distance = 0,
-              b_Trips    = 0,
-              b_BP       = 0,
-              b_Charity  = 0,
-              b_Education  = 0,
-              b_Employment = 0,
-              b_Income     = 0,
-              b_Order      = 0,
-              b_Task       = 0,
-              b_Cons       = 0,
-              b_Experts    = 0)
-
-## Set one of the ASCs as zero using the utility-difference approach: 
-apollo_fixed = c("asc_A")
-
-## Check model is good so far 
-apollo_inputs = apollo_validateInputs()
+## Use column names explicitly
+globals().update(database.variables)
 
 
-apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
-  
-  ## Attach inputs and detach after function exit
-  apollo_attach(apollo_beta, apollo_inputs)
-  on.exit(apollo_detach(apollo_beta, apollo_inputs))
-  
-  ## Create list of probabilities P
-  P = list()
-  
-  ## Must specify SDs against the ASC directly
-  asc_B = asc_B + b_Gender*Q1Gender + b_Age*Age +
-    b_Distance * Distance + 
-    b_Trips * Trips +
-    b_BP * BP +
-    b_Charity * Charity + 
-    b_Education * Education +
-    b_Employment * Employment + 
-    b_Income * Income +
-    b_Order * Order +      
-    b_Task * Task +       
-    b_Cons * Consequentiality +       
-    b_Experts * Experts    
-  
-  
-  ### List of utilities: these must use the same names as in mnl_settings, order is irrelevant
-  V = list()
-  V[['A']]  = asc_A        + b_Performance  * Performance_A + b_Emission * Emission_A + b_Price * Price_A
-  V[['B']]  = asc_B  + b_Performance  * Performance_B  + b_Emission * Emission_B + b_Price * Price_B
+## Parameters to be estimated
+ASC_A = Beta('ASC_A', 0, None, None, 1)
+ASC_B = Beta('ASC_B', 0, None, None, 0)
+B_Performance = Beta('B_Performance', 0, None, None, 0)
+B_Emission = Beta('B_Emission', 0, None, None, 0)
+B_Price = Beta('B_Price', 0, None, None, 0)
+B_Gender = Beta('B_Gender', 0, None, None, 0)
+B_Age = Beta('B_Age', 0, None, None, 0)
+B_Distance = Beta('B_Distance', 0, None, None, 0)
+B_Trips = Beta('B_Trips', 0, None, None, 0)
+B_BP = Beta('B_BP', 0, None, None, 0)
+B_Charity = Beta('B_Charity', 0, None, None, 0)
+B_Education = Beta('B_Education', 0, None, None, 0)
+B_Employment = Beta('B_Employment', 0, None, None, 0)
+B_Income = Beta('B_Income', 0, None, None, 0)
+B_Order = Beta('B_Order', 0, None, None, 0)
+B_Task = Beta('B_Task', 0, None, None, 0)
+B_Cons = Beta('B_Cons', 0, None, None, 0)
+B_Experts = Beta('B_Experts', 0, None, None, 0)
+B_Timing = Beta('B_Timing', 0, None, None, 0)
 
-  ### Define settings for MNL model component
-  mnl_settings = list(
-    alternatives = c(A=1, B=2),
-    avail        = list(A=1, B=1),
-    choiceVar    = Choice,
-    V            = V
-  )
-  
-  ### Compute probabilities using MNL model
-  P[["model"]] = apollo_mnl(mnl_settings, functionality)
-  
-  ### Take product across observation for same individual
-  P = apollo_panelProd(P, apollo_inputs, functionality)
-  
-  ### Prepare and return outputs of function
-  P = apollo_prepareProb(P, apollo_inputs, functionality)
-  return(P)
-}
 
-model = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+## Definition of new variables
+A_AV = av_A
+B_AV = av_B
 
-apollo_modelOutput(model,modelOutput_settings = list(printPVal=TRUE))
 
-## WTP calculations: 
-deltaMethod_settings=list(operation="ratio", parName1="b_Performance", parName2="b_Price")
-apollo_deltaMethod(model, deltaMethod_settings)
+## Specify covariates as interactions within the ASC
+ASC_B = ASC_B + B_Gender*Q1Gender + B_Age*Age +\
+    B_Distance * Distance + \
+    B_Trips * Trips +\
+    B_BP * BP +\
+    B_Charity * Charity + \
+    B_Education * Education +\
+    B_Employment * Employment +\
+    B_Income * Income +\
+    B_Order * Order +   \
+    B_Task * Task +      \
+    B_Cons * Consequentiality +      \
+    B_Experts * Experts+\
+    B_Timing * Timing
 
-deltaMethod_settings=list(operation="ratio", parName1="b_Emission", parName2="b_Price")
-apollo_deltaMethod(model, deltaMethod_settings)
+
+## Define utility functions, one for each option:
+V1 = ASC_A + \
+     B_Price * Price_A + \
+     B_Performance * Performance_A + \
+     B_Emission * Emission_A
+V2 = ASC_B + \
+     B_Price * Price_B + \
+     B_Performance * Performance_B + \
+     B_Emission * Emission_B
+
+##  Number the alternatives
+V = {1: V1,
+     2: V2}
+
+## Specify how often each option was available
+av = {1: A_AV,
+      2: B_AV}
+
+##  Define how each variable contributes to the log likelihood function.
+#### NOTE that 'Choice' is the vector of respondents choices
+logprob = models.loglogit(V, av, Choice)
+
+
+## "Create the Biogeme object"
+biogeme = bio.BIOGEME(database, logprob)
+biogeme.modelName = 'ReplicatingMNL_3'
+
+
+## Estimate the parameters
+MNL_1 = biogeme.estimate()
+
+
+## Get the results in a pandas table
+MNL_1_Results = MNL_1.getEstimatedParameters()
+print(MNL_1_Results)
+
+
+## Derive WTP
+MNL_1_Results.Value["B_Performance"]/MNL_1_Results.Value["B_Price"]
+MNL_1_Results.Value["B_Emission"]/MNL_1_Results.Value["B_Price"]
 
 
 # ################################################################# #
