@@ -4,11 +4,9 @@
 ####################################################################################
 
 ############ TO DO:
-# - Graph effect of each truncation rule
-# - Test for Q6, Q7 certainty on WTP rather than Q12 for CVM
 # - Estimate sample mean CVM WTP as WTP~bid
-# - Report the ICLV in Apollo
 # - Fix the MXL in Apollo
+# - Estimate models with level-specific
 
 ############ Packages:
 pkgbuild::find_rtools(debug = TRUE)
@@ -422,7 +420,39 @@ ggplot(FullSurvey2, aes(x=Q25Understanding)) +
   geom_text(aes(x=8, label="Included", y=400), colour="blue", angle=0)+
   ggtitle("Distribution of survey understanding")
 
-
+## Sub-samples by block: 
+nrow(Full_Long[Full_Long$Q9Block ==1])/8
+# [1] 110
+nrow(Full_Long[Full_Long$Q9Block ==2])/8
+# [1] 229
+nrow(Full_Long[Full_Long$Q9Block ==3])/8
+# [1] 216
+nrow(Full_Long[Full_Long$Q9Block ==4])/8
+# [1] 115
+nrow(Full_Long[Full_Long$Q10Block ==1])/8
+# [1] 105
+nrow(Full_Long[Full_Long$Q10Block ==2])/8
+# [1] 231
+nrow(Full_Long[Full_Long$Q10Block ==3])/8
+# [1] 226
+nrow(Full_Long[Full_Long$Q10Block ==4])/8
+# [1] 108
+nrow(Full_Long[Full_Long$Q11Block ==1])/8
+# [1] 104
+nrow(Full_Long[Full_Long$Q11Block ==2])/8
+# [1] 208
+nrow(Full_Long[Full_Long$Q11Block ==3])/8
+# [1] 251
+nrow(Full_Long[Full_Long$Q11Block ==4])/8
+# [1] 107
+nrow(Full_Long[Full_Long$Q12Block ==1])/8
+# [1] 119
+nrow(Full_Long[Full_Long$Q12Block ==2])/8
+# [1] 215
+nrow(Full_Long[Full_Long$Q12Block ==3])/8
+# [1] 220
+nrow(Full_Long[Full_Long$Q12Block ==4])/8
+# [1] 116
 
 ##########################################################  
 ####### Descriptive Graphics
@@ -611,6 +641,7 @@ Full_Long$Emission[Full_Long$Emission == 0.1] <- 10
 Full_Long$Emission[Full_Long$Emission == 0.9] <- 90 
 Full_Long$Emission[Full_Long$Emission == 0.4] <- 40 
 
+
 ## To trim the sample: 
 Full_Dominated <- Full_Long[Full_Long$Q8DominatedTest == 0]
 # Full_Understanding <- Full_Dominated[Full_Dominated$Q25Understanding >= 5]
@@ -699,70 +730,6 @@ MXL_4 <- mlogit(
   reflevel="A",halton=NA,method="bfgs",panel=FALSE,seed=123)
 summary(MXL_4)
 MXL_4_WTP <- c(-1*coef(MXL_4)["Emission"]/coef(MXL_4)["Price"],-1*coef(MXL_4)["Performance"]/coef(MXL_4)["Price"])
-
-
-Fulls <- cbind(Fulls,
-                   "Price"=fitted(MXL_4,type = "parameters"),
-               "Emission"=-1*coef(MXL_4)["Emission"],
-               "Performance"=-1*coef(MXL_4)["Performance"])
-
-Fulls$Emission <- -1*Fulls$Emission/Fulls$Price
-Fulls$Performance <- -1*Fulls$Performance/Fulls$Price
-
-
-Full_Long <- cbind(Full_Long,
-               "PriceCoef"=slice(.data = data.frame(fitted(MXL_4,type = "parameters")),rep(1:n(), each = 2)),
-               "EmissionCoef"=-1*coef(MXL_4)["Emission"],
-               "PerformanceCoef"=-1*coef(MXL_4)["Performance"])
-names(Full_Long)[45] <- "PriceCoef"
-Full_Long$EmissionCoef <- -1*Full_Long$EmissionCoef/Full_Long$PriceCoef
-Full_Long$PerformanceCoef <- -1*Full_Long$PerformanceCoef/Full_Long$PriceCoef
-
-## Plotting a histogram of individual attribute-specific WTP 
-EmissionDistribution <- ggplot(Full_Long, aes(x=EmissionCoef)) + 
-  geom_histogram(color="black", fill="white",binwidth = 1)+
-  scale_x_continuous(breaks=waiver(),limits = c(-10,10),
-                     n.breaks = 20)+
-  ggtitle("Histogram of emission WTP.")
-
-## Plotting a histogram of individual attribute-specific WTP
-PerformanceDistribution <- ggplot(Full_Long, aes(x=PerformanceCoef)) + 
-  geom_histogram(color="black", fill="white",binwidth = 1)+
-  scale_x_continuous(breaks=waiver(),limits = c(-10,10),
-                     n.breaks = 20)+
-  ggtitle("Histogram of performance WTP.")
-
-### Plotting Q8 Dominance test
-PerformanceWTP <- ggplot(Full_Long, aes(y= PerformanceCoef,x=as.numeric(Q24AIncome))) + 
-  geom_point(shape = 1) +
-  facet_grid( ~ Q8DominatedTest, labeller = as_labeller(c(
-    `0` = "Pass",
-    `1` = "Fail")))+
-  geom_smooth(method="lm",se=F) +
-  ggtitle("Relationship between income and WTP by Q8") +
-  scale_y_continuous(name="Performance WTP",
-                     breaks=waiver(),limits = c(0,5),
-                     n.breaks = 10)+
-  theme(plot.title = element_text(hjust = 0.5),
-        axis.title.y = element_text(size = 12)) +
-  labs(x = "Income",y="Performance WTP")
-
-EmissionWTP <- ggplot(Full_Long, aes(y= EmissionCoef,x=as.numeric(Q24AIncome))) + 
-  geom_point(shape = 1) +
-  facet_grid( ~ Q8DominatedTest, labeller = as_labeller(c(
-    `0` = "Pass",
-    `1` = "Fail")))+
-  geom_smooth(method="lm",se=F) +
-  ggtitle("Relationship between income and WTP by Q8") +
-  scale_y_continuous(name="Performance WTP",
-                     breaks=waiver(),limits = c(-5,0),
-                     n.breaks = 10)+
-  theme(plot.title = element_text(hjust = 0.5),
-        axis.title.y = element_text(size = 12)) +
-  labs(x = "Income",y="Performance WTP")
-
-library(gridExtra)
-grid.arrange(PerformanceWTP, EmissionWTP )
 
 
 # Can truncate sample by protest votes:
@@ -856,6 +823,76 @@ WTPbs <- -1* WTPbs
 WTPbs <- cbind(WTPbs[,1],FullWTPs[,2],FullWTPs[,2])
 colnames(WTPbs) <- c("Lower","Mean","Upper")
 round(WTPbs,3)
+
+
+######################## Fitting respondent-specific MWTP:
+
+
+Fulls <- cbind(Fulls,
+               "PriceParam"=fitted(MXL_4,type = "parameters"),
+               "EmissionWTP"=coef(MXL_4)["Emission"],
+               "PerformanceWTP"=coef(MXL_4)["Performance"])
+
+Fulls$EmissionWTP <- -1*Fulls$EmissionWTP/Fulls$Price
+Fulls$PerformanceWTP <- -1*Fulls$PerformanceWTP/Fulls$Price
+
+
+Full_Long <- cbind(Full_Long,
+                   "PriceCoef"=slice(.data = data.frame(fitted(MXL_4,type = "parameters")),rep(1:n(), each = 2)),
+                   "EmissionCoef"=coef(MXL_4)["Emission"],
+                   "PerformanceCoef"=coef(MXL_4)["Performance"])
+names(Full_Long)[45] <- "PriceCoef"
+Full_Long$EmissionCoef <- -1*Full_Long$EmissionCoef/Full_Long$PriceCoef
+Full_Long$PerformanceCoef <- -1*Full_Long$PerformanceCoef/Full_Long$PriceCoef
+
+# NewFull <- mlogit.data(Full, shape = "wide", choice = "Choice",
+#                          varying = 16:21, sep = "_", id.var = "ID")
+
+## Plotting a histogram of individual attribute-specific WTP 
+EmissionDistribution <- ggplot(Full_Long, aes(x=EmissionCoef)) + 
+  geom_histogram(color="black", fill="white",binwidth = 1)+
+  scale_x_continuous(breaks=waiver(),limits = c(-10,10),
+                     n.breaks = 20)+
+  ggtitle("Histogram of emission WTP.")
+
+## Plotting a histogram of individual attribute-specific WTP
+PerformanceDistribution <- ggplot(Full_Long, aes(x=PerformanceCoef)) + 
+  geom_histogram(color="black", fill="white",binwidth = 1)+
+  scale_x_continuous(breaks=waiver(),limits = c(-10,10),
+                     n.breaks = 20)+
+  ggtitle("Histogram of performance WTP.")
+
+### Plotting Q8 Dominance test
+PerformanceWTP <- ggplot(Full_Long, aes(y= PerformanceCoef,x=as.numeric(Q24AIncome))) + 
+  geom_point(shape = 1) +
+  facet_grid( ~ Q8DominatedTest, labeller = as_labeller(c(
+    `0` = "Pass",
+    `1` = "Fail")))+
+  geom_smooth(method="lm",se=F) +
+  ggtitle("Relationship between income and MWTP by Q8") +
+  scale_y_continuous(name="Performance MWTP",
+                     breaks=waiver(),limits = c(0,5),
+                     n.breaks = 10)+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  labs(x = "Income",y="Performance MWTP")
+
+EmissionWTP <- ggplot(Full_Long, aes(y= EmissionCoef,x=as.numeric(Q24AIncome))) + 
+  geom_point(shape = 1) +
+  facet_grid( ~ Q8DominatedTest, labeller = as_labeller(c(
+    `0` = "Pass",
+    `1` = "Fail")))+
+  geom_smooth(method="lm",se=F) +
+  ggtitle("Relationship between income and WTP by Q8") +
+  scale_y_continuous(name="Emission MWTP",
+                     breaks=waiver(),limits = c(-5,0),
+                     n.breaks = 10)+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  labs(x = "Income",y="Emission MWTP")
+
+library(gridExtra)
+grid.arrange(PerformanceWTP, EmissionWTP )
 
 
 ######################## Model prediction accuracy:
@@ -1464,8 +1501,16 @@ colnames(FullSurvey2)[57] <- "Q7WTP"
 
 FullSurvey2 <- cbind(FullSurvey2,(FullSurvey2$Q7WTP - FullSurvey2$Q6WTP ))
 colnames(FullSurvey2)[58] <- "Precaution"
+
+
+Full_Final <- cbind(Full_Long,slice(.data = FullSurvey2[,56:58],rep(1:n(), each = 8)))
+
+
+################# Plotting respondent-specific WTP: 
+
+
 ### NOTE: Q6 is research (delaying, preserving, postponing), Q7 is tackling (immediately) 
-FullSurvey2 <- FullSurvey2[ (FullSurvey2$Q1Gender == 0) | (FullSurvey2$Q1Gender == 1),]
+# FullSurvey2 <- FullSurvey2[ (FullSurvey2$Q1Gender == 0) | (FullSurvey2$Q1Gender == 1),]
 
 Precaution <- ggplot(FullSurvey2) + 
   facet_grid( ~ Q1Gender, labeller = as_labeller(c(
