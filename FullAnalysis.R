@@ -847,53 +847,7 @@ Full_Long$PerformanceCoef <- -1*Full_Long$PerformanceCoef/Full_Long$PriceCoef
 
 # NewFull <- mlogit.data(Full, shape = "wide", choice = "Choice",
 #                          varying = 16:21, sep = "_", id.var = "ID")
-
-## Plotting a histogram of individual attribute-specific WTP 
-EmissionDistribution <- ggplot(Full_Long, aes(x=EmissionCoef)) + 
-  geom_histogram(color="black", fill="white",binwidth = 1)+
-  scale_x_continuous(breaks=waiver(),limits = c(-10,10),
-                     n.breaks = 20)+
-  ggtitle("Histogram of emission WTP.")
-
-## Plotting a histogram of individual attribute-specific WTP
-PerformanceDistribution <- ggplot(Full_Long, aes(x=PerformanceCoef)) + 
-  geom_histogram(color="black", fill="white",binwidth = 1)+
-  scale_x_continuous(breaks=waiver(),limits = c(-10,10),
-                     n.breaks = 20)+
-  ggtitle("Histogram of performance WTP.")
-
-### Plotting Q8 Dominance test
-PerformanceWTP <- ggplot(Full_Long, aes(y= PerformanceCoef,x=as.numeric(Q24AIncome))) + 
-  geom_point(shape = 1) +
-  facet_grid( ~ Q8DominatedTest, labeller = as_labeller(c(
-    `0` = "Pass",
-    `1` = "Fail")))+
-  geom_smooth(method="lm",se=F) +
-  ggtitle("Relationship between income and MWTP by Q8") +
-  scale_y_continuous(name="Performance MWTP",
-                     breaks=waiver(),limits = c(0,5),
-                     n.breaks = 10)+
-  theme(plot.title = element_text(hjust = 0.5),
-        axis.title.y = element_text(size = 12)) +
-  labs(x = "Income",y="Performance MWTP")
-
-EmissionWTP <- ggplot(Full_Long, aes(y= EmissionCoef,x=as.numeric(Q24AIncome))) + 
-  geom_point(shape = 1) +
-  facet_grid( ~ Q8DominatedTest, labeller = as_labeller(c(
-    `0` = "Pass",
-    `1` = "Fail")))+
-  geom_smooth(method="lm",se=F) +
-  ggtitle("Relationship between income and WTP by Q8") +
-  scale_y_continuous(name="Emission MWTP",
-                     breaks=waiver(),limits = c(-5,0),
-                     n.breaks = 10)+
-  theme(plot.title = element_text(hjust = 0.5),
-        axis.title.y = element_text(size = 12)) +
-  labs(x = "Income",y="Emission MWTP")
-
-library(gridExtra)
-grid.arrange(PerformanceWTP, EmissionWTP )
-
+# Plotted in a latter section of code
 
 ######################## Model prediction accuracy:
 
@@ -1010,28 +964,6 @@ Models_Predictions <- rbind("Model 1: MNL - Attributes only" = c(MNL_1_Accuracy)
       "Model 6: MXL - SDs, utility-space"=c(MXL_3_Accuracy),
       "Model 7: MXL - SDs, WTP-space"=c(MXL_4_Accuracy),
       "Model 8: MXL - SDs, WTP-space, truncated sample"=c(MXL_5_Accuracy))
-
-
-### Plotting Consequentiality effects
-ggplot(data=Fulls, aes(x=as.numeric(Q24AIncome))) + 
-  facet_grid( ~ Q20Consequentiality, labeller = as_labeller(c(
-    `0` = "Inconsequential",
-    `1` = "Consequential",
-    `2` = "Don't Know")))+
-  geom_smooth(aes(y=Performance,color="red"),method="lm",se=F) +
-  geom_smooth(aes(y=Emission,color="blue"),method="lm",se=F) +
-  scale_color_discrete(name = "Lines", 
-                       labels = c("Performance MWTP", "Emission MWTP"))+
-  ggtitle("Relationship between income and WTP by consequentiality") +
-  scale_color_discrete(name = "Lines", 
-                       labels = c("Performance MWTP", "Emission MWTP"))+
-  theme(plot.title = element_text(hjust = 0.5),
-        axis.title.y = element_text(size = 12)) +
-  scale_x_continuous(name="Income",breaks = waiver(),limits = c(0,5000),
-                     n.breaks = 5, labels = function(x) paste0("£",x))+
-  scale_y_continuous(name="MWTP",breaks = waiver(),n.breaks = 10, 
-                     limits=c(-5,5),labels = function(x) paste0("£",x))+
-  labs(x = "Income",y="MWTP")
 
 
 ##############  GMNL is an alternative to MLOGIT
@@ -1448,24 +1380,6 @@ Full_Order2 <- cbind(Full_Order2,
 colnames(Full_Order2)[56] <- "Q7WTP"
 
 
-## Plotting precaution  
-library(ggplot2)
-ggplot() + 
-  facet_grid( ~ Q1Gender, labeller = as_labeller(c(
-    `0` = "Female",
-    `1` = "Male",
-    `2` = "Other")))+
-  geom_smooth(aes(x=Q24AIncome,y=Q6WTP,color="red"),data=Full_Order1,method="lm",se=F) +
-  geom_smooth(aes(x=Q24AIncome,y=Q7WTP,color="blue"),data=Full_Order2,method="lm",se=F) +
-  scale_color_discrete(name = "Lines", 
-                       labels = c("WTP for Research", "WTP for treatment"))+
-  ggtitle("Relationship between precaution and income") +
-  theme(plot.title = element_text(hjust = 0.5),
-        plot.margin=unit(c(1,1,-0.5,1),"cm"),
-        axis.title.y = element_text(size = 12)) +
-  labs(x = "Income",y="Difference between Q6 and Q7 WTP")
-
-
 ## In this section I calculate each respondents QOV 
 ### This differs from above which elicits sample QOV by taking best-case sample WTP
 
@@ -1505,137 +1419,15 @@ colnames(FullSurvey2)[58] <- "Precaution"
 
 Full_Final <- cbind(Full_Long,slice(.data = FullSurvey2[,56:58],rep(1:n(), each = 8)))
 
-
-################# Plotting respondent-specific WTP: 
-
-
-### NOTE: Q6 is research (delaying, preserving, postponing), Q7 is tackling (immediately) 
 # FullSurvey2 <- FullSurvey2[ (FullSurvey2$Q1Gender == 0) | (FullSurvey2$Q1Gender == 1),]
 
-Precaution <- ggplot(FullSurvey2) + 
-  facet_grid( ~ Q1Gender, labeller = as_labeller(c(
-    `0` = "Female",
-    `1` = "Male")))+
-  geom_smooth(aes(x=Q24AIncome,y=Precaution,color="red"),method="lm",se=T) +
-  scale_color_discrete(name = "Lines", 
-                       labels = c("Precautionary premium", "WTP for treatment"))+
-  ggtitle("Relationship between precaution and income") +
-  scale_x_continuous(name="Income",breaks = waiver(),limits = c(0,5000),
-                     n.breaks = 5, labels = function(x) paste0("£",x))+
-  scale_y_continuous(name="WTP",
-                     breaks=waiver(),limits = c(10,30),
-                     n.breaks = 10, labels = function(x) paste0("£",x))+
-  theme(plot.title = element_text(hjust = 0.5),
-        axis.title.y = element_text(size = 10)) +
-  labs(x = "Income",y="WTP")
-
-Precaution
 ## Individual QOV within the sample:
 summary(FullSurvey2$Precaution)
 
-## Plotting a histogram for the precautionary premia
-ggplot(FullSurvey2, aes(x=Precaution)) + 
-  geom_histogram(color="black", fill="white",binwidth = 1)+
-  scale_x_continuous(breaks=waiver(),limits = c(0,40),
-                     n.breaks = 10, labels = function(x) paste0("£",x))+
-  ggtitle("Histogram of respondent precautionary premia.")
-
-
-### Plotting Certainty effects
-ggplot(FullSurvey2, aes(x=as.numeric(Q24AIncome))) + 
-  facet_grid( ~ Q12CECertainty, labeller = as_labeller(c(
-    `0` = "Unsure",
-    `1` = "Quite Sure",
-    `2` = "Very Sure")))+
-  geom_smooth(aes(y=Q6WTP,color="blue"),method="lm",se=F) +
-  geom_smooth(aes(y=Q7WTP,color="red"),method="lm",se=F) +
-  ggtitle("Relationship between income and WTP by certainty") +
-  scale_color_discrete(name = "Lines", 
-                       labels = c("WTP for research", "WTP for treatment"))+
-  theme(plot.title = element_text(hjust = 0.5),
-        axis.title.y = element_text(size = 12)) +
-  scale_x_continuous(name="Income",breaks = waiver(),limits = c(0,5000),
-                     n.breaks = 5, labels = function(x) paste0("£",x))+
-  scale_y_continuous(name="Precautionary WTP",breaks = waiver(), 
-                     limits=c(20,50),labels = function(x) paste0("£",x))+
-  labs(x = "Income",y="Precaution")
-
-### Plotting Consequentiality effects
-ggplot(FullSurvey2, aes(x=as.numeric(Q24AIncome))) + 
-  facet_grid( ~ Q12CECertainty, labeller = as_labeller(c(
-    `0` = "Unsure",
-    `1` = "Quite Sure",
-    `2` = "Very Sure")))+
-  geom_smooth(aes(y=Q6WTP,color="blue"),method="lm",se=F) +
-  geom_smooth(aes(y=Q7WTP,color="red"),method="lm",se=F) +
-  ggtitle("Relationship between income and WTP by certainty") +
-  scale_color_discrete(name = "Lines", 
-                       labels = c("WTP for research", "WTP for treatment"))+
-  theme(plot.title = element_text(hjust = 0.5),
-        axis.title.y = element_text(size = 12)) +
-  scale_x_continuous(name="Income",breaks = waiver(),limits = c(0,5000),
-                     n.breaks = 5, labels = function(x) paste0("£",x))+
-  scale_y_continuous(name="Precautionary WTP",breaks = waiver(), 
-                     limits=c(20,50),labels = function(x) paste0("£",x))+
-  labs(x = "Income",y="Precaution")
-
-
-## Here I make a dataframe which has Q6, Q7 WTP and the precautionary premium and is truncated according to all criteria 
-FS <- FullSurvey2[ (FullSurvey2$ID) %in% c(Full_Full$ID),  ]
-
-Q13Graph <- ggplot(FS) + 
-  geom_smooth(aes(x=Q13CurrentThreatToSelf,y=Q7WTP,color="red"),method="lm",se=T) +
-  geom_smooth(aes(x=Q13CurrentThreatToSelf,y=Q6WTP,color="blue"),method="lm",se=T) +
-  scale_color_discrete(name = "Lines", 
-                       labels = c("WTP for research", "WTP for treatment"))+
-  ggtitle("WTP by Q13: Current Threat To Self") +
-  scale_x_continuous(name="Likert scale levels",breaks = 1:5, 
-                     labels=c(1,2,3,4,5))+
-  scale_y_continuous(name="WTP",
-                     breaks=waiver(),limits = c(10,60),
-                     n.breaks = 10, labels = function(x) paste0("£",x))+
-  theme(plot.title = element_text(hjust = 0.5),
-        axis.title.y = element_text(size = 10)) +
-  labs(x = "Likert scale levels",y="Precautionary premium WTP")
-
-Q14Graph <- ggplot(FS) + 
-  geom_smooth(aes(x=Q14FutureThreatToSelf,y=Q7WTP,color="red"),method="lm",se=T) +
-  geom_smooth(aes(x=Q14FutureThreatToSelf,y=Q6WTP,color="blue"),method="lm",se=T) +
-  scale_color_discrete(name = "Lines", 
-                       labels = c("WTP for research", "WTP for treatment"))+
-  ggtitle("WTP by Q14: Future Threat To Self") +
-  scale_x_continuous(name="Likert scale levels",breaks = 1:5, 
-                     labels=c(1,2,3,4,5))+
-  scale_y_continuous(name="WTP in £",
-                     breaks=waiver(),limits = c(10,60),
-                     n.breaks = 10, labels = function(x) paste0("£",x))+
-  theme(plot.title = element_text(hjust = 0.5),
-        axis.title.y = element_text(size = 10)) +
-  labs(x = "Likert scale levels",y="Precautionary premium WTP")
-
-Q15Graph <- ggplot(FS) + 
-  geom_smooth(aes(x=Q15ThreatToEnvironment,y=Q7WTP,color="red"),method="lm",se=T) +
-  geom_smooth(aes(x=Q15ThreatToEnvironment,y=Q6WTP,color="blue"),method="lm",se=T) +
-  scale_color_discrete(name = "Lines", 
-                       labels = c("WTP for research", "WTP for treatment"))+
-  ggtitle("WTP by Q15: Threat To Environment") +
-  scale_x_continuous(name="Likert scale levels",breaks = 1:5, 
-                     labels=c(1,2,3,4,5))+
-  scale_y_continuous(name="WTP in £",
-                     breaks=waiver(),limits = c(10,60),
-                     n.breaks = 10, labels = function(x) paste0("£",x))+
-  theme(plot.title = element_text(hjust = 0.5),
-        axis.title.y = element_text(size = 10)) +
-  labs(x = "Likert scale levels",y="Precautionary premium WTP")
-
-
-Q13Graph
-Q14Graph
-Q15Graph
-
 
 ##########################################################  
-## Reporting Marginal Effects
+## Reporting Marginal Effects:
+##########################################################  
 
 
 ## Install required packages to estimate Probit and reqport the marginal effects 
@@ -1675,6 +1467,268 @@ QOVME <- probitmfx(formula = Q7TreatmentResponse ~ Order + Q1Gender + Q2Age + Q3
 confint(QOVProbit)
 wald.test(b = coef(QOVProbit), Sigma = vcov(QOVProbit), Terms=2)
 ## All the same commands as the Q6 models
+
+
+##########################################################  
+## Plotting covariates on WTP:
+##########################################################  
+
+
+library(ggplot2)
+
+
+##########################################################  
+## CE Section:
+
+## Plotting a histogram of individual attribute-specific WTP 
+EmissionDistribution <- ggplot(Full_Long, aes(x=EmissionCoef)) + 
+  geom_histogram(color="black", fill="white",binwidth = 1)+
+  scale_x_continuous(breaks=waiver(),limits = c(-10,10),
+                     n.breaks = 20)+
+  ggtitle("Histogram of emission WTP.")
+
+## Plotting a histogram of individual attribute-specific WTP
+PerformanceDistribution <- ggplot(Full_Long, aes(x=PerformanceCoef)) + 
+  geom_histogram(color="black", fill="white",binwidth = 1)+
+  scale_x_continuous(breaks=waiver(),limits = c(-10,10),
+                     n.breaks = 20)+
+  ggtitle("Histogram of performance WTP.")
+
+### Plotting Q8 Dominance test
+PerformanceWTP <- ggplot(Full_Long, aes(y= PerformanceCoef,x=as.numeric(Q24AIncome))) + 
+  geom_point(shape = 1) +
+  facet_grid( ~ Q8DominatedTest, labeller = as_labeller(c(
+    `0` = "Pass",
+    `1` = "Fail")))+
+  geom_smooth(method="lm",se=F) +
+  ggtitle("Relationship between income and MWTP by Q8") +
+  scale_y_continuous(name="Performance MWTP",
+                     breaks=waiver(),limits = c(0,5),
+                     n.breaks = 10)+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  labs(x = "Income",y="Performance MWTP")
+
+EmissionWTP <- ggplot(Full_Long, aes(y= EmissionCoef,x=as.numeric(Q24AIncome))) + 
+  geom_point(shape = 1) +
+  facet_grid( ~ Q8DominatedTest, labeller = as_labeller(c(
+    `0` = "Pass",
+    `1` = "Fail")))+
+  geom_smooth(method="lm",se=F) +
+  ggtitle("Relationship between income and WTP by Q8") +
+  scale_y_continuous(name="Emission MWTP",
+                     breaks=waiver(),limits = c(-5,0),
+                     n.breaks = 10)+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  labs(x = "Income",y="Emission MWTP")
+
+library(gridExtra)
+grid.arrange(PerformanceWTP, EmissionWTP )
+
+
+### Plotting Consequentiality effects
+ggplot(data=Fulls, aes(x=as.numeric(Q24AIncome))) + 
+  facet_grid( ~ Q20Consequentiality, labeller = as_labeller(c(
+    `0` = "Inconsequential",
+    `1` = "Consequential",
+    `2` = "Don't Know")))+
+  geom_smooth(aes(y=Performance,color="red"),method="lm",se=F) +
+  geom_smooth(aes(y=Emission,color="blue"),method="lm",se=F) +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("Performance MWTP", "Emission MWTP"))+
+  ggtitle("Relationship between income and WTP by consequentiality") +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("Performance MWTP", "Emission MWTP"))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Income",breaks = waiver(),limits = c(0,5000),
+                     n.breaks = 5, labels = function(x) paste0("£",x))+
+  scale_y_continuous(name="MWTP",breaks = waiver(),n.breaks = 10, 
+                     limits=c(-5,5),labels = function(x) paste0("£",x))+
+  labs(x = "Income",y="MWTP")
+
+
+##########################################################  
+## CV Section:
+
+## Here I make a dataframe which has Q6, Q7 WTP and the precautionary premium and is truncated according to all criteria 
+FS <- FullSurvey2[ (FullSurvey2$ID) %in% c(Full_Full$ID),  ]
+
+
+## Plotting precaution  
+ggplot() + 
+  facet_grid( ~ Q1Gender, labeller = as_labeller(c(
+    `0` = "Female",
+    `1` = "Male",
+    `2` = "Other")))+
+  geom_smooth(aes(x=Q24AIncome,y=Q6WTP,color="red"),data=Full_Order1,method="lm",se=F) +
+  geom_smooth(aes(x=Q24AIncome,y=Q7WTP,color="blue"),data=Full_Order2,method="lm",se=F) +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("WTP for Research", "WTP for treatment"))+
+  ggtitle("Relationship between precaution and income") +
+  theme(plot.title = element_text(hjust = 0.5),
+        plot.margin=unit(c(1,1,-0.5,1),"cm"),
+        axis.title.y = element_text(size = 12)) +
+  labs(x = "Income",y="Difference between Q6 and Q7 WTP")
+
+
+## Plotting the effect of income on precautionary premia, faceted by gender.
+Precaution <- ggplot(FullSurvey2) + 
+  facet_grid( ~ Q1Gender, labeller = as_labeller(c(
+    `0` = "Female",
+    `1` = "Male")))+
+  geom_smooth(aes(x=Q24AIncome,y=Precaution,color="red"),method="lm",se=T) +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("Precautionary premium", "WTP for treatment"))+
+  ggtitle("Relationship between precaution and income") +
+  scale_x_continuous(name="Income",breaks = waiver(),limits = c(0,5000),
+                     n.breaks = 5, labels = function(x) paste0("£",x))+
+  scale_y_continuous(name="WTP",
+                     breaks=waiver(),limits = c(10,30),
+                     n.breaks = 10, labels = function(x) paste0("£",x))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 10)) +
+  labs(x = "Income",y="WTP")
+
+Precaution
+
+
+## Plotting a histogram for the precautionary premia
+ggplot(FullSurvey2, aes(x=Precaution)) + 
+  geom_histogram(color="black", fill="white",binwidth = 1)+
+  scale_x_continuous(breaks=waiver(),limits = c(0,40),
+                     n.breaks = 10, labels = function(x) paste0("£",x))+
+  ggtitle("Histogram of respondent precautionary premia.")
+
+
+### Plotting Certainty effects
+ggplot(FullSurvey2, aes(x=as.numeric(Q24AIncome))) + 
+  facet_grid( ~ Q12CECertainty, labeller = as_labeller(c(
+    `0` = "Unsure",
+    `1` = "Quite Sure",
+    `2` = "Very Sure")))+
+  geom_smooth(aes(y=Q6WTP,color="blue"),method="lm",se=F) +
+  geom_smooth(aes(y=Q7WTP,color="red"),method="lm",se=F) +
+  ggtitle("Relationship between income and WTP by certainty") +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("WTP for research", "WTP for treatment"))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Income",breaks = waiver(),limits = c(0,5000),
+                     n.breaks = 5, labels = function(x) paste0("£",x))+
+  scale_y_continuous(name="Precautionary WTP",breaks = waiver(), 
+                     limits=c(20,50),labels = function(x) paste0("£",x))+
+  labs(x = "Income",y="Precaution")
+
+
+### Plotting Consequentiality effects
+ggplot(FullSurvey2, aes(x=as.numeric(Q24AIncome))) + 
+  facet_grid( ~ Q12CECertainty, labeller = as_labeller(c(
+    `0` = "Unsure",
+    `1` = "Quite Sure",
+    `2` = "Very Sure")))+
+  geom_smooth(aes(y=Q6WTP,color="blue"),method="lm",se=F) +
+  geom_smooth(aes(y=Q7WTP,color="red"),method="lm",se=F) +
+  ggtitle("Relationship between income and WTP by certainty") +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("WTP for research", "WTP for treatment"))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Income",breaks = waiver(),limits = c(0,5000),
+                     n.breaks = 5, labels = function(x) paste0("£",x))+
+  scale_y_continuous(name="Precautionary WTP",breaks = waiver(), 
+                     limits=c(20,50),labels = function(x) paste0("£",x))+
+  labs(x = "Income",y="Precaution")
+
+
+## Plotting the effect of distance from the coast on WTP
+Q3Graph <- ggplot(Full_Long) + 
+  geom_smooth(aes(x=Q3Distance,y=Q7WTP,color="red"),method="lm",se=T) +
+  geom_smooth(aes(x=Q3Distance,y=Q6WTP,color="blue"),method="lm",se=T) +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("WTP for research", "WTP for treatment"))+
+  ggtitle("WTP by Q3: Distance") +
+  scale_x_continuous(name="Distance")+
+  scale_y_continuous(name="WTP",
+                     breaks=waiver(),limits = c(10,60),
+                     n.breaks = 10, labels = function(x) paste0("£",x))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 10))
+
+
+## Plotting the effect of number of trips to the coast on WTP
+Q4Graph <- ggplot(Full_Long) + 
+  geom_smooth(aes(x=Q4Trips,y=Q7WTP,color="red"),method="lm",se=T) +
+  geom_smooth(aes(x=Q4Trips,y=Q6WTP,color="blue"),method="lm",se=T) +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("WTP for research", "WTP for treatment"))+
+  ggtitle("WTP by Q4: Trips") +
+  scale_x_continuous(name="Trips")+
+  scale_y_continuous(name="WTP",
+                     breaks=waiver(),limits = c(10,60),
+                     n.breaks = 10, labels = function(x) paste0("£",x))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 10))
+
+
+## Plotting the effect of health concern on WTP
+Q13Graph <- ggplot(FS) + 
+  geom_smooth(aes(x=Q13CurrentThreatToSelf,y=Q7WTP,color="red"),method="lm",se=T) +
+  geom_smooth(aes(x=Q13CurrentThreatToSelf,y=Q6WTP,color="blue"),method="lm",se=T) +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("WTP for research", "WTP for treatment"))+
+  ggtitle("WTP by Q13: Current Threat To Self") +
+  scale_x_continuous(name="Likert scale levels",breaks = 1:5, 
+                     labels=c(1,2,3,4,5))+
+  scale_y_continuous(name="WTP",
+                     breaks=waiver(),limits = c(10,60),
+                     n.breaks = 10, labels = function(x) paste0("£",x))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 10)) +
+  labs(x = "Likert scale levels",y="Precautionary premium WTP")
+
+
+## Plotting the effect of future concerns on WTP
+Q14Graph <- ggplot(FS) + 
+  geom_smooth(aes(x=Q14FutureThreatToSelf,y=Q7WTP,color="red"),method="lm",se=T) +
+  geom_smooth(aes(x=Q14FutureThreatToSelf,y=Q6WTP,color="blue"),method="lm",se=T) +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("WTP for research", "WTP for treatment"))+
+  ggtitle("WTP by Q14: Future Threat To Self") +
+  scale_x_continuous(name="Likert scale levels",breaks = 1:5, 
+                     labels=c(1,2,3,4,5))+
+  scale_y_continuous(name="WTP in £",
+                     breaks=waiver(),limits = c(10,60),
+                     n.breaks = 10, labels = function(x) paste0("£",x))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 10)) +
+  labs(x = "Likert scale levels",y="Precautionary premium WTP")
+
+
+## Plotting the effect of environmental concern on WTP
+Q15Graph <- ggplot(FS) + 
+  geom_smooth(aes(x=Q15ThreatToEnvironment,y=Q7WTP,color="red"),method="lm",se=T) +
+  geom_smooth(aes(x=Q15ThreatToEnvironment,y=Q6WTP,color="blue"),method="lm",se=T) +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("WTP for research", "WTP for treatment"))+
+  ggtitle("WTP by Q15: Threat To Environment") +
+  scale_x_continuous(name="Likert scale levels",breaks = 1:5, 
+                     labels=c(1,2,3,4,5))+
+  scale_y_continuous(name="WTP in £",
+                     breaks=waiver(),limits = c(10,60),
+                     n.breaks = 10, labels = function(x) paste0("£",x))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 10)) +
+  labs(x = "Likert scale levels",y="Precautionary premium WTP")
+
+Q3Graph
+Q4Graph
+Q13Graph
+Q14Graph
+Q15Graph
+
+
 
 ##########################################################  
 ## The following code is experimental:
