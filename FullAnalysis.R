@@ -628,12 +628,15 @@ grid.arrange(PriceCurve, EmissionsCurve, PerformanceCurve)
 ####### CE
 ##########################################################  
 
+
 # Full <- cbind(Full,Classes)
 ## Have to do the manipulation section again to ignore the changes made in the graphics section
 library(mlogit) #Already have package installed
 Full_Long <- mlogit.data(Full, shape = "wide", choice = "Choice",
                           varying = 16:21, sep = "_", id.var = "ID")
 
+
+## Coding attribute levels in percentage points
 Full_Long$Performance[Full_Long$Performance == 0.05] <- 5
 Full_Long$Performance[Full_Long$Performance == 0.10] <- 10
 Full_Long$Performance[Full_Long$Performance == 0.50] <- 50
@@ -642,7 +645,24 @@ Full_Long$Emission[Full_Long$Emission == 0.9] <- 90
 Full_Long$Emission[Full_Long$Emission == 0.4] <- 40 
 
 
-## To trim the sample: 
+## Effects coding attribute levels:
+# Full_Long$Price.Level = factor(Full_Long$Price, labels=c("Normal", "Some", "More", "Most"))
+# contrasts(Full_Long$Price.Level) = contr.sum(length(unique(Full_Long$Price)))
+# Full_Long$Emission.Level = factor(Full_Long$Emission, labels=c("No", "Low", "Medium", "High"))
+# contrasts(Full_Long$Emission.Level) = contr.sum(length(unique(Full_Long$Emission)))
+# Full_Long$Performance.Level = factor(Full_Long$Performance, labels=c("0", "1", "2", "3"))
+# contrasts(Full_Long$Performance.Level) = contr.sum(length(unique(Full_Long$Performance)))
+## Alternative approach
+# Performance.f <- factor(Full$Performance_B)
+# dummies <- data.frame(model.matrix(~Performance.f))
+# dummies <- dummies[ -c(1)]
+# colnames(dummies) <- c("PerformanceMedium","PerformanceHigh")
+# Full <- cbind(Full,dummies)
+# names(Full_Long)[46] <- "PerformanceLow"
+# names(Full_Long)[47] <- "PerformanceMedium"
+# names(Full_Long)[48] <- "PerformanceHigh"
+
+## Sample truncation: 
 Full_Dominated <- Full_Long[Full_Long$Q8DominatedTest == 0]
 # Full_Understanding <- Full_Dominated[Full_Dominated$Q25Understanding >= 5]
 Full_Certain <- Full_Dominated[Full_Dominated$Q12CECertainty >= 2]
@@ -677,9 +697,18 @@ MNL_3 <- mlogit(Choice ~ Price + Performance + Emission |
                     + Q21Experts +Q22Education+ Q23Employment
                     +  Q24AIncome + Timing, 
                     Full_Long, alt.subset = c("A", "B"), 
-                    reflevel = "A") 
+                    reflevel = "A",method="bfgs") 
 summary(MNL_3) ## Summarises the MNL output
 MNL_3_WTP <- c(-1*coef(MNL_3)["Emission"]/coef(MNL_3)["Price"],-1*coef(MNL_3)["Performance"]/coef(MNL_3)["Price"])
+
+
+## Model 3B: MNL with all sociodemographics with levels:
+MNL_4 <- mlogit(Choice ~  Price + Performance.f5 + Emission, 
+                Full_Long,
+                alt.subset = c("A","B"),reflevel = "A") 
+summary(MNL_4) ## Estimates a simplistic mlogit model before adding in individual-specifics
+MNL_4_WTP <- c(-1*coef(MNL_4)["Emission"]/coef(MNL_4)["Price"],-1*coef(MNL_4)["Performance"]/coef(MNL_4)["Price"])
+
 
 
 ## Model 4: Now MIXED LOGIT - Attributes Only
@@ -730,6 +759,22 @@ MXL_4 <- mlogit(
   reflevel="A",halton=NA,method="bfgs",panel=FALSE,seed=123)
 summary(MXL_4)
 MXL_4_WTP <- c(-1*coef(MXL_4)["Emission"]/coef(MXL_4)["Price"],-1*coef(MXL_4)["Performance"]/coef(MXL_4)["Price"])
+
+
+## Model 7B: MXL all sociodemographics, WTP-space, attributes in levels
+MXL_4B <- mlogit(
+  Choice ~ Price + Performance.Level + Emission.Level | 
+    Order + Task + Q1Gender + Q2Age + Q3Distance
+  + Q4Trips + Q16BP + Q18Charity 
+  + Q20Consequentiality
+  + Q21Experts +Q22Education+ Q23Employment
+  +  Q24AIncome + Timing,
+  Full_Long, rpar=c(Price="n"),
+  R=1000,correlation = FALSE,
+  reflevel="A",halton=NA,method="bfgs",panel=FALSE,seed=123)
+summary(MXL_4B)
+MXL_4_WTP <- c(-1*coef(MXL_4)["Emission"]/coef(MXL_4)["Price"],-1*coef(MXL_4)["Performance"]/coef(MXL_4)["Price"])
+
 
 
 # Can truncate sample by protest votes:
@@ -1475,6 +1520,7 @@ wald.test(b = coef(QOVProbit), Sigma = vcov(QOVProbit), Terms=2)
 
 
 library(ggplot2)
+library(gridExtra)
 
 
 ##########################################################  
@@ -1482,16 +1528,16 @@ library(ggplot2)
 
 ## Plotting a histogram of individual attribute-specific WTP 
 EmissionDistribution <- ggplot(Full_Long, aes(x=EmissionCoef)) + 
-  geom_histogram(color="black", fill="white",binwidth = 1)+
-  scale_x_continuous(breaks=waiver(),limits = c(-10,10),
-                     n.breaks = 20)+
+  geom_histogram(color="black", fill="white",bins = 50)+
+  scale_x_continuous(breaks=waiver(),limits = c(-0.5,0.5),
+                     n.breaks = 10)+
   ggtitle("Histogram of emission WTP.")
 
 ## Plotting a histogram of individual attribute-specific WTP
-PerformanceDistribution <- ggplot(Full_Long, aes(x=PerformanceCoef)) + 
-  geom_histogram(color="black", fill="white",binwidth = 1)+
-  scale_x_continuous(breaks=waiver(),limits = c(-10,10),
-                     n.breaks = 20)+
+PerformanceDistribution <- ggplot(Full_Final, aes(x=PerformanceCoef)) + 
+  geom_histogram(color="black", fill="white",bins = 50)+
+  scale_x_continuous(breaks=waiver(),limits = c(-0.5,0.5),
+                     n.breaks = 10)+
   ggtitle("Histogram of performance WTP.")
 
 ### Plotting Q8 Dominance test
@@ -1503,7 +1549,7 @@ PerformanceWTP <- ggplot(Full_Long, aes(y= PerformanceCoef,x=as.numeric(Q24AInco
   geom_smooth(method="lm",se=F) +
   ggtitle("Relationship between income and MWTP by Q8") +
   scale_y_continuous(name="Performance MWTP",
-                     breaks=waiver(),limits = c(0,5),
+                     breaks=waiver(),limits = c(-1,1),
                      n.breaks = 10)+
   theme(plot.title = element_text(hjust = 0.5),
         axis.title.y = element_text(size = 12)) +
@@ -1517,15 +1563,15 @@ EmissionWTP <- ggplot(Full_Long, aes(y= EmissionCoef,x=as.numeric(Q24AIncome))) 
   geom_smooth(method="lm",se=F) +
   ggtitle("Relationship between income and WTP by Q8") +
   scale_y_continuous(name="Emission MWTP",
-                     breaks=waiver(),limits = c(-5,0),
+                     breaks=waiver(),limits = c(-1,1),
                      n.breaks = 10)+
   theme(plot.title = element_text(hjust = 0.5),
         axis.title.y = element_text(size = 12)) +
   labs(x = "Income",y="Emission MWTP")
 
-library(gridExtra)
-grid.arrange(PerformanceWTP, EmissionWTP )
 
+grid.arrange(PerformanceWTP, EmissionWTP )
+grid.arrange(PerformanceDistribution, EmissionDistribution )
 
 ### Plotting Consequentiality effects
 ggplot(data=Fulls, aes(x=as.numeric(Q24AIncome))) + 
@@ -1553,7 +1599,7 @@ ggplot(data=Fulls, aes(x=as.numeric(Q24AIncome))) +
 ## CV Section:
 
 ## Here I make a dataframe which has Q6, Q7 WTP and the precautionary premium and is truncated according to all criteria 
-FS <- FullSurvey2[ (FullSurvey2$ID) %in% c(Full_Full$ID),  ]
+FS <- Full_Final[ (Full_Final$ID) %in% c(Full_Full$ID),  ]
 
 
 ## Plotting precaution  
@@ -1562,8 +1608,8 @@ ggplot() +
     `0` = "Female",
     `1` = "Male",
     `2` = "Other")))+
-  geom_smooth(aes(x=Q24AIncome,y=Q6WTP,color="red"),data=Full_Order1,method="lm",se=F) +
-  geom_smooth(aes(x=Q24AIncome,y=Q7WTP,color="blue"),data=Full_Order2,method="lm",se=F) +
+  geom_smooth(aes(x=Q24AIncome,y=Q6WTP,color="red"),data=FS,method="lm",se=F) +
+  geom_smooth(aes(x=Q24AIncome,y=Q7WTP,color="blue"),data=FS,method="lm",se=F) +
   scale_color_discrete(name = "Lines", 
                        labels = c("WTP for Research", "WTP for treatment"))+
   ggtitle("Relationship between precaution and income") +
@@ -1643,33 +1689,68 @@ ggplot(FullSurvey2, aes(x=as.numeric(Q24AIncome))) +
 
 
 ## Plotting the effect of distance from the coast on WTP
-Q3Graph <- ggplot(Full_Long) + 
+Q3Graph <- ggplot(Full_Final) + 
   geom_smooth(aes(x=Q3Distance,y=Q7WTP,color="red"),method="lm",se=T) +
   geom_smooth(aes(x=Q3Distance,y=Q6WTP,color="blue"),method="lm",se=T) +
   scale_color_discrete(name = "Lines", 
                        labels = c("WTP for research", "WTP for treatment"))+
   ggtitle("WTP by Q3: Distance") +
-  scale_x_continuous(name="Distance")+
+  scale_x_continuous(name="Distance",breaks=waiver(),limits=c(0,50),n.breaks=5)+
   scale_y_continuous(name="WTP",
-                     breaks=waiver(),limits = c(10,60),
+                     breaks=waiver(),limits = c(0,75),
                      n.breaks = 10, labels = function(x) paste0("£",x))+
   theme(plot.title = element_text(hjust = 0.5),
         axis.title.y = element_text(size = 10))
 
 
 ## Plotting the effect of number of trips to the coast on WTP
-Q4Graph <- ggplot(Full_Long) + 
+Q4Graph <- ggplot(Full_Final) + 
   geom_smooth(aes(x=Q4Trips,y=Q7WTP,color="red"),method="lm",se=T) +
   geom_smooth(aes(x=Q4Trips,y=Q6WTP,color="blue"),method="lm",se=T) +
   scale_color_discrete(name = "Lines", 
                        labels = c("WTP for research", "WTP for treatment"))+
   ggtitle("WTP by Q4: Trips") +
-  scale_x_continuous(name="Trips")+
+  scale_x_continuous(name="Trips",breaks=waiver(),limits=c(0,3),n.breaks=10)+
   scale_y_continuous(name="WTP",
-                     breaks=waiver(),limits = c(10,60),
+                     breaks=waiver(),limits = c(0,75),
                      n.breaks = 10, labels = function(x) paste0("£",x))+
   theme(plot.title = element_text(hjust = 0.5),
         axis.title.y = element_text(size = 10))
+
+
+## Plotting WTP by pre-survey microplastic knowledge
+Q5Graph <- ggplot(Full_Final) + 
+  geom_smooth(aes(x=Q5Knowledge,y=Q7WTP,color="red"),method="lm",se=T) +
+  geom_smooth(aes(x=Q5Knowledge,y=Q6WTP,color="blue"),method="lm",se=T) +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("WTP for research", "WTP for treatment"))+
+  ggtitle("WTP by Q5: Knowledge") +
+  scale_x_continuous(name="Likert scale levels",breaks = 1:5, 
+                     labels=c(1,2,3,4,5))+
+  scale_y_continuous(name="WTP",
+                     breaks=waiver(),limits = c(0,75),
+                     n.breaks = 10, labels = function(x) paste0("£",x))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 10)) +
+  labs(x = "Likert scale levels",y="Precautionary premium WTP")
+
+
+## Plotting the effect of Q19 knowledge about microplastics post survey
+Q19Graph <- ggplot(Full_Final) + 
+  geom_smooth(aes(x=Q19Knowledge,y=Q7WTP,color="red"),method="lm",se=T) +
+  geom_smooth(aes(x=Q19Knowledge,y=Q6WTP,color="blue"),method="lm",se=T) +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("WTP for research", "WTP for treatment"))+
+  ggtitle("WTP by Q19: Knowledge") +
+  scale_x_continuous(name="Likert scale levels",breaks = 1:5, 
+                     labels=c(1,2,3,4,5))+
+  scale_y_continuous(name="WTP",
+                     breaks=waiver(),limits = c(0,75),
+                     n.breaks = 10, labels = function(x) paste0("£",x))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 10)) +
+  labs(x = "Likert scale levels",y="Precautionary premium WTP")
+
 
 
 ## Plotting the effect of health concern on WTP
@@ -1728,7 +1809,8 @@ Q13Graph
 Q14Graph
 Q15Graph
 
-
+grid.arrange(Q3Graph, Q4Graph)
+grid.arrange(Q5Graph, Q19Graph)
 
 ##########################################################  
 ## The following code is experimental:
@@ -1768,7 +1850,7 @@ Test_Apollo <- data.frame(Fulls$ID,Fulls$Task, Fulls$Q1Gender,
                           Fulls$Q21Experts,
                           Fulls$Q6ResearchResponse,Fulls$Q6Bid,
                           Fulls$Q7Bid,Fulls$Q7Bid2,
-                          Fulls$Q7TreatmentResponse,Fulls$Q7Response2)
+                          Fulls$Q7TreatmentResponse,Fulls$Q7Response2,Fulls$Timing)
 colnames(Test_Apollo) <- c("ID","Task","Q1Gender","Age","Distance",
                            "Trips","Q13CurrentThreatToSelf","Q14FutureThreatToSelf",
                            "Q15ThreatToEnvironment","BP","Charity",
@@ -1780,11 +1862,14 @@ colnames(Test_Apollo) <- c("ID","Task","Q1Gender","Age","Distance",
                            "Consequentiality","Experts",
                            "Q6ResearchResponse","Q6Bid",
                            "Q7Bid","Q7Bid2",
-                           "Q7TreatmentResponse","Q7Response2")
+                           "Q7TreatmentResponse","Q7Response2","Timing")
 
 # Tests_Dominated <- Test_Apollo[!Test_Apollo$ID %in% c(Test_Apollo$ID[ ((Test_Apollo$Task == 1) & (Test_Apollo$Choice ==1) & (grepl("SQ",rownames(Test_Apollo),fixed = TRUE) == FALSE)) ]),]
 # Tests_Understanding <- Tests_Dominated[!Tests_Dominated$ID %in% c( unique(Tests_Dominated$ID[Tests_Dominated$Survey <= 5])),]
 # Test_Apollo <- Tests_Understanding
+
+Test_Apollo$av_A <- rep(1,nrow(Full)) 
+Test_Apollo$av_B <- rep(1,nrow(Full)) 
 
 Test_Apollo$Q6ResearchResponse <- Test_Apollo$Q6ResearchResponse +1
 Test_Apollo$Bid_Alt <- rep(0,nrow(Test_Apollo))
@@ -1792,7 +1877,7 @@ Test_Apollo$Bid_Alt <- rep(0,nrow(Test_Apollo))
 Test_Apollo$Choice[Test_Apollo$Choice == 1] <- 2
 Test_Apollo$Choice[Test_Apollo$Choice == 0] <- 1
 database = Test_Apollo
-
+write.csv(Test_Apollo,file = "Test_Apollo.csv")
 
 apollo_control = list(
   modelName  ="Replicating Full_MNL",
@@ -1818,7 +1903,8 @@ apollo_beta=c(asc_A      = 0,
               b_Order      = 0,
               b_Task       = 0,
               b_Cons       = 0,
-              b_Experts    = 0)
+              b_Experts    = 0,
+              b_Timing     = 0)
 
 ## Set one of the ASCs as zero using the utility-difference approach: 
 apollo_fixed = c("asc_A")
@@ -1848,7 +1934,8 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
     b_Order * Order +      
     b_Task * Task +       
     b_Cons * Consequentiality +       
-    b_Experts * Experts    
+    b_Experts * Experts+
+    b_Timing * Timing
   
   
   ### List of utilities: these must use the same names as in mnl_settings, order is irrelevant
