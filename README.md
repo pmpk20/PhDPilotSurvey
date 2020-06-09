@@ -1,7 +1,7 @@
 # PhDPilotSurvey
 PhD full survey analysis:
 
-To-Do:
-- Adjust APOLLO MXL and LCM
-- Translate APOLLO ICLV
-- Train SVM in Python
+09/06 To-Do:
+- Estimate Q7 ICLV
+- Translate APOLLO into BIOGEME
+- Estimate attribute levels
