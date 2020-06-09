@@ -225,6 +225,7 @@ FullSurvey2$Q24AIncome[FullSurvey2$Q24AIncome == 3] <- 2250.00
 FullSurvey2$Q24AIncome[FullSurvey2$Q24AIncome == 6] <- 4500.00
 FullSurvey2$Q24AIncome[FullSurvey2$Q24AIncome == 9] <- NA 
 FullSurvey2$Q24AIncome <- with(FullSurvey2, impute(FullSurvey2$Q24AIncome, 'random')) ## Using random imputation for missing values
+FullSurvey2$Q24AIncome <- as.numeric(FullSurvey2$Q24AIncome)
 FullSurvey2$Q24AIncome[FullSurvey2$Q24AIncome == 7] <- 5000
 FullSurvey2$Q24AIncome[FullSurvey2$Q24AIncome == 0] <- 250.00
 FullSurvey2$Q24RonaImpact <- as.numeric(FullSurvey2$Q24RonaImpact)
@@ -1463,11 +1464,33 @@ colnames(FullSurvey2)[58] <- "Precaution"
 
 
 Full_Final <- cbind(Full_Long,slice(.data = FullSurvey2[,56:58],rep(1:n(), each = 8)))
-
+write.csv(Full_Final,file = "FinalData.csv")
 # FullSurvey2 <- FullSurvey2[ (FullSurvey2$Q1Gender == 0) | (FullSurvey2$Q1Gender == 1),]
 
 ## Individual QOV within the sample:
 summary(FullSurvey2$Precaution)
+
+
+#################### Replicating Cameron (2005):
+
+
+## Here I make dataset which has the same variables as they mention in text: 
+FL <- cbind(Full_Long,"ET"=1-Full_Long$Q14FutureThreatToSelf,
+            "IncomeBid" = ((Full_Long$Q24AIncome*12)-Full_Long$Q7Bid)/((Full_Long$Q24AIncome*12)),
+            "VarT" = rep((-var(Full_Long$Q13CurrentThreatToSelf)),times=nrow(Full_Long)))
+
+## Fitting the basic model here:
+#### NOTE: Including VarT is highly correlated and won't estimate so is left out. 
+Cameron <- sbchoice(Q7TreatmentResponse ~ FL$ET | FL$IncomeBid, data = FL,dist="logistic")
+summary(Cameron)
+
+
+## If the Cameron model estimates my plan was to fit individual level OP.
+#### NOTE: Code not currently fixed.
+# cbind(FL,
+#       apply(FL, 
+#             1, 
+#             function(i) c(krCI(Cameron,individual = data.frame(ET=FL$ET[i]))$out[4,1])))
 
 
 ##########################################################  
