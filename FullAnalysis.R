@@ -26,7 +26,11 @@ setwd("H:/PhDPilotSurvey") ## Sets working directory. This is where my Github re
 ############ Setup and manipulation:
 FullSurvey <- data.frame(read.csv("FullSurvey.csv")) ## Imports from the excel file straight from the survey companies website.
 
+
 FullSurvey <- FullSurvey[ -c(4,14,15,16,23,24,26,27,53,54,55,56,57,58,68,69)] ## Drop columns of no importance to the quantitative analysis, namely text responses.
+
+# Full_Long <- data.frame(read.csv("Full_Long.csv")) 
+# Full_Final <- data.frame(read.csv("FinalData.csv")) ## Imports from the excel file straight from the survey companies website.
 # FullSurvey <- FullSurvey[ !(FullSurvey$ï..Respondent %in% c(24,33,44,61,121,127,182,200,211,219,239,251,275,306,320,326,341,360,363,371,399,464,467,479,480,506,579,591,649,654,931,932,935,953,989,1002,1011,1024,14,35,39,54,79,106,130,146,149,155,163,203,214,215,217,244,246,249,252,267,268,282,290,327,343,362,364,374,380,393,398,407,414,425,426,433,477,519,524,536,543,545,547,557,567,575,589,590,595,614,617,629,637,638,639,651,665,674,680,915,933,940,950,959,960,975,978,996,1026,1027,1028)), ] ## Drop protest rows
 
 
@@ -664,10 +668,10 @@ Full_Long$Emission[Full_Long$Emission == 0.4] <- 40
 # names(Full_Long)[48] <- "PerformanceHigh"
 
 ## Sample truncation: 
-Full_Dominated <- Full_Long[Full_Long$Q8DominatedTest == 0]
+Full_Dominated <- Full_Long[Full_Long$Q8DominatedTest == 0,]
 # Full_Understanding <- Full_Dominated[Full_Dominated$Q25Understanding >= 5]
-Full_Certain <- Full_Dominated[Full_Dominated$Q12CECertainty >= 2]
-Full_Cons <- Full_Certain[Full_Certain$Q20Consequentiality >= 1]
+Full_Certain <- Full_Dominated[Full_Dominated$Q12CECertainty >= 2,]
+Full_Cons <- Full_Certain[Full_Certain$Q20Consequentiality >= 1,]
 
 
 ######################## Estimation section:
@@ -797,6 +801,13 @@ summary(MXL_5)
 MXL_5_WTP <- c(-1*coef(MXL_5)["Emission"]/coef(MXL_5)["Price"],-1*coef(MXL_5)["Performance"]/coef(MXL_5)["Price"])
 
 
+## Testing whether the MXL is preferred to the MNL:   
+lrtest(MNL_3,MXL_4)
+lrtest(MXL_3,MXL_4)
+lrtest(MXL_4,MXL_5)
+
+
+## Eliciting MWTP from each model:
 AllWTPs <- round(t(data.frame("Model 1: MNL - Attributes only" = c(MNL_1_WTP),
                    "Model 2: MNL - Quadratic attributes:"=c(MNL_2_WTP),
                    "Model 3: MNL - All sociodemographics:"=c(MNL_3_WTP),
@@ -1022,7 +1033,7 @@ MNL_GM <- gmnl(  Choice ~ Price + Performance + Emission |
                  + Q4Trips + Q16BP + Q18Charity 
                  + Q20Consequentiality
                  + Q21Experts +Q22Education+ Q23Employment
-                 +  Q24AIncome,
+                 +  Q24AIncome + Timing,
                  data = Full_Long,
                  model = "mnl",alt.subset = c("A","B"),reflevel = "A")
 summary(MNL_GM)
@@ -1036,7 +1047,7 @@ GMNL_MXLDefault <- gmnl(Choice ~ Price + Performance + Emission | 1 | 0|
                         + Q4Trips + Q16BP + Q18Charity 
                         + Q20Consequentiality
                         + Q21Experts +Q22Education+ Q23Employment
-                        +  Q24AIncome, data = Full_Cons,
+                        +  Q24AIncome, data = Full_Long,
                         model = "mixl",
                         ranp = c( Price = "n"),
                         mvar = list(Price = c("Q18Charity")),
@@ -1483,7 +1494,10 @@ FL <- cbind(Full_Long,"ET"=1-Full_Long$Q14FutureThreatToSelf,
 #### NOTE: Including VarT is highly correlated and won't estimate so is left out. 
 Cameron <- sbchoice(Q7TreatmentResponse ~ FL$ET | FL$IncomeBid, data = FL,dist="logistic")
 summary(Cameron)
+krCI(Cameron)
 
+CameronME <- probitmfx(formula = Q7TreatmentResponse ~ FL$ET | FL$IncomeBid,data = FL,robust = TRUE)
+summary(CameronME$fit)
 
 ## If the Cameron model estimates my plan was to fit individual level OP.
 #### NOTE: Code not currently fixed.
@@ -1826,6 +1840,45 @@ Q15Graph <- ggplot(FS) +
         axis.title.y = element_text(size = 10)) +
   labs(x = "Likert scale levels",y="Precautionary premium WTP")
 
+
+ggplot(Full_Final) + 
+  geom_smooth(aes(x=Q24RonaImpact,y=Precaution,color="red"),method="lm",se=T) +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("Precautionary premia"))+
+  ggtitle("WTP by Q24: COVID-19 Impact") +
+  geom_point(aes(x=1,y=mean(Full_Final$Precaution[Full_Final$Q24RonaImpact ==0]))) +
+  annotate("text", x = 1.05, y = 2+mean(Full_Final$Precaution[Full_Final$Q24RonaImpact ==0]), label=round(mean(Full_Final$Precaution[Full_Final$Q24RonaImpact ==0]),2),colour = "blue")+
+  geom_point(aes(x=2,y=mean(Full_Final$Precaution[Full_Final$Q24RonaImpact ==1]))) +
+  annotate("text", x = 1.95, y = 3+mean(Full_Final$Precaution[Full_Final$Q24RonaImpact ==1]), label=round(mean(Full_Final$Precaution[Full_Final$Q24RonaImpact ==1]),2),colour = "blue")+
+  scale_x_continuous(name="Did COVID-19 affect your income?",breaks = 1:2, 
+                     labels=c("No","Yes"),limits=c(1,2))+
+  scale_y_continuous(name="WTP in £",
+                     breaks=waiver(),limits = c(0,50),
+                     n.breaks = 10, labels = function(x) paste0("£",x))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 10)) +
+  labs(x = "Did COVID-19 affect your income?",y="Precautionary premium WTP")
+
+
+ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) + 
+  facet_grid( ~ Q24RonaImpact, labeller = as_labeller(c(
+    `0` = "No",
+    `1` = "Yes",
+    `2` = "Prefer not to say")))+
+  geom_smooth(aes(y=Q6WTP,color="blue"),method="lm",se=F) +
+  geom_smooth(aes(y=Q7WTP,color="red"),method="lm",se=F) +
+  ggtitle("Relationship between income and WTP by effect of COVID-19 on income.") +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("WTP for research", "WTP for treatment"))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Income",breaks = waiver(),limits = c(0,5000),
+                     n.breaks = 5, labels = function(x) paste0("£",x))+
+  scale_y_continuous(name="Precautionary WTP",breaks = waiver(), 
+                     limits=c(20,50),labels = function(x) paste0("£",x))+
+  labs(x = "Income",y="Precaution")
+
+
 Q3Graph
 Q4Graph
 Q13Graph
@@ -1895,6 +1948,7 @@ Test_Apollo$av_A <- rep(1,nrow(Full))
 Test_Apollo$av_B <- rep(1,nrow(Full)) 
 
 Test_Apollo$Q6ResearchResponse <- Test_Apollo$Q6ResearchResponse +1
+Test_Apollo$Q7TreatmentResponse <- Test_Apollo$Q7TreatmentResponse +1
 Test_Apollo$Bid_Alt <- rep(0,nrow(Test_Apollo))
 
 Test_Apollo$Choice[Test_Apollo$Choice == 1] <- 2
@@ -2278,6 +2332,33 @@ apollo_beta = apollo_searchStart(apollo_beta,
 RRmodel = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs, estimate_settings=list(hessianRoutine="numDeriv")) 
 apollo_modelOutput(RRmodel,modelOutput_settings = list(printPVal=TRUE))
 
+## RUM Performance MWTP
+deltaMethod_settings=list(operation="ratio", parName1="B_Performance_1", parName2="B_Price_1")
+apollo_deltaMethod(RRmodel, deltaMethod_settings)
+
+## RUM Emission MWTP
+deltaMethod_settings=list(operation="ratio", parName1="B_Emission_1", parName2="B_Price_1")
+apollo_deltaMethod(RRmodel, deltaMethod_settings)
+
+## RRM Performance MWTP
+deltaMethod_settings=list(operation="ratio", parName1="B_Performance_2", parName2="B_Price_2")
+apollo_deltaMethod(RRmodel, deltaMethod_settings)
+
+## RRM Emission MWTP
+deltaMethod_settings=list(operation="ratio", parName1="B_Emission_2", parName2="B_Price_2")
+apollo_deltaMethod(RRmodel, deltaMethod_settings)
+
+## Investigating class-allocation
+RRMProbs <- slice(data.frame(RRmodel$avgCP),rep(1:n(), each = 8))
+Full_Final <- cbind(Full_Final,"RRMProbs" = RRMProbs)
+Full_Final[ (Full_Final$ID) %in% c(AllCriteria),  ]
+Full_Final$RRmodel.avgCP[Full_Final$RRmodel.avgCP < 0.5] <- 0
+Full_Final$RRmodel.avgCP[Full_Final$RRmodel.avgCP > 0.5] <- 1
+
+## Plotting the class-allocation - no effect of sample truncation
+hist(Full_Final$RRmodel.avgCP[ (Full_Final$ID) %in% c(AllCriteria) ])
+hist(Full_Final$RRmodel.avgCP)
+
 
 #############################################################################
 ## ICLV model: CE version
@@ -2463,7 +2544,7 @@ apollo_modelOutput(CEmodel,modelOutput_settings = list(printPVal=TRUE))
 
 
 #############################################################################
-## ICLV model: CVM edition based on Abate et al (2020)
+## ICLV model: Q6 CVM edition based on Abate et al (2020)
 ## http://www.apollochoicemodelling.com/files/Apollo_example_24.r
 #############################################################################
 
@@ -2491,7 +2572,7 @@ apollo_initialise()
 ### Set core controls
 apollo_control = list(
   modelName  = "ICLV",
-  modelDescr = "ICLV model: CV",
+  modelDescr = "ICLV model: CV Q6",
   indivID    = "ID",
   mixing     = TRUE,
   nCores     = 1
@@ -2626,6 +2707,174 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
 CVmodel = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
 
 apollo_modelOutput(CVmodel,modelOutput_settings = list(printPVal=TRUE))
+
+
+
+#############################################################################
+## ICLV model: Q7 CVM edition based on Abate et al (2020)
+## http://www.apollochoicemodelling.com/files/Apollo_example_24.r
+#############################################################################
+
+
+
+
+rm(list = ls())
+install.packages("Rcpp")
+library(Rcpp)
+install.packages("rngWELL")
+library(rngWELL)
+install.packages("randtoolbox")
+library(randtoolbox)
+install.packages("apollo")
+library(apollo)
+
+Test_Apollo$Q7TreatmentResponse <- Test_Apollo$Q7TreatmentResponse+1
+database = Test_Apollo
+
+### Load Apollo library
+library(apollo)
+
+### Initialise code
+apollo_initialise()
+
+### Set core controls
+apollo_control = list(
+  modelName  = "ICLV",
+  modelDescr = "ICLV model: CV Q7",
+  indivID    = "ID",
+  mixing     = TRUE,
+  nCores     = 1
+)
+
+# database = read.csv("apollo_drugChoiceData.csv",header=TRUE)
+
+
+### Vector of parameters, including any that are kept fixed in estimation
+apollo_beta = c(b_bid     = 0, 
+                b_bid_Alt = 0,
+                lambda            = 1, 
+                gamma_Education   = 0, 
+                gamma_Age         = 0, 
+                zeta_Q13   = 1, 
+                zeta_Q14   = 1, 
+                zeta_Q15   = 1, 
+                tau_Q13_1  =-2, 
+                tau_Q13_2  =-1, 
+                tau_Q13_3  = 1, 
+                tau_Q13_4  = 2, 
+                tau_Q14_1  =-2, 
+                tau_Q14_2  =-1, 
+                tau_Q14_3  = 1, 
+                tau_Q14_4  = 2, 
+                tau_Q15_1  =-2, 
+                tau_Q15_2  =-1, 
+                tau_Q15_3  = 1, 
+                tau_Q15_4  = 2)
+
+## Vector with names (in quotes) of parameters to be kept fixed at their starting value in apollo_beta, use apollo_beta_fixed = c() if none
+apollo_fixed = c()
+
+## DEFINE RANDOM COMPONENTS                                    
+
+### Set parameters for generating draws
+apollo_draws = list(
+  interDrawsType="halton", 
+  interNDraws=100,          
+  interUnifDraws=c(),      
+  interNormDraws=c("eta"), 
+  intraDrawsType='',
+  intraNDraws=0,          
+  intraUnifDraws=c(),     
+  intraNormDraws=c()      
+)
+
+### Create random parameters
+apollo_randCoeff=function(apollo_beta, apollo_inputs){
+  randcoeff = list()
+  
+  randcoeff[["LV"]] = gamma_Education*Education + gamma_Age*Age + eta
+  
+  return(randcoeff)
+}
+
+
+## GROUP AND VALIDATE INPUTS
+
+apollo_inputs = apollo_validateInputs()
+
+## DEFINE MODEL AND LIKELIHOOD FUNCTION                        
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  
+  ### Attach inputs and detach after function exit
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  
+  ### Create list of probabilities P
+  P = list()
+  
+  ### Likelihood of indicators
+  op_settings1 = list(outcomeOrdered = Q13CurrentThreatToSelf, 
+                      V              = zeta_Q13*LV, 
+                      tau            = c(tau_Q13_1, tau_Q13_2, tau_Q13_3, tau_Q13_4),
+                      rows           = (Task==1),
+                      componentName  = "indic_Q13")
+  op_settings2 = list(outcomeOrdered = Q14FutureThreatToSelf, 
+                      V              = zeta_Q14*LV, 
+                      tau            = c(tau_Q14_1, tau_Q14_2, tau_Q14_3, tau_Q14_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q14")
+  op_settings3 = list(outcomeOrdered = Q15ThreatToEnvironment, 
+                      V              = zeta_Q15*LV, 
+                      tau            = c(tau_Q15_1, tau_Q15_2, tau_Q15_3, tau_Q15_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q15")
+  P[["indic_Q13"]]     = apollo_op(op_settings1, functionality)
+  P[["indic_Q14"]] = apollo_op(op_settings2, functionality)
+  P[["indic_Q15"]]      = apollo_op(op_settings3, functionality)
+  
+  ### Likelihood of choices
+  ### List of utilities: these must use the same names as in mnl_settings, order is irrelevant
+  V = list()
+  V[['A']] = ( b_bid_Alt*(Bid_Alt==0) )
+  V[['B']] = ( b_bid*(Q7Bid) + lambda*LV )
+  
+  ### Define settings for MNL model component
+  mnl_settings = list(
+    alternatives = c(A=1.0, B=2.0),
+    avail        = list(A=1, B=1),
+    choiceVar    = Q7TreatmentResponse,
+    V            = V,
+    componentName= "choice"
+  )
+  
+  ### Compute probabilities for MNL model component
+  P[["choice"]] = apollo_mnl(mnl_settings, functionality)
+  
+  ### Likelihood of the whole model
+  P = apollo_combineModels(P, apollo_inputs, functionality)
+  
+  ### Take product across observation for same individual
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  
+  ### Average across inter-individual draws
+  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
+  
+  ### Prepare and return outputs of function
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+### MODEL ESTIMATION
+
+## Optional: calculate LL before model estimation
+# apollo_llCalc(apollo_beta, apollo_probabilities, apollo_inputs)
+
+### Estimate model
+CVmodel7 = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+
+apollo_modelOutput(CVmodel7,modelOutput_settings = list(printPVal=TRUE))
+
 
 
 ###############################################################
