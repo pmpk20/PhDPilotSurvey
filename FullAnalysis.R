@@ -25,30 +25,31 @@ setwd("H:/PhDPilotSurvey") ## Sets working directory. This is where my Github re
 
 ############ Setup and manipulation:
 FullSurvey <- data.frame(read.csv("FullSurvey.csv")) ## Imports from the excel file straight from the survey companies website.
-
-
-FullSurvey <- FullSurvey[ -c(4,14,15,16,23,24,26,27,53,54,55,56,57,58,68,69)] ## Drop columns of no importance to the quantitative analysis, namely text responses.
-
 # Full_Long <- data.frame(read.csv("Full_Long.csv")) 
 # Full_Final <- data.frame(read.csv("FinalData.csv")) ## Imports from the excel file straight from the survey companies website.
 # FullSurvey <- FullSurvey[ !(FullSurvey$ï..Respondent %in% c(24,33,44,61,121,127,182,200,211,219,239,251,275,306,320,326,341,360,363,371,399,464,467,479,480,506,579,591,649,654,931,932,935,953,989,1002,1011,1024,14,35,39,54,79,106,130,146,149,155,163,203,214,215,217,244,246,249,252,267,268,282,290,327,343,362,364,374,380,393,398,407,414,425,426,433,477,519,524,536,543,545,547,557,567,575,589,590,595,614,617,629,637,638,639,651,665,674,680,915,933,940,950,959,960,975,978,996,1026,1027,1028)), ] ## Drop protest rows
 
 
-colnames(FullSurvey) <- c("ID","Timing","Order","Q1Gender","Q2Age","Q3Distance","Q4Trips",
-                           "Q5Knowledge","Q6Bid","Q7Bid","Q6ResearchResponse",
-                           "Q6ResearchCertainty","Q7TreatmentResponse",
-                           "Q7TreatmentCertainty","Q7Bid2Upper","Q7Bid2Lower",
-                           "Q7TreatmentUpperResponse","Q7TreatmentLowerResponse","Q8DominatedTest",
-                           "Q9Block","Q9Performance","Q9Emission","Q9Price",
-                           "Q10Block","Q10Performance","Q10Emission","Q10Price",
-                           "Q11Block","Q11Performance","Q11Emission","Q11Price",
-                           "Q12Block","Q12Performance","Q12Emission","Q12Price",
-                           "Q9Choice","Q10Choice","Q11Choice","Q12Choice","Q12CECertainty",
-                           "Q13CurrentThreatToSelf","Q14FutureThreatToSelf","Q15ThreatToEnvironment",
-                           "Q16BP","Q18Charity","Q19Knowledge","Q20Consequentiality",
-                           "Q21Experts","Q22Education","Q23Employment",
-                           "Q24RonaImpact","Q24AIncome","Q25Understanding")  
+FullSurvey <- FullSurvey[ -c(4,14,15,16,23,24,26,27,58,68,69)] ## Drop columns of no importance to the quantitative analysis, namely text responses.
+
+
 ## Renaming the survey from original names to made up ones to link to the survey better.
+colnames(FullSurvey) <- c("ID","Timing","Order","Q1Gender","Q2Age","Q3Distance","Q4Trips",
+                          "Q5Knowledge","Q6Bid","Q7Bid","Q6ResearchResponse",
+                          "Q6ResearchCertainty","Q7TreatmentResponse",
+                          "Q7TreatmentCertainty","Q7Bid2Upper","Q7Bid2Lower",
+                          "Q7TreatmentUpperResponse","Q7TreatmentLowerResponse","Q8DominatedTest",
+                          "Q9Block","Q9Performance","Q9Emission","Q9Price",
+                          "Q10Block","Q10Performance","Q10Emission","Q10Price",
+                          "Q11Block","Q11Performance","Q11Emission","Q11Price",
+                          "Q12Block","Q12Performance","Q12Emission","Q12Price",
+                          "Q9Choice","Q10Choice","Q11Choice","Q12Choice","Q12CECertainty",
+                          "Q13CurrentThreatToSelf","Q14FutureThreatToSelf","Q15ThreatToEnvironment",
+                          "Q16BP","Q17_Firms","Q17_Cons","Q17_Gov","Q17_LA","Q17_Other",
+                          "Q18Charity","Q19Knowledge","Q20Consequentiality",
+                          "Q21Experts","Q22Education","Q23Employment",
+                          "Q24RonaImpact","Q24AIncome","Q25Understanding")  
+
 
 FullSurvey2 <- FullSurvey ## Create a backup of the FullSurvey data
 
@@ -175,6 +176,13 @@ FullSurvey2$Q16BP[FullSurvey2$Q16BP == 0] <- 2
 FullSurvey2$Q16BP[FullSurvey2$Q16BP == 1] <- 0
 FullSurvey2$Q16BP[FullSurvey2$Q16BP == 3] <- 1
 
+## Changing it to be 1 = Chosen, 0 = Not Chosen:
+FullSurvey2$Q17_Firms <- 1-FullSurvey2$Q17_Firms
+FullSurvey2$Q17_Cons <- 1-FullSurvey2$Q17_Cons
+FullSurvey2$Q17_Gov <- 1-FullSurvey2$Q17_Gov
+FullSurvey2$Q17_LA <- 1-FullSurvey2$Q17_LA
+FullSurvey2$Q17_Other <- 1-FullSurvey2$Q17_Other
+
 ## More reordering here
 FullSurvey2$Q18Charity[FullSurvey2$Q18Charity == 2] <- 3
 FullSurvey2$Q18Charity[FullSurvey2$Q18Charity == 1] <- 2
@@ -289,8 +297,8 @@ Choices <- data.frame(Choice = c(t(
 ##  Chopping and reorganising the columns of the Full dataframe into a new order which includes the attributes and their levels alongside all the choices in a single vector.
 ### The final argument creates a variable called TASK
 Full <- data.frame(Full[,1:14],Full[,19],DBPrice_B, DBPerformance_B, DBEmission_B,
-                    Full[,56:58],Choices, Full[,20],Full[,24],Full[,28],
-                    Full[,32],Full[,40:55],
+                    Full[,61:63],Choices, Full[,20],Full[,24],Full[,28],
+                    Full[,32],Full[,40:60],
                     rep(1:4,times=nrow(FullSurvey2)))
 
 ##  Assigning column names for ease of analysis.
@@ -302,10 +310,16 @@ colnames(Full) <- c("ID","Timing","Order","Q1Gender","Q2Age","Q3Distance","Q4Tri
                      "Performance_A","Emission_A","Price_A","Choice",
                      "Q9Block","Q10Block","Q11Block","Q12Block","Q12CECertainty",
                      "Q13CurrentThreatToSelf","Q14FutureThreatToSelf","Q15ThreatToEnvironment",
-                     "Q16BP","Q18Charity","Q19Knowledge","Q20Consequentiality",
+                     "Q16BP","Q17_Firms","Q17_Cons","Q17_Gov","Q17_LA","Q17_Other",
+                    "Q18Charity","Q19Knowledge","Q20Consequentiality",
                      "Q21Experts","Q22Education","Q23Employment",
                      "Q24RonaImpact","Q24AIncome","Q25Understanding","Q7Bid2","Q7Response2",
                      "Task")  
+
+Responsibility <- data.frame(cbind(Full$Q17_Firms,Full$Q17_Cons,Full$Q17_Gov,Full$Q17_LA,Full$Q17_Other))
+colnames(Responsibility) <- c("Q17_Firms","Q17_Cons","Q17_Gov","Q17_LA","Q17_Other")
+Full <- cbind(Full,"Responsibility" =rowSums(Responsibility))
+
 Fulls <- Full
 Full$av_A <- rep(1,nrow(Full)) # Add a vector of ones to show that the alternative choice is always available to respondents.
 Full$av_B <- rep(1,nrow(Full)) # Add a vector of ones to show that the status quo is always available to respondents as consistent with theory.
@@ -458,6 +472,27 @@ nrow(Full_Long[Full_Long$Q12Block ==3])/8
 # [1] 220
 nrow(Full_Long[Full_Long$Q12Block ==4])/8
 # [1] 116
+
+
+## Reporting WTP by responsibility:
+round(mean(Full_Final$PerformanceCoef[Full_Final$Q17_Firms == 0]),2)
+round(mean(Full_Final$PerformanceCoef[Full_Final$Q17_Cons == 0]),2)
+round(mean(Full_Final$PerformanceCoef[Full_Final$Q17_Gov == 0]),2)
+round(mean(Full_Final$PerformanceCoef[Full_Final$Q17_LA == 0]),2)
+round(mean(Full_Final$PerformanceCoef[Full_Final$Q17_Other == 0]),2)
+round(mean(Full_Final$EmissionCoef[Full_Final$Q17_Firms == 0]),2)
+round(mean(Full_Final$EmissionCoef[Full_Final$Q17_Cons == 0]),2)
+round(mean(Full_Final$EmissionCoef[Full_Final$Q17_Gov == 0]),2)
+round(mean(Full_Final$EmissionCoef[Full_Final$Q17_LA == 0]),2)
+round(mean(Full_Final$EmissionCoef[Full_Final$Q17_Other == 0]),2)
+
+# Responsibility beliefs:
+Full_Final$Q17_Firms[ (Full_Final$Q17_Cons == 0) & (Full_Final$Q17_Gov == 0) & (Full_Final$Q17_LA == 0) & (Full_Final$Q17_Other == 0) ] <- 2
+Full_Final$Q17_Cons[ (Full_Final$Q17_Firms == 0) & (Full_Final$Q17_Gov == 0) & (Full_Final$Q17_LA == 0) & (Full_Final$Q17_Other == 0) ] <- 2
+Full_Final$Q17_Gov[ (Full_Final$Q17_Cons == 0) & (Full_Final$Q17_Firms == 0) & (Full_Final$Q17_LA == 0) & (Full_Final$Q17_Other == 0) ] <- 2
+Full_Final$Q17_LA[ (Full_Final$Q17_Cons == 0) & (Full_Final$Q17_Gov == 0) & (Full_Final$Q17_Firms == 0) & (Full_Final$Q17_Other == 0) ] <- 2
+Full_Final$Q17_Other[ (Full_Final$Q17_Cons == 0) & (Full_Final$Q17_Gov == 0) & (Full_Final$Q17_LA == 0) & (Full_Final$Q17_Firms == 0) ] <- 2
+
 
 ##########################################################  
 ####### Descriptive Graphics
@@ -700,7 +735,7 @@ MNL_3 <- mlogit(Choice ~ Price + Performance + Emission |
                     + Q4Trips + Q16BP + Q18Charity 
                     + Q20Consequentiality
                     + Q21Experts +Q22Education+ Q23Employment
-                    +  Q24AIncome + Timing, 
+                    +  Q24AIncome + Timing + Responsibility,  
                     Full_Long, alt.subset = c("A", "B"), 
                     reflevel = "A",method="bfgs") 
 summary(MNL_3) ## Summarises the MNL output
@@ -1475,6 +1510,7 @@ colnames(FullSurvey2)[58] <- "Precaution"
 
 
 Full_Final <- cbind(Full_Long,slice(.data = FullSurvey2[,56:58],rep(1:n(), each = 8)))
+Full_Final <- (cbind(Full_Final,slice(.data = Responsibility,rep(1:n(), each = 2))))
 write.csv(Full_Final,file = "FinalData.csv")
 # FullSurvey2 <- FullSurvey2[ (FullSurvey2$Q1Gender == 0) | (FullSurvey2$Q1Gender == 1),]
 
@@ -1789,7 +1825,6 @@ Q19Graph <- ggplot(Full_Final) +
   labs(x = "Likert scale levels",y="Precautionary premium WTP")
 
 
-
 ## Plotting the effect of health concern on WTP
 Q13Graph <- ggplot(FS) + 
   geom_smooth(aes(x=Q13CurrentThreatToSelf,y=Q7WTP,color="red"),method="lm",se=T) +
@@ -1841,25 +1876,7 @@ Q15Graph <- ggplot(FS) +
   labs(x = "Likert scale levels",y="Precautionary premium WTP")
 
 
-ggplot(Full_Final) + 
-  geom_smooth(aes(x=Q24RonaImpact,y=Precaution,color="red"),method="lm",se=T) +
-  scale_color_discrete(name = "Lines", 
-                       labels = c("Precautionary premia"))+
-  ggtitle("WTP by Q24: COVID-19 Impact") +
-  geom_point(aes(x=1,y=mean(Full_Final$Precaution[Full_Final$Q24RonaImpact ==0]))) +
-  annotate("text", x = 1.05, y = 2+mean(Full_Final$Precaution[Full_Final$Q24RonaImpact ==0]), label=round(mean(Full_Final$Precaution[Full_Final$Q24RonaImpact ==0]),2),colour = "blue")+
-  geom_point(aes(x=2,y=mean(Full_Final$Precaution[Full_Final$Q24RonaImpact ==1]))) +
-  annotate("text", x = 1.95, y = 3+mean(Full_Final$Precaution[Full_Final$Q24RonaImpact ==1]), label=round(mean(Full_Final$Precaution[Full_Final$Q24RonaImpact ==1]),2),colour = "blue")+
-  scale_x_continuous(name="Did COVID-19 affect your income?",breaks = 1:2, 
-                     labels=c("No","Yes"),limits=c(1,2))+
-  scale_y_continuous(name="WTP in £",
-                     breaks=waiver(),limits = c(0,50),
-                     n.breaks = 10, labels = function(x) paste0("£",x))+
-  theme(plot.title = element_text(hjust = 0.5),
-        axis.title.y = element_text(size = 10)) +
-  labs(x = "Did COVID-19 affect your income?",y="Precautionary premium WTP")
-
-
+## Plotting CV WTP by COVID-19 
 ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) + 
   facet_grid( ~ Q24RonaImpact, labeller = as_labeller(c(
     `0` = "No",
@@ -1877,6 +1894,67 @@ ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) +
   scale_y_continuous(name="Precautionary WTP",breaks = waiver(), 
                      limits=c(20,50),labels = function(x) paste0("£",x))+
   labs(x = "Income",y="Precaution")
+
+
+## Plotting CE MWPT by COVID-19  
+ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) + 
+  facet_grid( ~ Q24RonaImpact, labeller = as_labeller(c(
+    `0` = "No",
+    `1` = "Yes",
+    `2` = "Prefer not to say")))+
+  geom_smooth(aes(y=EmissionCoef,color="blue"),method="lm",se=F) +
+  geom_smooth(aes(y=PerformanceCoef,color="red"),method="lm",se=F) +
+  ggtitle("Relationship between income and Marginal WTP by effect of COVID-19 on income.") +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("Emission MWTP", "Performance MWTP"))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Income",breaks = waiver(),limits = c(0,5000),
+                     n.breaks = 5, labels = function(x) paste0("£",x))+
+  scale_y_continuous(name="Precautionary WTP",breaks = waiver(), 
+                     limits=c(-0.5,0.5),n.breaks=10,labels = function(x) paste0("£",x))+
+  labs(x = "Income",y="Precaution")
+
+
+round(mean(Full_Final$Q6WTP[(Full_Final$Q24RonaImpact == 1) & (Full_Final$Q24AIncome <= median(Full_Final$Q24AIncome)) ]),3)
+
+
+## Plotting CV WTP by perceived responsibility Q17_1:  
+Q17_FirmsGraph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) + 
+  facet_grid( ~ Q17_Cons, labeller = as_labeller(c(
+    `0` = "No",
+    `1` = "Yes")))+
+  geom_smooth(aes(y=Q6WTP,color="blue"),method="lm",se=F) +
+  geom_smooth(aes(y=Q7WTP,color="red"),method="lm",se=F) +
+  ggtitle("Relationship between income and WTP faceted by whether firms are responsible.") +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("WTP for research", "WTP for treatment"))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Income",breaks = waiver(),limits = c(0,5000),
+                     n.breaks = 5, labels = function(x) paste0("£",x))+
+  scale_y_continuous(name="WTP",breaks = waiver(), 
+                     limits=c(20,50),labels = function(x) paste0("£",x))+
+  labs(x = "Income",y="WTP")
+
+## Plotting CV WTP by perceived responsibility Q17_2:  
+Q17_ConsGraph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) + 
+  facet_grid( ~ Q17_Cons, labeller = as_labeller(c(
+    `0` = "No",
+    `1` = "Yes")))+
+  geom_smooth(aes(y=Q6WTP,color="blue"),method="lm",se=F) +
+  geom_smooth(aes(y=Q7WTP,color="red"),method="lm",se=F) +
+  ggtitle("Relationship between income and WTP faceted by whether consumers are responsible.") +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("WTP for research", "WTP for treatment"))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Income",breaks = waiver(),limits = c(0,5000),
+                     n.breaks = 5, labels = function(x) paste0("£",x))+
+  scale_y_continuous(name="WTP",breaks = waiver(), 
+                     limits=c(20,50),labels = function(x) paste0("£",x))+
+  labs(x = "Income",y="WTP")
+
 
 
 Q3Graph
