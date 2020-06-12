@@ -486,12 +486,61 @@ round(mean(Full_Final$EmissionCoef[Full_Final$Q17_Gov == 0]),2)
 round(mean(Full_Final$EmissionCoef[Full_Final$Q17_LA == 0]),2)
 round(mean(Full_Final$EmissionCoef[Full_Final$Q17_Other == 0]),2)
 
-# Responsibility beliefs:
+## Responsibility beliefs:
 Full_Final$Q17_Firms[ (Full_Final$Q17_Cons == 0) & (Full_Final$Q17_Gov == 0) & (Full_Final$Q17_LA == 0) & (Full_Final$Q17_Other == 0) ] <- 2
 Full_Final$Q17_Cons[ (Full_Final$Q17_Firms == 0) & (Full_Final$Q17_Gov == 0) & (Full_Final$Q17_LA == 0) & (Full_Final$Q17_Other == 0) ] <- 2
-Full_Final$Q17_Gov[ (Full_Final$Q17_Cons == 0) & (Full_Final$Q17_Firms == 0) & (Full_Final$Q17_LA == 0) & (Full_Final$Q17_Other == 0) ] <- 2
-Full_Final$Q17_LA[ (Full_Final$Q17_Cons == 0) & (Full_Final$Q17_Gov == 0) & (Full_Final$Q17_Firms == 0) & (Full_Final$Q17_Other == 0) ] <- 2
+Full_Final$Q17_Cons[Full_Final$Q17_Cons != 2] <- 0
+Full_Final$Q17_Cons[Full_Final$Q17_Cons == 2] <- 1
 Full_Final$Q17_Other[ (Full_Final$Q17_Cons == 0) & (Full_Final$Q17_Gov == 0) & (Full_Final$Q17_LA == 0) & (Full_Final$Q17_Firms == 0) ] <- 2
+
+## Correlation heatmap:
+Full_Final <- data.frame(read.csv("FinalData.csv")) ## Imports from the excel file straight from the survey companies website.
+Full_Final <- Full_Final[ -c(2,grep("av_A", colnames(Full_Final)),grep("av_B", colnames(Full_Final)))] ## Drop columns of no importance to the quantitative analysis, namely text responses.
+Full_Final$Choice[Full_Final$Choice==FALSE] <- 0
+Full_Final$Choice[Full_Final$Choice==TRUE] <- 1
+Full_Final$alt <- as.numeric(Full_Final$alt)
+library(ggplot2)
+library(reshape2)
+cormat <- round(cor(Full_Final),2) ## store correlations in a matrix
+melted_cormat <- melt(cormat) ## Simplify corr matrix
+## Get lower triangle
+get_lower_tri<-function(cormat){
+  cormat[upper.tri(cormat)] <- NA
+  return(cormat)
+}
+##  Get upper triangle
+get_upper_tri <- function(cormat){
+  cormat[lower.tri(cormat)]<- NA
+  return(cormat)
+}
+upper_tri <- get_upper_tri(cormat)
+melted_cormat <- melt(upper_tri, na.rm = TRUE)
+reorder_cormat <- function(cormat){
+  dd <- as.dist((1-cormat)/2)
+  hc <- hclust(dd)
+  cormat <-cormat[hc$order, hc$order]
+}
+
+cormat <- reorder_cormat(cormat)
+upper_tri <- get_upper_tri(cormat)
+## Use the melt function to simplify the matrix
+melted_cormat <- melt(upper_tri, na.rm = TRUE)
+
+## Rename matrix columns
+colnames(melted_cormat) <- c("Variable1", "Variable2","Correlation")
+
+## Correlation heatmap
+ggheatmap <- ggplot(melted_cormat, aes(Variable2, Variable1, fill = Correlation))+
+  geom_tile(color = "white")+
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                       midpoint = 0, limit = c(-1,1), space = "Lab", 
+                       name="Pearson\nCorrelation") +
+  theme_minimal()+ # minimal theme
+  theme(axis.text.x = element_text(angle = 90, vjust = 1, 
+                                   size = 6, hjust = 1),
+        axis.text.y = element_text(angle = 0, vjust = 1, 
+                                   size = 6, hjust = 1))+
+  coord_fixed()
 
 
 ##########################################################  
@@ -1921,7 +1970,7 @@ round(mean(Full_Final$Q6WTP[(Full_Final$Q24RonaImpact == 1) & (Full_Final$Q24AIn
 
 ## Plotting CV WTP by perceived responsibility Q17_1:  
 Q17_FirmsGraph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) + 
-  facet_grid( ~ Q17_Cons, labeller = as_labeller(c(
+  facet_grid( ~ Q17_Firms, labeller = as_labeller(c(
     `0` = "No",
     `1` = "Yes")))+
   geom_smooth(aes(y=Q6WTP,color="blue"),method="lm",se=F) +
@@ -1934,7 +1983,7 @@ Q17_FirmsGraph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) +
   scale_x_continuous(name="Income",breaks = waiver(),limits = c(0,5000),
                      n.breaks = 5, labels = function(x) paste0("£",x))+
   scale_y_continuous(name="WTP",breaks = waiver(), 
-                     limits=c(20,50),labels = function(x) paste0("£",x))+
+                     limits=c(0,75),n.breaks=15,labels = function(x) paste0("£",x))+
   labs(x = "Income",y="WTP")
 
 ## Plotting CV WTP by perceived responsibility Q17_2:  
@@ -1944,7 +1993,7 @@ Q17_ConsGraph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) +
     `1` = "Yes")))+
   geom_smooth(aes(y=Q6WTP,color="blue"),method="lm",se=F) +
   geom_smooth(aes(y=Q7WTP,color="red"),method="lm",se=F) +
-  ggtitle("Relationship between income and WTP faceted by whether consumers are responsible.") +
+  ggtitle("Relationship between income and WTP faceted by whether consumers only are responsible.") +
   scale_color_discrete(name = "Lines", 
                        labels = c("WTP for research", "WTP for treatment"))+
   theme(plot.title = element_text(hjust = 0.5),
@@ -1952,7 +2001,7 @@ Q17_ConsGraph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) +
   scale_x_continuous(name="Income",breaks = waiver(),limits = c(0,5000),
                      n.breaks = 5, labels = function(x) paste0("£",x))+
   scale_y_continuous(name="WTP",breaks = waiver(), 
-                     limits=c(20,50),labels = function(x) paste0("£",x))+
+                     limits=c(0,75),labels = function(x) paste0("£",x))+
   labs(x = "Income",y="WTP")
 
 
