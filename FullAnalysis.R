@@ -3,27 +3,32 @@
 ############### Introduction: Full survey data analysis script  ##########################
 ####################################################################################
 
+
 ############ TO DO:
-# - Estimate sample mean CVM WTP as WTP~bid
-# - Fix the MXL in Apollo
 # - Estimate models with level-specific
+
 
 ############ Packages:
 pkgbuild::find_rtools(debug = TRUE)
-install.packages("Rcpp")
-install.packages("rngWELL")
-install.packages("randtoolbox")
-install.packages("apollo")
+install.packages("Rcpp") ## Necessary dependency for rngWELL
+install.packages("rngWELL") ## Can sometimes fix APOLLO issues
+install.packages("randtoolbox") ## Necessary for APOLLO random draws
+install.packages("apollo") ## Most complex and powerful library for discrete choice
 install.packages("mlogit") ## MLOGIT is the best DCE package in R so far.
 install.packages("gmnl") ## Very similar to MLOGIT but more flexibility.
 install.packages("stargazer") ## To export to LaTeX code.
-install.packages("dplyr")
-install.packages("Hmisc")
+install.packages("dplyr") ## For data manipulation
+install.packages("Hmisc") ## For random imputation
 library(Hmisc)
 library(dplyr)
 setwd("H:/PhDPilotSurvey") ## Sets working directory. This is where my Github repo is cloned to.
 
-############ Setup and manipulation:
+
+######################## Setup and manipulation:
+############ First-time: Run in full
+############ Any other time use this: Full_Final <- data.frame(read.csv("FinalData.csv")) 
+
+
 FullSurvey <- data.frame(read.csv("FullSurvey.csv")) ## Imports from the excel file straight from the survey companies website.
 # Full_Long <- data.frame(read.csv("Full_Long.csv")) 
 # Full_Final <- data.frame(read.csv("FinalData.csv")) ## Imports from the excel file straight from the survey companies website.
@@ -57,10 +62,11 @@ for (i in colnames(FullSurvey)){
   if (is.factor(FullSurvey[[i]]) == TRUE){
     FullSurvey2[[i]] <- as.numeric(FullSurvey[[i]])-1
   }
-} 
+}  ## Here convert all questions into numeric format for ease of analysis
 
 
 FullSurvey2$Order[FullSurvey2$Order == 2] <-0 ## The order dummy should be 0 for Q6 > Q7 and 1 for Q7 > Q6
+
 
 ## Here I update the age categories to take the midpoint of the brackets.
 FullSurvey2$Q2Age[FullSurvey2$Q2Age == 0] <- 21.5
@@ -68,6 +74,7 @@ FullSurvey2$Q2Age[FullSurvey2$Q2Age == 1] <- 32.5
 FullSurvey2$Q2Age[FullSurvey2$Q2Age == 2] <- 47.5
 FullSurvey2$Q2Age[FullSurvey2$Q2Age == 3] <- 63
 FullSurvey2$Q2Age[FullSurvey2$Q2Age == 4] <- 71
+
 
 ## The loop got the distances ordered incorrectly and also didn't use midpoints.
 FullSurvey2$Q3Distance[FullSurvey2$Q3Distance == 2] <- 7
@@ -85,6 +92,7 @@ FullSurvey2$Q3Distance[FullSurvey2$Q3Distance == 5] <- NA
 FullSurvey2$Q3Distance <- with(FullSurvey2, impute(FullSurvey2$Q3Distance, 'random')) ## I replace the missing with a random imputed value
 FullSurvey2$Q3Distance <- as.numeric(FullSurvey2$Q3Distance)
 
+
 ## Reordering the knowledge categories to reflect higher knowledge = higher value
 FullSurvey2$Q5Knowledge[FullSurvey2$Q5Knowledge == 4] <- 5
 FullSurvey2$Q5Knowledge[FullSurvey2$Q5Knowledge == 1] <- 6
@@ -92,33 +100,40 @@ FullSurvey2$Q5Knowledge[FullSurvey2$Q5Knowledge == 6] <- 4
 FullSurvey2$Q5Knowledge[FullSurvey2$Q5Knowledge == 3] <- 1
 FullSurvey2$Q5Knowledge[FullSurvey2$Q5Knowledge == 0] <- 3
 
+
 ## Changing to be unsure > quite sure > very sure
 FullSurvey2$Q6ResearchCertainty[FullSurvey2$Q6ResearchCertainty == 1] <-3
 FullSurvey2$Q6ResearchCertainty[FullSurvey2$Q6ResearchCertainty == 0] <- 1
 FullSurvey2$Q6ResearchCertainty[FullSurvey2$Q6ResearchCertainty == 3] <- 0
+
 
 ## Same here, the coder was confused over the ordering.
 FullSurvey2$Q7TreatmentCertainty[FullSurvey2$Q7TreatmentCertainty == 1] <-3
 FullSurvey2$Q7TreatmentCertainty[FullSurvey2$Q7TreatmentCertainty == 0] <- 1
 FullSurvey2$Q7TreatmentCertainty[FullSurvey2$Q7TreatmentCertainty == 3] <- 0
 
+
 ## More reordering here
 FullSurvey2$Q7TreatmentUpperResponse[FullSurvey2$Q7TreatmentUpperResponse == 1] <- 3
 FullSurvey2$Q7TreatmentUpperResponse[FullSurvey2$Q7TreatmentUpperResponse == 2] <- 1
 FullSurvey2$Q7TreatmentUpperResponse[FullSurvey2$Q7TreatmentUpperResponse == 3] <- 2
+
 
 ## More reordering here
 FullSurvey2$Q7TreatmentLowerResponse[FullSurvey2$Q7TreatmentLowerResponse == 1] <- 3
 FullSurvey2$Q7TreatmentLowerResponse[FullSurvey2$Q7TreatmentLowerResponse == 2] <- 1
 FullSurvey2$Q7TreatmentLowerResponse[FullSurvey2$Q7TreatmentLowerResponse == 3] <- 2
 
+
 ## Previously skipped or missed questions were set = 2 now they're NAs for ease of merging the two columns.
 FullSurvey2$Q7TreatmentUpperResponse[FullSurvey2$Q7TreatmentUpperResponse == 2] <- NA
 FullSurvey2$Q7TreatmentLowerResponse[FullSurvey2$Q7TreatmentLowerResponse == 2] <- NA
 
+
 ## As respondents did EITHER the upper or lower question there should only be one column. This requires using mutate and coalesce to merge the lower and upper responses.
 FullSurvey2 <- mutate(Q7Bid2 = coalesce(FullSurvey2$Q7Bid2Lower,FullSurvey2$Q7Bid2Upper),.data = FullSurvey2)
 FullSurvey2 <- mutate(Q7Response2 = coalesce(FullSurvey2$Q7TreatmentUpperResponse,FullSurvey2$Q7TreatmentLowerResponse),.data = FullSurvey2)
+
 
 ## The following section codes all the attributes as their actual values.
 FullSurvey2$Q9Performance[FullSurvey2$Q9Performance == 1] <- 0.05
@@ -131,6 +146,8 @@ FullSurvey2$Q9Price[FullSurvey2$Q9Price == 1] <- 2.5
 FullSurvey2$Q9Price[FullSurvey2$Q9Price == 2] <- 5
 FullSurvey2$Q9Price[FullSurvey2$Q9Price == 0] <- 1
 
+
+## Converting automatic assignment into exact levels
 FullSurvey2$Q10Performance[FullSurvey2$Q10Performance == 1] <- 0.05
 FullSurvey2$Q10Performance[FullSurvey2$Q10Performance == 0] <- 0.1
 FullSurvey2$Q10Emission[FullSurvey2$Q10Emission == 1] <- 0.4
@@ -140,6 +157,8 @@ FullSurvey2$Q10Price[FullSurvey2$Q10Price == 1] <- 1
 FullSurvey2$Q10Price[FullSurvey2$Q10Price == 2] <- 2.5
 FullSurvey2$Q10Price[FullSurvey2$Q10Price == 0] <- 0.5
 
+
+## Converting automatic assignment into exact levels
 FullSurvey2$Q11Performance[FullSurvey2$Q11Performance == 1] <- 0.05
 FullSurvey2$Q11Performance[FullSurvey2$Q11Performance == 0] <- 0.1
 FullSurvey2$Q11Emission[FullSurvey2$Q11Emission == 1] <- 0.9
@@ -149,6 +168,8 @@ FullSurvey2$Q11Price[FullSurvey2$Q11Price == 1] <- 1
 FullSurvey2$Q11Price[FullSurvey2$Q11Price == 2] <- 2.5
 FullSurvey2$Q11Price[FullSurvey2$Q11Price == 3] <- 5
 
+
+## Converting automatic assignment into exact levels
 FullSurvey2$Q12Performance[FullSurvey2$Q12Performance == 1] <- 0.05
 FullSurvey2$Q12Performance[FullSurvey2$Q12Performance == 2] <- 0.5
 FullSurvey2$Q12Performance[FullSurvey2$Q12Performance == 0] <- 0.1
@@ -165,16 +186,19 @@ FullSurvey2$Q12CECertainty[FullSurvey2$Q12CECertainty == 1] <- 3
 FullSurvey2$Q12CECertainty[FullSurvey2$Q12CECertainty == 0] <- 1
 FullSurvey2$Q12CECertainty[FullSurvey2$Q12CECertainty == 3] <- 0
 
+
 ## The coder used zeros so changing that here by moving each value up one.
 FullSurvey2$Q13CurrentThreatToSelf <- FullSurvey2$Q13CurrentThreatToSelf + 1
 FullSurvey2$Q14FutureThreatToSelf <- FullSurvey2$Q14FutureThreatToSelf + 1
 FullSurvey2$Q15ThreatToEnvironment <- FullSurvey2$Q15ThreatToEnvironment + 1
+
 
 ## More reordering of none > some > all
 FullSurvey2$Q16BP[FullSurvey2$Q16BP == 2] <- 3
 FullSurvey2$Q16BP[FullSurvey2$Q16BP == 0] <- 2
 FullSurvey2$Q16BP[FullSurvey2$Q16BP == 1] <- 0
 FullSurvey2$Q16BP[FullSurvey2$Q16BP == 3] <- 1
+
 
 ## Changing it to be 1 = Chosen, 0 = Not Chosen:
 FullSurvey2$Q17_Firms <- 1-FullSurvey2$Q17_Firms
@@ -183,10 +207,12 @@ FullSurvey2$Q17_Gov <- 1-FullSurvey2$Q17_Gov
 FullSurvey2$Q17_LA <- 1-FullSurvey2$Q17_LA
 FullSurvey2$Q17_Other <- 1-FullSurvey2$Q17_Other
 
+
 ## More reordering here
 FullSurvey2$Q18Charity[FullSurvey2$Q18Charity == 2] <- 3
 FullSurvey2$Q18Charity[FullSurvey2$Q18Charity == 1] <- 2
 FullSurvey2$Q18Charity[FullSurvey2$Q18Charity == 3] <- 1
+
 
 ## Same problem with Q5
 FullSurvey2$Q19Knowledge[FullSurvey2$Q19Knowledge == 4] <- 5
@@ -196,14 +222,17 @@ FullSurvey2$Q19Knowledge[FullSurvey2$Q19Knowledge == 0] <- 2
 FullSurvey2$Q19Knowledge[FullSurvey2$Q19Knowledge == 3] <- 0
 FullSurvey2$Q19Knowledge[FullSurvey2$Q19Knowledge == 4] <- 3
 
+
 ## Reordering the consequentiality beliefs
 FullSurvey2$Q20Consequentiality[FullSurvey2$Q20Consequentiality == 0] <- 3
 FullSurvey2$Q20Consequentiality[FullSurvey2$Q20Consequentiality == 1] <- 0
 FullSurvey2$Q20Consequentiality[FullSurvey2$Q20Consequentiality == 2] <- 1
 FullSurvey2$Q20Consequentiality[FullSurvey2$Q20Consequentiality == 3] <- 2
 
+
 ## Belief in experts used a zero so just moving up one
 FullSurvey2$Q21Experts <- FullSurvey2$Q21Experts +1
+
 
 ## Have to reorder education to GCSE > A level > Bachelor > Postgrad
 FullSurvey2$Q22Education[FullSurvey2$Q22Education == 4] <- 5
@@ -212,6 +241,7 @@ FullSurvey2$Q22Education[FullSurvey2$Q22Education == 1] <- 3
 FullSurvey2$Q22Education[FullSurvey2$Q22Education == 2] <- 1
 FullSurvey2$Q22Education[FullSurvey2$Q22Education == 0] <- 2
 FullSurvey2$Q22Education[FullSurvey2$Q22Education == 5] <- 0
+
 
 ## New order: NEET > Retired > Student > Part > Self > Full
 FullSurvey2$Q23Employment[FullSurvey2$Q23Employment == 0] <- 7
@@ -222,10 +252,12 @@ FullSurvey2$Q23Employment[FullSurvey2$Q23Employment == 2] <- 7
 FullSurvey2$Q23Employment[FullSurvey2$Q23Employment == 4] <- 2
 FullSurvey2$Q23Employment[FullSurvey2$Q23Employment == 7] <- 4
 
+
 ## Should be a dummy here with 2 for prefer not to say
 FullSurvey2$Q24RonaImpact[FullSurvey2$Q24RonaImpact == 1] <- 3
 FullSurvey2$Q24RonaImpact[FullSurvey2$Q24RonaImpact == 2] <- 1
 FullSurvey2$Q24RonaImpact[FullSurvey2$Q24RonaImpact == 3] <- 2
+
 
 ## Changing the income to the midpoint of the brackets
 FullSurvey2$Q24AIncome[FullSurvey2$Q24AIncome == 8] <- 750.00
@@ -242,25 +274,32 @@ FullSurvey2$Q24AIncome[FullSurvey2$Q24AIncome == 7] <- 5000
 FullSurvey2$Q24AIncome[FullSurvey2$Q24AIncome == 0] <- 250.00
 FullSurvey2$Q24RonaImpact <- as.numeric(FullSurvey2$Q24RonaImpact)
 
+
 ## Updating the final survey question
 FullSurvey2$Q25Understanding[FullSurvey2$Q25Understanding == 1] <- 9
 FullSurvey2$Q25Understanding <- FullSurvey2$Q25Understanding +1
 
+
 ## Adding an ID column which replaces the respondent category in the original dataset.
 FullSurvey2$ID <- seq.int(nrow(FullSurvey2))
+
 
 ## Aim of the function is to express all variables in the FullSurvey data as factors
 for (i in colnames(FullSurvey2)){
   if (is.factor(FullSurvey[[i]]) == TRUE){
     contrasts(FullSurvey2[,i]) <- contr.sum(nlevels(FullSurvey2[,i]))
   }
-} 
+} ## Using dummy coding
 
+
+## Making a dataframe with the levels for Option A of the CE:
 OptionA <- data.frame("Performance" =c(0,0,0,0), 
                       "Emission" =c(0,0,0,0),
                       "Price" =c(0,0,0,0))
 
+
 library(dplyr) ## Essential library for data manipulation
+
 
 ## Full is a dataframe that transforms the FullSurvey data into an appropriate format for the estimation.
 ### The code repeats each row of the FullSurvey data for each choice the respondent made. Therefore, each respondent now has four rows one for Q9, Q10, Q11, Q12
@@ -1741,11 +1780,12 @@ ggplot() +
   labs(x = "Income",y="Difference between Q6 and Q7 WTP")
 
 
+Full_Final <- subset(Full_Final,Q1Gender !=2)
 ## Plotting the effect of income on precautionary premia, faceted by gender.
-Precaution <- ggplot(FullSurvey2) + 
+Precaution <- ggplot(Full_Final) + 
   facet_grid( ~ Q1Gender, labeller = as_labeller(c(
-    `0` = "Female",
-    `1` = "Male")))+
+    `0` = "Female\n (N = 356)",
+    `1` = "Male\n (N = 311)")))+
   geom_smooth(aes(x=Q24AIncome,y=Precaution,color="red"),method="lm",se=T) +
   scale_color_discrete(name = "Lines", 
                        labels = c("Precautionary premium", "WTP for treatment"))+
@@ -1753,7 +1793,7 @@ Precaution <- ggplot(FullSurvey2) +
   scale_x_continuous(name="Income",breaks = waiver(),limits = c(0,5000),
                      n.breaks = 5, labels = function(x) paste0("£",x))+
   scale_y_continuous(name="WTP",
-                     breaks=waiver(),limits = c(10,30),
+                     breaks=waiver(),limits = c(0,40),
                      n.breaks = 10, labels = function(x) paste0("£",x))+
   theme(plot.title = element_text(hjust = 0.5),
         axis.title.y = element_text(size = 10)) +
@@ -1763,7 +1803,7 @@ Precaution
 
 
 ## Plotting a histogram for the precautionary premia
-ggplot(FullSurvey2, aes(x=Precaution)) + 
+PPHist <- ggplot(FullSurvey2, aes(x=Precaution)) + 
   geom_histogram(color="black", fill="white",binwidth = 1)+
   scale_x_continuous(breaks=waiver(),limits = c(0,40),
                      n.breaks = 10, labels = function(x) paste0("£",x))+
@@ -1771,7 +1811,7 @@ ggplot(FullSurvey2, aes(x=Precaution)) +
 
 
 ### Plotting Consequentiality effects
-ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) + 
+Q20Graph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) + 
   facet_grid( ~ Q20Consequentiality, labeller = as_labeller(c(
     `0` = "No\n (N = 110)",
     `1` = "Yes\n (N = 358)",
@@ -1791,7 +1831,7 @@ ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) +
 
 
 ### Plotting Certainty effects
-ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) + 
+Q12Graph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) + 
   facet_grid( ~ Q12CECertainty, labeller = as_labeller(c(
     `0` = "Unsure\n (N = 40)",
     `1` = "Quite Sure\n (N = 328)",
@@ -1926,7 +1966,7 @@ Q15Graph <- ggplot(FS) +
 
 
 ## Plotting CV WTP by COVID-19 
-ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) + 
+COVID_Graph1 <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) + 
   facet_grid( ~ Q24RonaImpact, labeller = as_labeller(c(
     `0` = "No\n (N = 332)",
     `1` = "Yes\n (N = 319)",
@@ -1946,7 +1986,7 @@ ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) +
 
 
 ## Plotting CE MWPT by COVID-19  
-ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) + 
+COVID_Graph2 <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) + 
   facet_grid( ~ Q24RonaImpact, labeller = as_labeller(c(
     `0` = "No\n (N = 332)",
     `1` = "Yes\n (N = 319)",
@@ -1963,9 +2003,6 @@ ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) +
   scale_y_continuous(name="Precautionary WTP",breaks = waiver(), 
                      limits=c(-0.5,0.5),n.breaks=10,labels = function(x) paste0("£",x))+
   labs(x = "Income",y="Precaution")
-
-
-round(mean(Full_Final$Q6WTP[(Full_Final$Q24RonaImpact == 1) & (Full_Final$Q24AIncome <= median(Full_Final$Q24AIncome)) ]),3)
 
 
 ## Plotting CV WTP by perceived responsibility Q17_1:  
@@ -1986,6 +2023,7 @@ Q17_FirmsGraph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) +
                      limits=c(0,75),n.breaks=15,labels = function(x) paste0("£",x))+
   labs(x = "Income",y="WTP")
 
+
 ## Plotting CV WTP by perceived responsibility Q17_2:  
 Q17_ConsGraph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) + 
   facet_grid( ~ Q17_Cons, labeller = as_labeller(c(
@@ -2005,6 +2043,97 @@ Q17_ConsGraph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) +
   labs(x = "Income",y="WTP")
 
 
+## Plotting CV WTP by charity involvement:  
+Q18Graph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) + 
+  facet_grid( ~ Q18Charity, labeller = as_labeller(c(
+    `0` = "No\n (N = 425)",
+    `1` = "Yes\n (N = 219)",
+    `2` = "Prefer not to say\n (N = 26)")))+
+  geom_smooth(aes(y=Q6WTP,color="blue"),method="lm",se=F) +
+  geom_smooth(aes(y=Q7WTP,color="red"),method="lm",se=F) +
+  ggtitle("Relationship between income and WTP faceted by charity involvement.") +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("WTP for research", "WTP for treatment"))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Income",breaks = waiver(),limits = c(0,5000),
+                     n.breaks = 5, labels = function(x) paste0("£",x))+
+  scale_y_continuous(name="WTP",breaks = waiver(), n.breaks=20,
+                     limits=c(0,75),labels = function(x) paste0("£",x))+
+  labs(x = "Income",y="WTP")
+
+
+## Plotting CV WTP by belief in experts: 
+Q21Graph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) + 
+  facet_grid( ~ Q21Experts, labeller = as_labeller(c(
+    `1` = "1: Unconfident\n (N = 16)",
+    `2` = "2\n (N = 46)",
+    `3` = "3\n (N = 251)",
+    `4` = "4\n (N = 237)",
+    `5` = "5: Confident\n (N = 120)")))+
+  geom_smooth(aes(y=Q6WTP,color="blue"),method="lm",se=F) +
+  geom_smooth(aes(y=Q7WTP,color="red"),method="lm",se=F) +
+  ggtitle("Relationship between income and WTP faceted by level of confidence in experts.") +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("WTP for research", "WTP for treatment"))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Income",breaks = waiver(),limits = c(0,5000),
+                     n.breaks = 5, labels = function(x) paste0("£",x))+
+  scale_y_continuous(name="WTP",breaks = waiver(), n.breaks=20,
+                     limits=c(0,75),labels = function(x) paste0("£",x))+
+  labs(x = "Income",y="WTP")
+
+
+## Plotting CV WTP by employment type:
+Q23Graph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) + 
+  facet_grid( ~ Q23Employment, labeller = as_labeller(c(
+    `0` = "Prefer not to say\n (N = 18)",
+    `1` = "NEET\n (N = 76)",
+    `2` = "Retired\n (N = 52)",
+    `3` = "Student\n (N = 30)",
+    `4` = "Part-time\n (N = 100)",
+    `5` = "Self-employed\n (N = 46)",
+    `6` = "Full-time\n (N = 348)")))+
+  geom_smooth(aes(y=Q6WTP,color="blue"),method="lm",se=F) +
+  geom_smooth(aes(y=Q7WTP,color="red"),method="lm",se=F) +
+  ggtitle("Relationship between income and WTP faceted by employment type.") +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("WTP for research", "WTP for treatment"))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Income",breaks = waiver(),limits = c(0,5000),
+                     n.breaks = 3, labels = function(x) paste0("£",x))+
+  scale_y_continuous(name="WTP",breaks = waiver(), n.breaks=20,
+                     limits=c(0,75),labels = function(x) paste0("£",x))+
+  labs(x = "Income",y="WTP")
+
+
+## Plotting CV WTP by employment type:
+Q22Graph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) + 
+  facet_grid( ~ Q22Education, labeller = as_labeller(c(
+    `0` = "Prefer not to say\n (N = 15)",
+    `1` = "GCSE\n (N = 147)",
+    `2` = "A-level\n (N = 178)",
+    `3` = "Bachelors\n (N = 212)",
+    `4` = "Postgraduate\n (N = 118)")))+
+  geom_smooth(aes(y=Q6WTP,color="blue"),method="lm",se=F) +
+  geom_smooth(aes(y=Q7WTP,color="red"),method="lm",se=F) +
+  ggtitle("Relationship between income and WTP faceted by education level.") +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("WTP for research", "WTP for treatment"))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Income",breaks = waiver(),limits = c(0,5000),
+                     n.breaks = 3, labels = function(x) paste0("£",x))+
+  scale_y_continuous(name="WTP",breaks = waiver(), n.breaks=20,
+                     limits=c(0,75),labels = function(x) paste0("£",x))+
+  labs(x = "Income",y="WTP")
+
+
+###### Went a bit crazy here plotting points for Q16:
+
+## First create subsets for each response:
 BP0 <- subset(Full_Final,Full_Final$Q16BP==0)
 BP1 <- subset(Full_Final,Full_Final$Q16BP==1)
 BP2 <- subset(Full_Final,Full_Final$Q16BP==2)
@@ -2021,6 +2150,7 @@ BP <- data.frame("Q6WTPBP0I0"=round(mean(BP0$Q6WTP[BP0$Q24AIncome <= unique(BP0$
                  "Q6WTPBP2I1"=round(mean(BP2$Q6WTP[BP2$Q24AIncome > unique(BP2$Q24AIncome)[5]]),2),
                  "Q7WTPBP2I1"=round(mean(BP2$Q7WTP[BP2$Q24AIncome > unique(BP2$Q24AIncome)[5]]),2))
 
+## Plotting Q16 responses for CV WTP with points added:
 Q16Graph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) + 
   facet_grid( ~ Q16BP, labeller = as_labeller(c(
     `0` = "None\n (N = 209)",
@@ -2037,7 +2167,7 @@ Q16Graph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) +
   geom_text(data=BP0,size=3,label = ifelse(BP[1,3]>0,paste0("£", round(BP[1,3],2)),""),y=BP[1,3]-4, x=as.numeric(unique(Full_Final$Q24AIncome)[7]))+
   geom_point(data=BP0,aes(y=BP[1,4], x=as.numeric(unique(Full_Final$Q24AIncome)[8])-5),shape = 1)+
   geom_text(data=BP0,size=3,label = ifelse(BP[1,4]>0,paste0("£", round(BP[1,4],2)),""),y=BP[1,4]-4, x=as.numeric(unique(Full_Final$Q24AIncome)[7]))+
-
+  
   geom_point(data=BP1,aes(y=BP[1,5], x=as.numeric(unique(Full_Final$Q24AIncome)[1])),shape = 1)+
   geom_text(data=BP1,size=3,label = ifelse(BP[1,5]>0,paste0("£", round(BP[1,5],2)),""),y=BP[1,5]-4, x=as.numeric(unique(Full_Final$Q24AIncome)[1]))+
   geom_point(data=BP1,aes(y=BP[1,6], x=as.numeric(unique(Full_Final$Q24AIncome)[1])),shape = 1)+
@@ -2067,30 +2197,19 @@ Q16Graph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) +
   labs(x = "Income",y="WTP")
 
 
-
-Q18Graph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) + 
-  facet_grid( ~ Q18Charity, labeller = as_labeller(c(
-    `0` = "No\n (N = 425)",
-    `1` = "Yes\n (N = 219)",
-    `2` = "Prefer not to say\n (N = 26)")))+
-  geom_smooth(aes(y=Q6WTP,color="blue"),method="lm",se=F) +
-  geom_smooth(aes(y=Q7WTP,color="red"),method="lm",se=F) +
-  ggtitle("Relationship between income and WTP faceted by charity involvement.") +
-  scale_color_discrete(name = "Lines", 
-                       labels = c("WTP for research", "WTP for treatment"))+
-  theme(plot.title = element_text(hjust = 0.5),
-        axis.title.y = element_text(size = 12)) +
-  scale_x_continuous(name="Income",breaks = waiver(),limits = c(0,5000),
-                     n.breaks = 5, labels = function(x) paste0("£",x))+
-  scale_y_continuous(name="WTP",breaks = waiver(), n.breaks=20,
-                     limits=c(0,75),labels = function(x) paste0("£",x))+
-  labs(x = "Income",y="WTP")
-
 Q3Graph
 Q4Graph
+Q12Graph
 Q13Graph
 Q14Graph
 Q15Graph
+Q16Graph
+Q17_ConsGraph
+Q17_FirmsGraph
+Q18Graph
+Q20Graph
+Q21Graph
+
 
 grid.arrange(Q3Graph, Q4Graph)
 grid.arrange(Q5Graph, Q19Graph)
