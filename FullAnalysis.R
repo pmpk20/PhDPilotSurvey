@@ -1770,32 +1770,32 @@ ggplot(FullSurvey2, aes(x=Precaution)) +
   ggtitle("Histogram of respondent precautionary premia.")
 
 
-### Plotting Certainty effects
-ggplot(FullSurvey2, aes(x=as.numeric(Q24AIncome))) + 
-  facet_grid( ~ Q12CECertainty, labeller = as_labeller(c(
-    `0` = "Unsure",
-    `1` = "Quite Sure",
-    `2` = "Very Sure")))+
+### Plotting Consequentiality effects
+ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) + 
+  facet_grid( ~ Q20Consequentiality, labeller = as_labeller(c(
+    `0` = "No\n (N = 110)",
+    `1` = "Yes\n (N = 358)",
+    `2` = "Don't Know\n (N = 202)")))+
   geom_smooth(aes(y=Q6WTP,color="blue"),method="lm",se=F) +
   geom_smooth(aes(y=Q7WTP,color="red"),method="lm",se=F) +
-  ggtitle("Relationship between income and WTP by certainty") +
+  ggtitle("Relationship between income and WTP by consequentiality") +
   scale_color_discrete(name = "Lines", 
                        labels = c("WTP for research", "WTP for treatment"))+
   theme(plot.title = element_text(hjust = 0.5),
         axis.title.y = element_text(size = 12)) +
   scale_x_continuous(name="Income",breaks = waiver(),limits = c(0,5000),
                      n.breaks = 5, labels = function(x) paste0("£",x))+
-  scale_y_continuous(name="Precautionary WTP",breaks = waiver(), 
+  scale_y_continuous(name="Precautionary WTP",breaks = waiver(), n.breaks=10,
                      limits=c(20,50),labels = function(x) paste0("£",x))+
   labs(x = "Income",y="Precaution")
 
 
-### Plotting Consequentiality effects
-ggplot(FullSurvey2, aes(x=as.numeric(Q24AIncome))) + 
+### Plotting Certainty effects
+ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) + 
   facet_grid( ~ Q12CECertainty, labeller = as_labeller(c(
-    `0` = "Unsure",
-    `1` = "Quite Sure",
-    `2` = "Very Sure")))+
+    `0` = "Unsure\n (N = 40)",
+    `1` = "Quite Sure\n (N = 328)",
+    `2` = "Very Sure\n (N = 302)")))+
   geom_smooth(aes(y=Q6WTP,color="blue"),method="lm",se=F) +
   geom_smooth(aes(y=Q7WTP,color="red"),method="lm",se=F) +
   ggtitle("Relationship between income and WTP by certainty") +
@@ -1805,7 +1805,7 @@ ggplot(FullSurvey2, aes(x=as.numeric(Q24AIncome))) +
         axis.title.y = element_text(size = 12)) +
   scale_x_continuous(name="Income",breaks = waiver(),limits = c(0,5000),
                      n.breaks = 5, labels = function(x) paste0("£",x))+
-  scale_y_continuous(name="Precautionary WTP",breaks = waiver(), 
+  scale_y_continuous(name="Precautionary WTP",breaks = waiver(), n.breaks=10,
                      limits=c(20,50),labels = function(x) paste0("£",x))+
   labs(x = "Income",y="Precaution")
 
@@ -1928,9 +1928,9 @@ Q15Graph <- ggplot(FS) +
 ## Plotting CV WTP by COVID-19 
 ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) + 
   facet_grid( ~ Q24RonaImpact, labeller = as_labeller(c(
-    `0` = "No",
-    `1` = "Yes",
-    `2` = "Prefer not to say")))+
+    `0` = "No\n (N = 332)",
+    `1` = "Yes\n (N = 319)",
+    `2` = "Prefer not to say\n (N = 19)")))+
   geom_smooth(aes(y=Q6WTP,color="blue"),method="lm",se=F) +
   geom_smooth(aes(y=Q7WTP,color="red"),method="lm",se=F) +
   ggtitle("Relationship between income and WTP by effect of COVID-19 on income.") +
@@ -1940,7 +1940,7 @@ ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) +
         axis.title.y = element_text(size = 12)) +
   scale_x_continuous(name="Income",breaks = waiver(),limits = c(0,5000),
                      n.breaks = 5, labels = function(x) paste0("£",x))+
-  scale_y_continuous(name="Precautionary WTP",breaks = waiver(), 
+  scale_y_continuous(name="Precautionary WTP",breaks = waiver(), n.breaks=6,
                      limits=c(20,50),labels = function(x) paste0("£",x))+
   labs(x = "Income",y="Precaution")
 
@@ -1948,9 +1948,9 @@ ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) +
 ## Plotting CE MWPT by COVID-19  
 ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) + 
   facet_grid( ~ Q24RonaImpact, labeller = as_labeller(c(
-    `0` = "No",
-    `1` = "Yes",
-    `2` = "Prefer not to say")))+
+    `0` = "No\n (N = 332)",
+    `1` = "Yes\n (N = 319)",
+    `2` = "Prefer not to say\n (N = 19)")))+
   geom_smooth(aes(y=EmissionCoef,color="blue"),method="lm",se=F) +
   geom_smooth(aes(y=PerformanceCoef,color="red"),method="lm",se=F) +
   ggtitle("Relationship between income and Marginal WTP by effect of COVID-19 on income.") +
@@ -1989,8 +1989,8 @@ Q17_FirmsGraph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) +
 ## Plotting CV WTP by perceived responsibility Q17_2:  
 Q17_ConsGraph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) + 
   facet_grid( ~ Q17_Cons, labeller = as_labeller(c(
-    `0` = "No",
-    `1` = "Yes")))+
+    `0` = "No\n (N = 286)",
+    `1` = "Yes\n (N = 384)")))+
   geom_smooth(aes(y=Q6WTP,color="blue"),method="lm",se=F) +
   geom_smooth(aes(y=Q7WTP,color="red"),method="lm",se=F) +
   ggtitle("Relationship between income and WTP faceted by whether consumers only are responsible.") +
@@ -2000,11 +2000,91 @@ Q17_ConsGraph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) +
         axis.title.y = element_text(size = 12)) +
   scale_x_continuous(name="Income",breaks = waiver(),limits = c(0,5000),
                      n.breaks = 5, labels = function(x) paste0("£",x))+
-  scale_y_continuous(name="WTP",breaks = waiver(), 
+  scale_y_continuous(name="WTP",breaks = waiver(), n.breaks=10,
                      limits=c(0,75),labels = function(x) paste0("£",x))+
   labs(x = "Income",y="WTP")
 
 
+BP0 <- subset(Full_Final,Full_Final$Q16BP==0)
+BP1 <- subset(Full_Final,Full_Final$Q16BP==1)
+BP2 <- subset(Full_Final,Full_Final$Q16BP==2)
+BP <- data.frame("Q6WTPBP0I0"=round(mean(BP0$Q6WTP[BP0$Q24AIncome <= unique(BP0$Q24AIncome)[4]]),2),
+                 "Q7WTPBP0I0"=round(mean(BP0$Q7WTP[BP0$Q24AIncome <= unique(BP0$Q24AIncome)[4]]),2),
+                 "Q6WTPBP0I1"=round(mean(BP0$Q6WTP[BP0$Q24AIncome > unique(BP0$Q24AIncome)[5]]),2),
+                 "Q7WTPBP0I1"=round(mean(BP0$Q7WTP[BP0$Q24AIncome > unique(BP0$Q24AIncome)[5]]),2),
+                 "Q6WTPBP1I0"=round(mean(BP1$Q6WTP[BP1$Q24AIncome <= unique(BP1$Q24AIncome)[4]]),2),
+                 "Q7WTPBP1I0"=round(mean(BP1$Q7WTP[BP1$Q24AIncome <= unique(BP1$Q24AIncome)[4]]),2),
+                 "Q6WTPBP1I1"=round(mean(BP1$Q6WTP[BP1$Q24AIncome > unique(BP1$Q24AIncome)[5]]),2),
+                 "Q7WTPBP1I1"=round(mean(BP1$Q7WTP[BP1$Q24AIncome > unique(BP1$Q24AIncome)[5]]),2),
+                 "Q6WTPBP2I0"=round(mean(BP2$Q6WTP[BP2$Q24AIncome <= unique(BP2$Q24AIncome)[4]]),2),
+                 "Q7WTPBP2I0"=round(mean(BP2$Q7WTP[BP2$Q24AIncome <= unique(BP2$Q24AIncome)[4]]),2),
+                 "Q6WTPBP2I1"=round(mean(BP2$Q6WTP[BP2$Q24AIncome > unique(BP2$Q24AIncome)[5]]),2),
+                 "Q7WTPBP2I1"=round(mean(BP2$Q7WTP[BP2$Q24AIncome > unique(BP2$Q24AIncome)[5]]),2))
+
+Q16Graph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) + 
+  facet_grid( ~ Q16BP, labeller = as_labeller(c(
+    `0` = "None\n (N = 209)",
+    `1` = "Some\n (N = 342)",
+    `2` = "All\n (N = 119)")))+
+  geom_smooth(aes(y=Q6WTP,color="blue"),method="lm",se=F) +
+  geom_smooth(aes(y=Q7WTP,color="red"),method="lm",se=F) +
+  
+  geom_point(data=BP0,aes(y=BP[1,1], x=as.numeric(unique(Full_Final$Q24AIncome)[1])),shape = 1)+
+  geom_text(data=BP0,size=3,label = ifelse(BP[1,1]>0,paste0("£", round(BP[1,1],2)),""),y=BP[1,1]-4, x=as.numeric(unique(Full_Final$Q24AIncome)[1]))+
+  geom_point(data=BP0,aes(y=BP[1,2], x=as.numeric(unique(Full_Final$Q24AIncome)[1])),shape = 1)+
+  geom_text(data=BP0,size=3,label = ifelse(BP[1,2]>0,paste0("£", round(BP[1,2],2)),""),y=BP[1,2]-4, x=as.numeric(unique(Full_Final$Q24AIncome)[1]))+
+  geom_point(data=BP0,aes(y=BP[1,3], x=as.numeric(unique(Full_Final$Q24AIncome)[7])),shape = 1)+
+  geom_text(data=BP0,size=3,label = ifelse(BP[1,3]>0,paste0("£", round(BP[1,3],2)),""),y=BP[1,3]-4, x=as.numeric(unique(Full_Final$Q24AIncome)[7]))+
+  geom_point(data=BP0,aes(y=BP[1,4], x=as.numeric(unique(Full_Final$Q24AIncome)[8])-5),shape = 1)+
+  geom_text(data=BP0,size=3,label = ifelse(BP[1,4]>0,paste0("£", round(BP[1,4],2)),""),y=BP[1,4]-4, x=as.numeric(unique(Full_Final$Q24AIncome)[7]))+
+
+  geom_point(data=BP1,aes(y=BP[1,5], x=as.numeric(unique(Full_Final$Q24AIncome)[1])),shape = 1)+
+  geom_text(data=BP1,size=3,label = ifelse(BP[1,5]>0,paste0("£", round(BP[1,5],2)),""),y=BP[1,5]-4, x=as.numeric(unique(Full_Final$Q24AIncome)[1]))+
+  geom_point(data=BP1,aes(y=BP[1,6], x=as.numeric(unique(Full_Final$Q24AIncome)[1])),shape = 1)+
+  geom_text(data=BP1,size=3,label = ifelse(BP[1,6]>0,paste0("£", round(BP[1,6],2)),""),y=BP[1,6]-4, x=as.numeric(unique(Full_Final$Q24AIncome)[1]))+
+  geom_point(data=BP1,aes(y=BP[1,7]-1, x=as.numeric(unique(Full_Final$Q24AIncome)[7])),shape = 1)+
+  geom_text(data=BP1,size=3,label = ifelse(BP[1,7]>0,paste0("£", round(BP[1,7],2)),""),y=BP[1,7]-4, x=as.numeric(unique(Full_Final$Q24AIncome)[7]))+
+  geom_point(data=BP1,aes(y=BP[1,8]-1, x=as.numeric(unique(Full_Final$Q24AIncome)[8])-5),shape = 1)+
+  geom_text(data=BP1,size=3,label = ifelse(BP[1,8]>0,paste0("£", round(BP[1,8],2)),""),y=BP[1,8]-4, x=as.numeric(unique(Full_Final$Q24AIncome)[7]))+
+  
+  geom_point(data=BP2,aes(y=BP[1,9], x=as.numeric(unique(Full_Final$Q24AIncome)[1])),shape = 1)+
+  geom_text(data=BP2,size=3,label = ifelse(BP[1,9]>0,paste0("£", round(BP[1,9],2)),""),y=BP[1,9]-4, x=as.numeric(unique(Full_Final$Q24AIncome)[1]))+
+  geom_point(data=BP2,aes(y=BP[1,10]+1, x=as.numeric(unique(Full_Final$Q24AIncome)[1])),shape = 1)+
+  geom_text(data=BP2,size=3,label = ifelse(BP[1,10]>0,paste0("£", round(BP[1,10],2)),""),y=BP[1,10]-4, x=as.numeric(unique(Full_Final$Q24AIncome)[1]))+
+  geom_point(data=BP2,aes(y=BP[1,11], x=as.numeric(unique(Full_Final$Q24AIncome)[7])),shape = 1)+
+  geom_text(data=BP2,size=3,label = ifelse(BP[1,11]>0,paste0("£", round(BP[1,11],2)),""),y=BP[1,11]-4, x=as.numeric(unique(Full_Final$Q24AIncome)[7]))+
+  geom_point(data=BP2,aes(y=BP[1,12]-1, x=as.numeric(unique(Full_Final$Q24AIncome)[8])-5),shape = 1)+
+  geom_text(data=BP2,size=3,label = ifelse(BP[1,12]>0,paste0("£", round(BP[1,12],2)),""),y=BP[1,12]-4, x=as.numeric(unique(Full_Final$Q24AIncome)[7]))+
+  ggtitle("Relationship between income and WTP faceted by Blue-Planet II viewership") +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("WTP for research", "WTP for treatment"))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Income",breaks = waiver(),limits = c(0,5000),
+                     n.breaks = 5, labels = function(x) paste0("£",x))+
+  scale_y_continuous(name="WTP",breaks = waiver(), n.breaks=20,
+                     limits=c(0,75),labels = function(x) paste0("£",x))+
+  labs(x = "Income",y="WTP")
+
+
+
+Q18Graph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) + 
+  facet_grid( ~ Q18Charity, labeller = as_labeller(c(
+    `0` = "No\n (N = 425)",
+    `1` = "Yes\n (N = 219)",
+    `2` = "Prefer not to say\n (N = 26)")))+
+  geom_smooth(aes(y=Q6WTP,color="blue"),method="lm",se=F) +
+  geom_smooth(aes(y=Q7WTP,color="red"),method="lm",se=F) +
+  ggtitle("Relationship between income and WTP faceted by charity involvement.") +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("WTP for research", "WTP for treatment"))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Income",breaks = waiver(),limits = c(0,5000),
+                     n.breaks = 5, labels = function(x) paste0("£",x))+
+  scale_y_continuous(name="WTP",breaks = waiver(), n.breaks=20,
+                     limits=c(0,75),labels = function(x) paste0("£",x))+
+  labs(x = "Income",y="WTP")
 
 Q3Graph
 Q4Graph
