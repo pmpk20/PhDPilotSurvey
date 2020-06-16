@@ -21,6 +21,7 @@ install.packages("dplyr") ## For data manipulation
 install.packages("Hmisc") ## For random imputation
 library(Hmisc)
 library(dplyr)
+library(ggplot2)
 setwd("H:/PhDPilotSurvey") ## Sets working directory. This is where my Github repo is cloned to.
 
 
@@ -217,10 +218,10 @@ FullSurvey2$Q18Charity[FullSurvey2$Q18Charity == 3] <- 1
 ## Same problem with Q5
 FullSurvey2$Q19Knowledge[FullSurvey2$Q19Knowledge == 4] <- 5
 FullSurvey2$Q19Knowledge[FullSurvey2$Q19Knowledge == 1] <- 4
-FullSurvey2$Q19Knowledge[FullSurvey2$Q19Knowledge == 2] <- 1
-FullSurvey2$Q19Knowledge[FullSurvey2$Q19Knowledge == 0] <- 2
+FullSurvey2$Q19Knowledge[FullSurvey2$Q19Knowledge == 0] <- 1
 FullSurvey2$Q19Knowledge[FullSurvey2$Q19Knowledge == 3] <- 0
-FullSurvey2$Q19Knowledge[FullSurvey2$Q19Knowledge == 4] <- 3
+FullSurvey2$Q19Knowledge[FullSurvey2$Q19Knowledge == 1] <- 3
+FullSurvey2$Q19Knowledge[FullSurvey2$Q19Knowledge == 0] <- 1
 
 
 ## Reordering the consequentiality beliefs
@@ -581,6 +582,93 @@ ggheatmap <- ggplot(melted_cormat, aes(Variable2, Variable1, fill = Correlation)
                                    size = 6, hjust = 1))+
   coord_fixed()
 
+
+## Reporting distance-decay WTP:
+DistanceDecay <- rbind("Q6"=data.frame("LowIncomeLowDistance"=mean(Full_Final$Q6WTP[ (Full_Final$Q3Distance < median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome < median(Full_Final$Q24AIncome)) ]),
+           "LowIncomeHighDistance"= mean(Full_Final$Q6WTP[ (Full_Final$Q3Distance > median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome < median(Full_Final$Q24AIncome)) ]),
+           "HighIncomeLowDistance"=mean(Full_Final$Q6WTP[ (Full_Final$Q3Distance < median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome > median(Full_Final$Q24AIncome)) ]),
+           "HighIncomeHighDistance"= mean(Full_Final$Q6WTP[ (Full_Final$Q3Distance > median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome > median(Full_Final$Q24AIncome)) ])),
+      "Q7"=data.frame("LowIncomeLowDistance"=mean(Full_Final$Q7WTP[ (Full_Final$Q3Distance < median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome < median(Full_Final$Q24AIncome)) ]),
+           "LowIncomeHighDistance"= mean(Full_Final$Q7WTP[ (Full_Final$Q3Distance > median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome < median(Full_Final$Q24AIncome)) ]),
+           "HighIncomeLowDistance"=mean(Full_Final$Q7WTP[ (Full_Final$Q3Distance < median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome > median(Full_Final$Q24AIncome)) ]),
+           "HighIncomeHighDistance"= mean(Full_Final$Q7WTP[ (Full_Final$Q3Distance > median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome > median(Full_Final$Q24AIncome)) ])),
+      "Emissions"=data.frame("LowIncomeLowDistance"=mean(Full_Final$EmissionCoef[ (Full_Final$Q3Distance < median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome < median(Full_Final$Q24AIncome)) ]),
+                                   "LowIncomeHighDistance"= mean(Full_Final$EmissionCoef[ (Full_Final$Q3Distance > median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome < median(Full_Final$Q24AIncome)) ]),
+                                   "HighIncomeLowDistance"=mean(Full_Final$EmissionCoef[ (Full_Final$Q3Distance < median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome > median(Full_Final$Q24AIncome)) ]),
+                                   "HighIncomeHighDistance"= mean(Full_Final$EmissionCoef[ (Full_Final$Q3Distance > median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome > median(Full_Final$Q24AIncome)) ])),
+            "Performance"=data.frame("LowIncomeLowDistance"=mean(Full_Final$PerformanceCoef[ (Full_Final$Q3Distance < median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome < median(Full_Final$Q24AIncome)) ]),
+                                     "LowIncomeHighDistance"= mean(Full_Final$PerformanceCoef[ (Full_Final$Q3Distance > median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome < median(Full_Final$Q24AIncome)) ]),
+                                     "HighIncomeLowDistance"=mean(Full_Final$PerformanceCoef[ (Full_Final$Q3Distance < median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome > median(Full_Final$Q24AIncome)) ]),
+                                     "HighIncomeHighDistance"= mean(Full_Final$PerformanceCoef[ (Full_Final$Q3Distance > median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome > median(Full_Final$Q24AIncome)) ])))
+
+
+## Histograms of Q5 and Q19 understanding:
+Q5GraphA <- ggplot(Full_Final, aes(x=Q5Knowledge)) + 
+  geom_histogram(aes(y = ..density..),color="black", fill="white",bins = 50)+
+  stat_function(
+    fun = function(x, mean, sd, n){
+      n * dnorm(x = x, mean = mean, sd = sd)
+    }, 
+    args = with(Full_Final, c(mean = mean(Q5Knowledge), sd = sd(Q5Knowledge), n
+                              = 5)))+
+  scale_x_continuous(breaks=waiver(),labels=c("1\n (N = 71)","2\n (N = 187)","3\n (N = 252)","4\n (N = 113)","5\n (N = 47)"))+
+  ggtitle("Histogram of Q5 Knowledge responses.")
+
+Q19GraphA <- ggplot(Full_Final, aes(x=Q19Knowledge)) + 
+  geom_histogram(aes(y = ..density..),color="black", fill="white",bins = 50)+
+  stat_function(
+    fun = function(x, mean, sd, n){
+      n * dnorm(x = x, mean = mean, sd = sd)
+    }, 
+    args = with(Full_Final, c(mean = mean(Q19Knowledge), sd = sd(Q19Knowledge), n
+                          = 5)))+
+  scale_x_continuous(breaks=waiver(),labels=c("1\n (N = 43)","2\n (N = 158)","3\n (N = 267)","4\n (N = 159)","5\n (N = 43)"))+
+  ggtitle("Histogram of Q19 Knowledge responses.")
+grid.arrange(Q5GraphA, Q19GraphA)
+
+
+## Correlations between attitudes and awareness:
+# Q5/Q13: 0.309, p=0 
+# Q5/Q14: 0.238, p=0 
+# Q5/Q15: 0.273, p=0 
+# Q19/Q13: 0.321, p=0 
+# Q19/Q14: 0.359, p=0 
+# Q19/Q15: 0.364, p=0 
+
+## Histograms of Q13, 14, 15 concern:
+Q13GraphA <- ggplot(Full_Final, aes(x=Q13CurrentThreatToSelf)) + 
+  geom_histogram(aes(y = ..density..),color="black", fill="white",bins = 50)+
+  stat_function(
+    fun = function(x, mean, sd, n){
+      n * dnorm(x = x, mean = mean, sd = sd)
+    }, 
+    args = with(Full_Final, c(mean = mean(Q13CurrentThreatToSelf), sd = sd(Q13CurrentThreatToSelf), n
+                              = 5)))+
+  scale_x_continuous(breaks=waiver(),labels=c("1\n (N = 32)","2\n (N = 55)","3\n (N = 290)","4\n (N = 184)","5\n (N = 109)"))+
+  ggtitle("Histogram of Q13 Current Threat to Self responses.")
+
+Q14GraphA <- ggplot(Full_Final, aes(x=Q14FutureThreatToSelf)) + 
+  geom_histogram(aes(y = ..density..),color="black", fill="white",bins = 50)+
+  stat_function(
+    fun = function(x, mean, sd, n){
+      n * dnorm(x = x, mean = mean, sd = sd)
+    }, 
+    args = with(Full_Final, c(mean = mean(Q14FutureThreatToSelf), sd = sd(Q14FutureThreatToSelf), n
+                              = 5)))+
+  scale_x_continuous(breaks=waiver(),labels=c("1\n (N = 20)","2\n (N = 37)","3\n (N = 204)","4\n (N = 243)","5\n (N = 166)"))+
+  ggtitle("Histogram of Q14FutureThreatToSelf responses.")
+
+Q15GraphA <- ggplot(Full_Final, aes(x=Q15ThreatToEnvironment)) + 
+  geom_histogram(aes(y = ..density..),color="black", fill="white",bins = 50)+
+  stat_function(
+    fun = function(x, mean, sd, n){
+      n * dnorm(x = x, mean = mean, sd = sd)
+    }, 
+    args = with(Full_Final, c(mean = mean(Q15ThreatToEnvironment), sd = sd(Q15ThreatToEnvironment), n
+                              = 5)))+
+  scale_x_continuous(breaks=waiver(),labels=c("1\n (N = 12)","2\n (N = 30)","3\n (N = 154)","4\n (N = 216)","5\n (N = 258)"))+
+  ggtitle("Histogram of Q15ThreatToEnvironment responses.")
+grid.arrange(Q13GraphA, Q14GraphA,Q15GraphA)
 
 ##########################################################  
 ####### Descriptive Graphics
@@ -1857,7 +1945,8 @@ Q3Graph <- ggplot(Full_Final) +
   scale_color_discrete(name = "Lines", 
                        labels = c("WTP for research", "WTP for treatment"))+
   ggtitle("WTP by Q3: Distance") +
-  scale_x_continuous(name="Distance",breaks=waiver(),limits=c(0,50),n.breaks=5)+
+  scale_x_continuous(name="Distance",breaks=waiver(),limits=c(0,50),
+                     n.breaks=5)+
   scale_y_continuous(name="WTP",
                      breaks=waiver(),limits = c(0,75),
                      n.breaks = 10, labels = function(x) paste0("£",x))+
@@ -1865,20 +1954,46 @@ Q3Graph <- ggplot(Full_Final) +
         axis.title.y = element_text(size = 10))
 
 
+Q3GraphB <- ggplot(Full_Final, aes(x=as.numeric(Q3Distance))) + 
+  geom_smooth(aes(y=as.numeric(Q24AIncome)),method="lm",se=F)+
+  ggtitle("Relationship between income and distance from the coast") +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+ scale_y_continuous(name="Gross monthly income",breaks = waiver(), n.breaks=10,
+                     limits=c(0,5000),labels = function(x) paste0("£", x))+
+  scale_x_continuous(name="Distance",breaks=waiver(),limits=c(0,50),
+                     n.breaks=5)+ labs(x = "Distance",y="Income")
+  
+  
 ## Plotting the effect of number of trips to the coast on WTP
 Q4Graph <- ggplot(Full_Final) + 
-  geom_smooth(aes(x=Q4Trips,y=Q7WTP,color="red"),method="lm",se=T) +
-  geom_smooth(aes(x=Q4Trips,y=Q6WTP,color="blue"),method="lm",se=T) +
+  geom_smooth(aes(x=Q4Trips,y=Q7WTP,color="blue"),method="lm",se=T) +
+  geom_smooth(aes(x=Q4Trips,y=Q6WTP,color="red"),method="lm",se=T) +
   scale_color_discrete(name = "Lines", 
-                       labels = c("WTP for research", "WTP for treatment"))+
+                       labels = c("WTP for treatment", "WTP for research"))+
   ggtitle("WTP by Q4: Trips") +
-  scale_x_continuous(name="Trips",breaks=waiver(),limits=c(0,3),n.breaks=10)+
+  scale_x_continuous(name="Annual trips to the coast.",breaks = waiver(),limits = c(0,3),
+                     n.breaks = 3,
+                     labels=c("0\n (N = 76)","1-2\n (N = 267)","3-5\n (N = 153)","6+\n (N = 174)"))+
   scale_y_continuous(name="WTP",
                      breaks=waiver(),limits = c(0,75),
                      n.breaks = 10, labels = function(x) paste0("£",x))+
   theme(plot.title = element_text(hjust = 0.5),
         axis.title.y = element_text(size = 10))
 
+
+## Plotting WTP by pre-survey microplastic knowledge
+Q4GraphB <- ggplot(Full_Final, aes(x=Q4Trips)) + 
+  geom_smooth(aes(y=as.numeric(Q24AIncome)*12),method="lm",se=F)+
+  ggtitle("Relationship between income and trips.") +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Annual trips to the coast.",breaks = waiver(),limits = c(0,3),
+                     n.breaks = 3,
+                     labels=c("0\n (N = 76)","1-2\n (N = 267)","3-5\n (N = 153)","6+\n (N = 174)"))+
+  scale_y_continuous(name="Gross annual income",breaks = waiver(), n.breaks=10,
+                     limits=c(0,60000),labels = function(x) paste0("£", round(x,2)/1000,",000"))+
+  labs(x = "Trips",y="Income")
 
 ## Plotting WTP by pre-survey microplastic knowledge
 Q5Graph <- ggplot(Full_Final) + 
@@ -1888,7 +2003,7 @@ Q5Graph <- ggplot(Full_Final) +
                        labels = c("WTP for research", "WTP for treatment"))+
   ggtitle("WTP by Q5: Knowledge") +
   scale_x_continuous(name="Likert scale levels",breaks = 1:5, 
-                     labels=c(1,2,3,4,5))+
+                     labels=c("1\n(N = 71)","2\n(N = 187)","3\n(N = 252)","4\n(N = 113)","5\n(N = 47)"))+
   scale_y_continuous(name="WTP",
                      breaks=waiver(),limits = c(0,75),
                      n.breaks = 10, labels = function(x) paste0("£",x))+
@@ -1905,7 +2020,7 @@ Q19Graph <- ggplot(Full_Final) +
                        labels = c("WTP for research", "WTP for treatment"))+
   ggtitle("WTP by Q19: Knowledge") +
   scale_x_continuous(name="Likert scale levels",breaks = 1:5, 
-                     labels=c(1,2,3,4,5))+
+                     labels=c("1\n(N = 43)","2\n(N = 158)","3\n(N = 267)","4\n(N = 159)","5\n(N = 43)"))+
   scale_y_continuous(name="WTP",
                      breaks=waiver(),limits = c(0,75),
                      n.breaks = 10, labels = function(x) paste0("£",x))+
@@ -2084,6 +2199,69 @@ Q21Graph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) +
                      limits=c(0,75),labels = function(x) paste0("£",x))+
   labs(x = "Income",y="WTP")
 
+Q21GraphB <- ggplot(Full_Final, aes(x=as.numeric(Q21Experts))) + 
+  geom_smooth(aes(y=Q6WTP,color="blue"),method="lm",se=F) +
+  geom_smooth(aes(y=Q7WTP,color="red"),method="lm",se=F) +
+  ggtitle("Relationship between confidence in experts and WTP (lm fitting).") +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("WTP for research", "WTP for treatment"))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Experts",breaks = waiver(),limits = c(1,5),
+                     n.breaks = 5, labels = c("1: Unconfident\n (N = 16)","2\n (N = 46)","3\n (N = 251)","4\n (N = 237)","5: Confident\n (N = 120)"))+
+  scale_y_continuous(name="WTP",breaks = waiver(), n.breaks=20,
+                     limits=c(0,75),labels = function(x) paste0("£",x))+
+  labs(x = "Experts",y="WTP")
+
+
+## Plotting CV WTP by employment type:
+Q22Graph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) + 
+  facet_grid( ~ Q22Education, labeller = as_labeller(c(
+    `0` = "Prefer not to say\n (N = 15)",
+    `1` = "GCSE\n (N = 147)",
+    `2` = "A-level\n (N = 178)",
+    `3` = "Bachelors\n (N = 212)",
+    `4` = "Postgraduate\n (N = 118)")))+
+  geom_smooth(aes(y=Q6WTP,color="blue"),method="lm",se=F) +
+  geom_smooth(aes(y=Q7WTP,color="red"),method="lm",se=F) +
+  ggtitle("Relationship between income and WTP faceted by education level.") +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("WTP for research", "WTP for treatment"))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Income",breaks = waiver(),limits = c(0,5000),
+                     n.breaks = 3, labels = function(x) paste0("£",x))+
+  scale_y_continuous(name="WTP",breaks = waiver(), n.breaks=20,
+                     limits=c(0,75),labels = function(x) paste0("£",x))+
+  labs(x = "Income",y="WTP")
+
+
+
+Q22GraphB <- ggplot(Full_Final, aes(x=as.numeric(Q22Education))) + 
+  geom_smooth(aes(y=Q6WTP,color="blue"),method="lm",se=F) +
+  geom_smooth(aes(y=Q7WTP,color="red"),method="lm",se=F) +
+  ggtitle("Relationship between education and WTP.") +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("WTP for research", "WTP for treatment"))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Education",breaks = waiver(),limits = c(0,4),
+                     n.breaks = 5,labels=c("Prefer not to say\n(N = 15)","GCSE\n(N = 147)","A level\n(N = 178)","Bachelor\n(N = 212)","Postgraduate\n(N = 118)"))+
+  scale_y_continuous(name="WTP",breaks = waiver(), n.breaks=20,
+                     limits=c(0,75),labels = function(x) paste0("£",x))+
+  labs(x = "Education",y="WTP")
+
+
+Q22GraphC <- ggplot(Full_Final, aes(x=Q22Education)) + 
+  geom_smooth(aes(y=as.numeric(Q24AIncome)),method="lm",se=F)+
+  ggtitle("Relationship between education and income") +
+  theme(plot.title = element_text(hjust = 0.5),
+          axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Education",breaks = waiver(),limits = c(0,4),
+                     n.breaks = 5,labels=c("Prefer not to say\n(N = 15)","GCSE\n(N = 147)","A level\n(N = 178)","Bachelor\n(N = 212)","Postgraduate\n(N = 118)"))+
+  scale_y_continuous(name="Income",breaks = waiver(), n.breaks=5,
+                     limits=c(0,5000),labels = function(x) paste0("£",x))+
+  labs(x = "Education",y="Income")
 
 ## Plotting CV WTP by employment type:
 Q23Graph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) + 
@@ -2098,28 +2276,6 @@ Q23Graph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) +
   geom_smooth(aes(y=Q6WTP,color="blue"),method="lm",se=F) +
   geom_smooth(aes(y=Q7WTP,color="red"),method="lm",se=F) +
   ggtitle("Relationship between income and WTP faceted by employment type.") +
-  scale_color_discrete(name = "Lines", 
-                       labels = c("WTP for research", "WTP for treatment"))+
-  theme(plot.title = element_text(hjust = 0.5),
-        axis.title.y = element_text(size = 12)) +
-  scale_x_continuous(name="Income",breaks = waiver(),limits = c(0,5000),
-                     n.breaks = 3, labels = function(x) paste0("£",x))+
-  scale_y_continuous(name="WTP",breaks = waiver(), n.breaks=20,
-                     limits=c(0,75),labels = function(x) paste0("£",x))+
-  labs(x = "Income",y="WTP")
-
-
-## Plotting CV WTP by employment type:
-Q22Graph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) + 
-  facet_grid( ~ Q22Education, labeller = as_labeller(c(
-    `0` = "Prefer not to say\n (N = 15)",
-    `1` = "GCSE\n (N = 147)",
-    `2` = "A-level\n (N = 178)",
-    `3` = "Bachelors\n (N = 212)",
-    `4` = "Postgraduate\n (N = 118)")))+
-  geom_smooth(aes(y=Q6WTP,color="blue"),method="lm",se=F) +
-  geom_smooth(aes(y=Q7WTP,color="red"),method="lm",se=F) +
-  ggtitle("Relationship between income and WTP faceted by education level.") +
   scale_color_discrete(name = "Lines", 
                        labels = c("WTP for research", "WTP for treatment"))+
   theme(plot.title = element_text(hjust = 0.5),
@@ -2197,6 +2353,92 @@ Q16Graph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) +
   labs(x = "Income",y="WTP")
 
 
+## Plotting Q16 simply versus WTP:
+Q16GraphB <- ggplot(Full_Final, aes(x=Q16BP)) + 
+  geom_smooth(aes(y=as.numeric(Q6WTP),color="blue"),method="lm",se=F)+
+  geom_smooth(aes(y=as.numeric(Q7WTP),color="red"),method="lm",se=F)+
+  scale_color_discrete(name = "Lines", 
+                       labels = c("WTP for research", "WTP for treatment"))+
+  ggtitle("Relationship between BP viewing and WTP") +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Amount of BPII viewed.",breaks = waiver(),limits = c(0,2),
+                     n.breaks = 3, labels = c("None","Some","All"))+
+  scale_y_continuous(name="WTP",breaks = waiver(), n.breaks=20,
+                     limits=c(0,75),labels = function(x) paste0("£",x))+
+  labs(x = "Income",y="WTP")
+
+
+## Plotting Q5 knowledge vs concern about microplastics
+KnowledgeGraphA <- ggplot(Full_Final, aes(x=Q5Knowledge)) + 
+  geom_smooth(aes(y=(Q13CurrentThreatToSelf),color="blue"),method="lm",se=F)+
+  geom_smooth(aes(y=(Q14FutureThreatToSelf),color="red"),method="lm",se=F)+
+  geom_smooth(aes(y=(Q15ThreatToEnvironment),color="yellow"),method="lm",se=F)+
+  scale_color_discrete(name = "Lines", 
+                       labels = c("Q13", "Q14","Q15"))+
+  ggtitle("Relationship between knowledge (Q5) and concern (Q13,14,15)") +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Q5Knowledge",breaks = waiver(),limits = c(1,5),
+                     n.breaks = 5, labels = c("No\nknowledge\n(N = 71)","Little\n(N = 187)","Average\n(N = 252)","Good\n(N = 113)","Strong\nknowledge\n(N = 47)"))+
+  scale_y_continuous(name="Likert scale of concern.",breaks = waiver(), n.breaks=5,
+                     limits=c(1,5),labels = c("1:\nCompletely Disagree","2","3","4","5:\nCompletely Agree"))+
+  labs(x = "Income",y="WTP")
+
+
+## Plotting Q19 knowledge and concern, allowing respondents to update knowledge:
+KnowledgeGraphB <- ggplot(Full_Final, aes(x=Q19Knowledge)) + 
+  geom_smooth(aes(y=(Q13CurrentThreatToSelf),color="blue"),method="lm",se=F)+
+  geom_smooth(aes(y=(Q14FutureThreatToSelf),color="red"),method="lm",se=F)+
+  geom_smooth(aes(y=(Q15ThreatToEnvironment),color="yellow"),method="lm",se=F)+
+  scale_color_discrete(name = "Lines", 
+                       labels = c("Q13", "Q14","Q15"))+
+  ggtitle("Relationship between knowledge (Q19) and concern (Q13,14,15)") +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Q19Knowledge",breaks = waiver(),limits = c(1,5),
+                     n.breaks = 5, labels = c("No\nknowledge\n(N = 43)","Little\n(N = 158)","Average\n(N = 267)","Good\n(N = 159)","Strong\nknowledge\n(N = 43)"))+
+  scale_y_continuous(name="Likert scale of concern.",breaks = waiver(), n.breaks=5,
+                     limits=c(1,5),labels = c("1:\nCompletely Disagree","2","3","4","5:\nCompletely Agree"))+
+  labs(x = "Income",y="WTP")
+
+
+KnowledgeGraphC <- ggplot(Full_Final, aes(x=Q2Age)) + 
+  facet_grid( ~ Q1Gender, labeller = as_labeller(c(
+    `0` = "Female",
+    `1` = "Male")))+
+  geom_smooth(aes(y=(Q13CurrentThreatToSelf),color="blue"),method="lm",se=F)+
+  geom_smooth(aes(y=(Q14FutureThreatToSelf),color="red"),method="lm",se=F)+
+  geom_smooth(aes(y=(Q15ThreatToEnvironment),color="yellow"),method="lm",se=F)+
+  scale_color_discrete(name = "Lines", 
+                       labels = c("Q13", "Q14","Q15"))+
+  ggtitle("Relationship between age, gender and concern") +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Age",breaks = waiver(),limits = c(20.0,70.0),
+                     n.breaks = 5)+
+  scale_y_continuous(name="Likert scale of concern.",breaks = waiver(), n.breaks=5,
+                     limits=c(1,5),labels = c("1:\nCompletely Disagree","2","3","4","5:\nCompletely Agree"))+
+  labs(x = "Age",y="Concern")
+
+
+KnowledgeGraphD <- ggplot(Full_Final, aes(x=Q2Age)) + 
+  facet_grid( ~ Q1Gender, labeller = as_labeller(c(
+    `0` = "Female",
+    `1` = "Male")))+
+  geom_smooth(aes(y=(Q5Knowledge),color="blue"),method="lm",se=F)+
+  geom_smooth(aes(y=(Q19Knowledge),color="red"),method="lm",se=F)+
+  scale_color_discrete(name = "Lines", 
+                       labels = c("Q5", "Q19"))+
+  ggtitle("Relationship between age, gender and concern") +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Age",breaks = waiver(),limits = c(20.0,70.0),
+                     n.breaks = 5)+
+  scale_y_continuous(name="Likert scale of knowledge",breaks = waiver(), n.breaks=5,
+                     limits=c(1,5))+
+  labs(x = "Age",y="Concern")
+
 Q3Graph
 Q4Graph
 Q12Graph
@@ -2213,6 +2455,8 @@ Q21Graph
 
 grid.arrange(Q3Graph, Q4Graph)
 grid.arrange(Q5Graph, Q19Graph)
+grid.arrange(KnowledgeGraphA, KnowledgeGraphB)
+grid.arrange(KnowledgeGraphD, KnowledgeGraphC)
 
 ##########################################################  
 ## The following code is experimental:
