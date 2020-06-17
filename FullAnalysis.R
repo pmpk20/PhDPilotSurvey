@@ -670,6 +670,21 @@ Q15GraphA <- ggplot(Full_Final, aes(x=Q15ThreatToEnvironment)) +
   ggtitle("Histogram of Q15ThreatToEnvironment responses.")
 grid.arrange(Q13GraphA, Q14GraphA,Q15GraphA)
 
+
+Q21Hist <- ggplot(Full_Final, aes(x=Q21Experts)) + 
+  geom_histogram(aes(y = ..density..),color="black", fill="white",bins = 50)+
+  stat_function(
+    fun = function(x, mean, sd, n){
+      n * dnorm(x = x, mean = mean, sd = sd)
+    }, 
+    args = with(Full_Final, c(mean = mean(Q21Experts), sd = sd(Q21Experts), n
+                              = 6)))+
+  scale_x_continuous(breaks=waiver(),
+                     name="Experts",
+                     labels = c("1: Unconfident\n (N = 16)","2\n (N = 46)","3\n (N = 251)","4\n (N = 237)","5: Confident\n (N = 120)"))+
+  ggtitle("Histogram of Q21Experts")
+
+
 ##########################################################  
 ####### Descriptive Graphics
 ##########################################################  
@@ -1113,6 +1128,11 @@ names(Full_Long)[45] <- "PriceCoef"
 Full_Long$EmissionCoef <- -1*Full_Long$EmissionCoef/Full_Long$PriceCoef
 Full_Long$PerformanceCoef <- -1*Full_Long$PerformanceCoef/Full_Long$PriceCoef
 
+
+ChoiceData <- data.frame("cs" = slice(.data = Choices,rep(1:n(), each = 2)))
+colnames(ChoiceData) <- c("cs")
+Full_Final <- cbind(Full_Final, "cs"=ChoiceData)
+
 # NewFull <- mlogit.data(Full, shape = "wide", choice = "Choice",
 #                          varying = 16:21, sep = "_", id.var = "ID")
 # Plotted in a latter section of code
@@ -1400,6 +1420,13 @@ wtp_bar <- data.frame("Emissions" = (-coef(LC_GM)["class.1.Emission"] / coef(LC_
 wtp_bar
 wtp_bar*100
 
+# 
+# library(poLCA)
+# res2 = poLCA(cbind(Choice=Choice+1, 
+#                    Price=as.integer(Price)+1, Performance=Performance+1, 
+#                    Emission=Emission+1) ~ 1, 
+#              maxiter=50000, nclass=3, 
+#              nrep=10, data=Full_Final)
 
 ##########################################################  
 ####### CVM
@@ -2178,6 +2205,37 @@ Q18Graph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) +
   labs(x = "Income",y="WTP")
 
 
+## Charity vs WTP
+Q18GraphB <- ggplot(Full_Final, aes(x=as.numeric(Q18Charity))) + 
+  geom_smooth(aes(y=Q6WTP,color="blue"),method="lm",se=F) +
+  geom_smooth(aes(y=Q7WTP,color="red"),method="lm",se=F) +
+  ggtitle("Relationship between WTP and charity involvement.") +
+  scale_color_discrete(name = "Lines", 
+    labels = c("WTP for research", "WTP for treatment"))+
+  theme(plot.title = element_text(hjust = 0.5),
+    axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Charity involvement",breaks = waiver(),limits = c(0,1),
+    n.breaks = 2,labels=c("No involvement\n (N = 451)", "Donated or member\n (N = 219)"))+
+  scale_y_continuous(name="WTP",breaks = waiver(), n.breaks=10,
+    limits=c(0,75),labels = function(x) paste0("£",x))+
+  labs(x = "Charity",y="WTP")
+
+
+Q18GraphC <- ggplot(Full_Final, aes(x=as.numeric(Q18Charity))) + 
+  geom_smooth(aes(y=abs(PerformanceCoef),color="blue"),method="lm",se=F) +
+  geom_smooth(aes(y=EmissionCoef,color="red"),method="lm",se=F) +
+  ggtitle("Relationship between WTP and charity involvement.") +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("|Performance MWTP|", "Emission MWTP"))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Charity involvement",breaks = waiver(),limits = c(0,1),
+                     n.breaks = 2,labels=c("No involvement\n (N = 451)", "Donated or member\n (N = 219)"))+
+  scale_y_continuous(name="WTP",breaks = waiver(), n.breaks=10,
+                     limits=c(0.00,0.1),labels = function(x) paste0("£",x))+
+  labs(x = "Charity",y="WTP")
+
+
 ## Plotting CV WTP by belief in experts: 
 Q21Graph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) + 
   facet_grid( ~ Q21Experts, labeller = as_labeller(c(
@@ -2213,6 +2271,37 @@ Q21GraphB <- ggplot(Full_Final, aes(x=as.numeric(Q21Experts))) +
                      limits=c(0,75),labels = function(x) paste0("£",x))+
   labs(x = "Experts",y="WTP")
 
+Q21GraphC <- ggplot(Full_Final, aes(x=as.numeric(Q21Experts))) + 
+  geom_smooth(aes(y=Q5Knowledge,color="blue"),method="lm",se=F) +
+  geom_smooth(aes(y=Q19Knowledge,color="red"),method="lm",se=F) +
+  geom_smooth(aes(y=Q13CurrentThreatToSelf,color="darkorange1"),method="lm",se=F,linetype="dotdash") +
+  geom_smooth(aes(y=Q14FutureThreatToSelf,color="darkorange2"),method="lm",se=F,linetype="dashed") +
+  geom_smooth(aes(y=Q15ThreatToEnvironment,color="darkorange3"),method="lm",se=F,linetype="dotted") +
+  ggtitle("Relationship between confidence in experts and WTP (lm fitting).") +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("Q5 Knowledge", "Q19Knowledge","Q13CurrentThreatToSelf","Q14FutureThreatToSelf","Q15ThreatToEnvironment"))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Experts",breaks = waiver(),limits = c(1,5),
+                     n.breaks = 5, labels = c("1: Unconfident\n (N = 16)","2\n (N = 46)","3\n (N = 251)","4\n (N = 237)","5: Confident\n (N = 120)"))+
+  scale_y_continuous(name="Likert scale",breaks = waiver(), n.breaks=5,
+                     limits=c(1,5),labels = c(1,2,3,4,5))+
+  labs(x = "Experts",y="Likert scale")
+
+
+Q21GraphD <- ggplot(Full_Final, aes(x=as.numeric(Q21Experts))) + 
+  geom_smooth(aes(y=PerformanceCoef,color="blue"),method="lm",se=F) +
+  geom_smooth(aes(y=EmissionCoef,color="red"),method="lm",se=F) +
+  ggtitle("Relationship between confidence in experts and MWTP.") +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("Performance MWTP", "Emission MWTP"))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Experts",breaks = waiver(),limits = c(1,5),
+                     n.breaks = 5, labels = c("1: Unconfident\n (N = 16)","2\n (N = 46)","3\n (N = 251)","4\n (N = 237)","5: Confident\n (N = 120)"))+
+  scale_y_continuous(name="MWTP",breaks = waiver(), n.breaks=10,
+                     limits=c(-0.5,0.5),labels = function(x) paste0("£",x))+
+  labs(x = "Experts",y="WTP")
 
 ## Plotting CV WTP by employment type:
 Q22Graph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) + 
@@ -2455,6 +2544,7 @@ Q21Graph
 
 grid.arrange(Q3Graph, Q4Graph)
 grid.arrange(Q5Graph, Q19Graph)
+grid.arrange(Q18GraphB, Q18GraphC)
 grid.arrange(KnowledgeGraphA, KnowledgeGraphB)
 grid.arrange(KnowledgeGraphD, KnowledgeGraphC)
 
