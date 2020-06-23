@@ -4,11 +4,16 @@
 ####################################################################################
 
 
-############ TO DO:
-# - Estimate models with level-specific
+####################################################################################
+############### To Do: - fix GMNL LCM   
 
 
-############ Packages:
+####################################################################################
+############### Section 0: Package installation
+############### Lines: 15:28
+############### Notes: May have to reinstall rTools package.
+
+
 pkgbuild::find_rtools(debug = TRUE)
 install.packages("Rcpp") ## Necessary dependency for rngWELL
 install.packages("rngWELL") ## Can sometimes fix APOLLO issues
@@ -25,9 +30,15 @@ library(ggplot2)
 setwd("H:/PhDPilotSurvey") ## Sets working directory. This is where my Github repo is cloned to.
 
 
-######################## Setup and manipulation:
+####################################################################################
 ############ First-time: Run in full
 ############ Any other time use this: Full_Final <- data.frame(read.csv("FinalData.csv")) 
+
+
+####################################################################################
+############### Section 1: Data importing and manipulating
+############### Lines: 38:384
+############### To skip to estimation: import FinalData
 
 
 FullSurvey <- data.frame(read.csv("FullSurvey.csv")) ## Imports from the excel file straight from the survey companies website.
@@ -374,8 +385,10 @@ Full_Long <- mlogit.data(Full, shape = "wide", choice = "Choice",
                           varying = 16:21, sep = "_", id.var = "ID")
 
 
-################  Sample truncation:
-## Calculating failure rates:
+####################################################################################
+############ Section 2: Sample truncation
+############ Lines: 390:422
+############### Notes: Protest IDs determined from eyeballing Excel responses.
 
 
 # Reporting a high understanding of the survey
@@ -411,9 +424,11 @@ AllCriteria <- AllCriteria[ !(AllCriteria$IDs %in% c(24,33,44,61,121,127,182,200
 ## Fully truncated:
 Full_Full <- Full_Long[ (Full_Long$ID) %in% c(AllCriteria)  ]
 
-##########################################################  
-####### Descriptive Statistics
-##########################################################  
+
+####################################################################################
+############ Section 3: Descriptive Statistics and calculations
+############ Lines: 430:734
+############ Notes: Very long and verbose. Skip if uninterested.
 
 
 ## Gender: 
@@ -421,16 +436,20 @@ Full_Full <- Full_Long[ (Full_Long$ID) %in% c(AllCriteria)  ]
 100/nrow(FullSurvey)*length(FullSurvey$Q1Gender[FullSurvey$Q1Gender=="Female"]) ## Proportion of the sample that is female. Actual: 53, Target: 51 
 100/nrow(FullSurvey)*length(FullSurvey$Q1Gender[(FullSurvey$Q1Gender !="Female")  & (FullSurvey$Q1Gender != "Male")]) ## Estimating the percentage who reported otherwise
 
+
 ## Age: 
 mean(FullSurvey2$Q2Age) ## Estimating average age
 
+
 ## Trips: 
 mean(FullSurvey2$Q4Trips) ## Estimating average annual trips
+
 
 ## Charity: 
 100/nrow(FullSurvey)*length(FullSurvey$Q18Charity[FullSurvey$Q18Charity=="No"])
 100/nrow(FullSurvey)*length(FullSurvey$Q18Charity[FullSurvey$Q18Charity=="Yes"])
 100/nrow(FullSurvey)*length(FullSurvey$Q18Charity[FullSurvey$Q18Charity=="Prefer not to say"])
+
 
 ## Education: 
 100/nrow(FullSurvey2)*length(FullSurvey2$Q22Education[FullSurvey2$Q22Education==0]) ## 0 = Prefer not to say 2.23%
@@ -443,6 +462,7 @@ mean(FullSurvey2$Q4Trips) ## Estimating average annual trips
 # Bachelors or more: 49.25%
 100/nrow(FullSurvey2)*length(FullSurvey2$Q22Education[FullSurvey2$Q22Education==3]) + 100/nrow(FullSurvey2)*length(FullSurvey2$Q22Education[FullSurvey2$Q22Education==4])
 
+
 ## Employment: 
 100/nrow(FullSurvey2)*length(FullSurvey2$Q23Employment[FullSurvey2$Q23Employment==0]) ## 0 = Prefer not to say 2.68%
 100/nrow(FullSurvey2)*length(FullSurvey2$Q23Employment[FullSurvey2$Q23Employment==1]) ## 1 = NEET 11.34%
@@ -452,8 +472,10 @@ mean(FullSurvey2$Q4Trips) ## Estimating average annual trips
 100/nrow(FullSurvey2)*length(FullSurvey2$Q23Employment[FullSurvey2$Q23Employment==4]) ## 5 = Self 6.85%
 100/nrow(FullSurvey2)*length(FullSurvey2$Q23Employment[FullSurvey2$Q23Employment==4]) ## 6 = Full-time 51.94
 
+
 ## Income: 
 mean(FullSurvey2$Q24AIncome) ## Estimating sample income
+
 
 ## Timing (faster than 48% time)
 (median(Full_Long$Timing)/60)/100*48
@@ -479,40 +501,6 @@ ggplot(FullSurvey2, aes(x=Q25Understanding)) +
   geom_text(aes(x=8, label="Included", y=400), colour="blue", angle=0)+
   ggtitle("Distribution of survey understanding")
 
-## Sub-samples by block: 
-nrow(Full_Long[Full_Long$Q9Block ==1])/8
-# [1] 110
-nrow(Full_Long[Full_Long$Q9Block ==2])/8
-# [1] 229
-nrow(Full_Long[Full_Long$Q9Block ==3])/8
-# [1] 216
-nrow(Full_Long[Full_Long$Q9Block ==4])/8
-# [1] 115
-nrow(Full_Long[Full_Long$Q10Block ==1])/8
-# [1] 105
-nrow(Full_Long[Full_Long$Q10Block ==2])/8
-# [1] 231
-nrow(Full_Long[Full_Long$Q10Block ==3])/8
-# [1] 226
-nrow(Full_Long[Full_Long$Q10Block ==4])/8
-# [1] 108
-nrow(Full_Long[Full_Long$Q11Block ==1])/8
-# [1] 104
-nrow(Full_Long[Full_Long$Q11Block ==2])/8
-# [1] 208
-nrow(Full_Long[Full_Long$Q11Block ==3])/8
-# [1] 251
-nrow(Full_Long[Full_Long$Q11Block ==4])/8
-# [1] 107
-nrow(Full_Long[Full_Long$Q12Block ==1])/8
-# [1] 119
-nrow(Full_Long[Full_Long$Q12Block ==2])/8
-# [1] 215
-nrow(Full_Long[Full_Long$Q12Block ==3])/8
-# [1] 220
-nrow(Full_Long[Full_Long$Q12Block ==4])/8
-# [1] 116
-
 
 ## Reporting WTP by responsibility:
 round(mean(Full_Final$PerformanceCoef[Full_Final$Q17_Firms == 0]),2)
@@ -526,12 +514,14 @@ round(mean(Full_Final$EmissionCoef[Full_Final$Q17_Gov == 0]),2)
 round(mean(Full_Final$EmissionCoef[Full_Final$Q17_LA == 0]),2)
 round(mean(Full_Final$EmissionCoef[Full_Final$Q17_Other == 0]),2)
 
+
 ## Responsibility beliefs:
 Full_Final$Q17_Firms[ (Full_Final$Q17_Cons == 0) & (Full_Final$Q17_Gov == 0) & (Full_Final$Q17_LA == 0) & (Full_Final$Q17_Other == 0) ] <- 2
 Full_Final$Q17_Cons[ (Full_Final$Q17_Firms == 0) & (Full_Final$Q17_Gov == 0) & (Full_Final$Q17_LA == 0) & (Full_Final$Q17_Other == 0) ] <- 2
 Full_Final$Q17_Cons[Full_Final$Q17_Cons != 2] <- 0
 Full_Final$Q17_Cons[Full_Final$Q17_Cons == 2] <- 1
 Full_Final$Q17_Other[ (Full_Final$Q17_Cons == 0) & (Full_Final$Q17_Gov == 0) & (Full_Final$Q17_LA == 0) & (Full_Final$Q17_Firms == 0) ] <- 2
+
 
 ## Correlation heatmap:
 Full_Final <- data.frame(read.csv("FinalData.csv")) ## Imports from the excel file straight from the survey companies website.
@@ -569,6 +559,7 @@ melted_cormat <- melt(upper_tri, na.rm = TRUE)
 ## Rename matrix columns
 colnames(melted_cormat) <- c("Variable1", "Variable2","Correlation")
 
+
 ## Correlation heatmap
 ggheatmap <- ggplot(melted_cormat, aes(Variable2, Variable1, fill = Correlation))+
   geom_tile(color = "white")+
@@ -583,111 +574,10 @@ ggheatmap <- ggplot(melted_cormat, aes(Variable2, Variable1, fill = Correlation)
   coord_fixed()
 
 
-## Reporting distance-decay WTP:
-DistanceDecay <- rbind("Q6"=data.frame("LowIncomeLowDistance"=mean(Full_Final$Q6WTP[ (Full_Final$Q3Distance < median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome < median(Full_Final$Q24AIncome)) ]),
-           "LowIncomeHighDistance"= mean(Full_Final$Q6WTP[ (Full_Final$Q3Distance > median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome < median(Full_Final$Q24AIncome)) ]),
-           "HighIncomeLowDistance"=mean(Full_Final$Q6WTP[ (Full_Final$Q3Distance < median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome > median(Full_Final$Q24AIncome)) ]),
-           "HighIncomeHighDistance"= mean(Full_Final$Q6WTP[ (Full_Final$Q3Distance > median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome > median(Full_Final$Q24AIncome)) ])),
-      "Q7"=data.frame("LowIncomeLowDistance"=mean(Full_Final$Q7WTP[ (Full_Final$Q3Distance < median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome < median(Full_Final$Q24AIncome)) ]),
-           "LowIncomeHighDistance"= mean(Full_Final$Q7WTP[ (Full_Final$Q3Distance > median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome < median(Full_Final$Q24AIncome)) ]),
-           "HighIncomeLowDistance"=mean(Full_Final$Q7WTP[ (Full_Final$Q3Distance < median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome > median(Full_Final$Q24AIncome)) ]),
-           "HighIncomeHighDistance"= mean(Full_Final$Q7WTP[ (Full_Final$Q3Distance > median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome > median(Full_Final$Q24AIncome)) ])),
-      "Emissions"=data.frame("LowIncomeLowDistance"=mean(Full_Final$EmissionCoef[ (Full_Final$Q3Distance < median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome < median(Full_Final$Q24AIncome)) ]),
-                                   "LowIncomeHighDistance"= mean(Full_Final$EmissionCoef[ (Full_Final$Q3Distance > median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome < median(Full_Final$Q24AIncome)) ]),
-                                   "HighIncomeLowDistance"=mean(Full_Final$EmissionCoef[ (Full_Final$Q3Distance < median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome > median(Full_Final$Q24AIncome)) ]),
-                                   "HighIncomeHighDistance"= mean(Full_Final$EmissionCoef[ (Full_Final$Q3Distance > median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome > median(Full_Final$Q24AIncome)) ])),
-            "Performance"=data.frame("LowIncomeLowDistance"=mean(Full_Final$PerformanceCoef[ (Full_Final$Q3Distance < median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome < median(Full_Final$Q24AIncome)) ]),
-                                     "LowIncomeHighDistance"= mean(Full_Final$PerformanceCoef[ (Full_Final$Q3Distance > median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome < median(Full_Final$Q24AIncome)) ]),
-                                     "HighIncomeLowDistance"=mean(Full_Final$PerformanceCoef[ (Full_Final$Q3Distance < median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome > median(Full_Final$Q24AIncome)) ]),
-                                     "HighIncomeHighDistance"= mean(Full_Final$PerformanceCoef[ (Full_Final$Q3Distance > median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome > median(Full_Final$Q24AIncome)) ])))
+####################################################################################
+############ Section 3B: Descriptive Graphics
+############ Notes: Long and also tackled in Section 7 after the CVM
 
-
-## Histograms of Q5 and Q19 understanding:
-Q5GraphA <- ggplot(Full_Final, aes(x=Q5Knowledge)) + 
-  geom_histogram(aes(y = ..density..),color="black", fill="white",bins = 50)+
-  stat_function(
-    fun = function(x, mean, sd, n){
-      n * dnorm(x = x, mean = mean, sd = sd)
-    }, 
-    args = with(Full_Final, c(mean = mean(Q5Knowledge), sd = sd(Q5Knowledge), n
-                              = 5)))+
-  scale_x_continuous(breaks=waiver(),labels=c("1\n (N = 71)","2\n (N = 187)","3\n (N = 252)","4\n (N = 113)","5\n (N = 47)"))+
-  ggtitle("Histogram of Q5 Knowledge responses.")
-
-Q19GraphA <- ggplot(Full_Final, aes(x=Q19Knowledge)) + 
-  geom_histogram(aes(y = ..density..),color="black", fill="white",bins = 50)+
-  stat_function(
-    fun = function(x, mean, sd, n){
-      n * dnorm(x = x, mean = mean, sd = sd)
-    }, 
-    args = with(Full_Final, c(mean = mean(Q19Knowledge), sd = sd(Q19Knowledge), n
-                          = 5)))+
-  scale_x_continuous(breaks=waiver(),labels=c("1\n (N = 43)","2\n (N = 158)","3\n (N = 267)","4\n (N = 159)","5\n (N = 43)"))+
-  ggtitle("Histogram of Q19 Knowledge responses.")
-grid.arrange(Q5GraphA, Q19GraphA)
-
-
-## Correlations between attitudes and awareness:
-# Q5/Q13: 0.309, p=0 
-# Q5/Q14: 0.238, p=0 
-# Q5/Q15: 0.273, p=0 
-# Q19/Q13: 0.321, p=0 
-# Q19/Q14: 0.359, p=0 
-# Q19/Q15: 0.364, p=0 
-
-## Histograms of Q13, 14, 15 concern:
-Q13GraphA <- ggplot(Full_Final, aes(x=Q13CurrentThreatToSelf)) + 
-  geom_histogram(aes(y = ..density..),color="black", fill="white",bins = 50)+
-  stat_function(
-    fun = function(x, mean, sd, n){
-      n * dnorm(x = x, mean = mean, sd = sd)
-    }, 
-    args = with(Full_Final, c(mean = mean(Q13CurrentThreatToSelf), sd = sd(Q13CurrentThreatToSelf), n
-                              = 5)))+
-  scale_x_continuous(breaks=waiver(),labels=c("1\n (N = 32)","2\n (N = 55)","3\n (N = 290)","4\n (N = 184)","5\n (N = 109)"))+
-  ggtitle("Histogram of Q13 Current Threat to Self responses.")
-
-Q14GraphA <- ggplot(Full_Final, aes(x=Q14FutureThreatToSelf)) + 
-  geom_histogram(aes(y = ..density..),color="black", fill="white",bins = 50)+
-  stat_function(
-    fun = function(x, mean, sd, n){
-      n * dnorm(x = x, mean = mean, sd = sd)
-    }, 
-    args = with(Full_Final, c(mean = mean(Q14FutureThreatToSelf), sd = sd(Q14FutureThreatToSelf), n
-                              = 5)))+
-  scale_x_continuous(breaks=waiver(),labels=c("1\n (N = 20)","2\n (N = 37)","3\n (N = 204)","4\n (N = 243)","5\n (N = 166)"))+
-  ggtitle("Histogram of Q14FutureThreatToSelf responses.")
-
-Q15GraphA <- ggplot(Full_Final, aes(x=Q15ThreatToEnvironment)) + 
-  geom_histogram(aes(y = ..density..),color="black", fill="white",bins = 50)+
-  stat_function(
-    fun = function(x, mean, sd, n){
-      n * dnorm(x = x, mean = mean, sd = sd)
-    }, 
-    args = with(Full_Final, c(mean = mean(Q15ThreatToEnvironment), sd = sd(Q15ThreatToEnvironment), n
-                              = 5)))+
-  scale_x_continuous(breaks=waiver(),labels=c("1\n (N = 12)","2\n (N = 30)","3\n (N = 154)","4\n (N = 216)","5\n (N = 258)"))+
-  ggtitle("Histogram of Q15ThreatToEnvironment responses.")
-grid.arrange(Q13GraphA, Q14GraphA,Q15GraphA)
-
-
-Q21Hist <- ggplot(Full_Final, aes(x=Q21Experts)) + 
-  geom_histogram(aes(y = ..density..),color="black", fill="white",bins = 50)+
-  stat_function(
-    fun = function(x, mean, sd, n){
-      n * dnorm(x = x, mean = mean, sd = sd)
-    }, 
-    args = with(Full_Final, c(mean = mean(Q21Experts), sd = sd(Q21Experts), n
-                              = 6)))+
-  scale_x_continuous(breaks=waiver(),
-                     name="Experts",
-                     labels = c("1: Unconfident\n (N = 16)","2\n (N = 46)","3\n (N = 251)","4\n (N = 237)","5: Confident\n (N = 120)"))+
-  ggtitle("Histogram of Q21Experts")
-
-
-##########################################################  
-####### Descriptive Graphics
-##########################################################  
 
 # PART ONE: Acceptance Rates
 library(ggplot2)
@@ -703,6 +593,7 @@ Acceptance <- cbind(Acceptance,100/Acceptance[,3]*Acceptance[,1],100/Acceptance[
 colnames(Acceptance) <- c("A","B","Total","Acceptance","Rejected","Dataset")
 Acceptance <- data.frame(Acceptance)
 
+
 ## AcceptanceRate1 is acceptance of each option in the Full sample
 AcceptanceRate1 <- rbind(t(data.frame("Q9"=c(c(length(Full_Long$ID[(( (Full_Long$Task == 1) & (Full_Long$alt == "A") & (Full_Long$Choice ==TRUE)) )] )),c(length(Full_Long$ID[(( (Full_Long$Task == 1) & (Full_Long$alt == "A") & (Full_Long$Choice ==FALSE)) )] ))))),
               t(data.frame("Q10"=c(c(length(Full_Long$ID[(( (Full_Long$Task == 2) & (Full_Long$alt == "A") & (Full_Long$Choice ==TRUE)) )] )),c(length(Full_Long$ID[(( (Full_Long$Task == 2) & (Full_Long$alt == "A") & (Full_Long$Choice ==FALSE)) )] ))))),
@@ -711,6 +602,7 @@ AcceptanceRate1 <- rbind(t(data.frame("Q9"=c(c(length(Full_Long$ID[(( (Full_Long
 AcceptanceRate1 <- cbind(AcceptanceRate1,c(1,2,3,4),round(AcceptanceRate1[,1:2]/sum(AcceptanceRate1[1,1:2])*100,3))
 colnames(AcceptanceRate1) <- c("A","B","Question","APercent","BPercent")
 AcceptanceRate1 <- data.frame(AcceptanceRate1)
+
 
 ## AcceptanceRate2 is acceptance of each option in the sample eliminating those failing the dominance test
 AcceptanceRate2 <- rbind(t(data.frame("Q9"=c(c(length(Full_Dominated$ID[(( (Full_Dominated$Task == 1) & (Full_Dominated$alt == "A") & (Full_Dominated$Choice ==TRUE)) )] )),c(length(Full_Dominated$ID[(( (Full_Dominated$Task == 1) & (Full_Dominated$alt == "A") & (Full_Dominated$Choice ==FALSE)) )] ))))),
@@ -722,6 +614,7 @@ colnames(AcceptanceRate2) <- c("A","B","Question","APercent","BPercent")
 AcceptanceRate2 <- data.frame(AcceptanceRate2)
 AcceptanceRate2
 
+
 ## AcceptanceRate3 is acceptance of each option in the sample relying on certainty
 AcceptanceRate3 <- rbind(t(data.frame("Q9"=c(c(length(Full_Certain$ID[(( (Full_Certain$Task == 1) & (Full_Certain$alt == "A") & (Full_Certain$Choice ==TRUE)) )] )),c(length(Full_Certain$ID[(( (Full_Certain$Task == 1) & (Full_Certain$alt == "A") & (Full_Certain$Choice ==FALSE)) )] ))))),
               t(data.frame("Q10"=c(c(length(Full_Certain$ID[(( (Full_Certain$Task == 2) & (Full_Certain$alt == "A") & (Full_Certain$Choice ==TRUE)) )] )),c(length(Full_Certain$ID[(( (Full_Certain$Task == 2) & (Full_Certain$alt == "A") & (Full_Certain$Choice ==FALSE)) )] ))))),
@@ -732,6 +625,7 @@ colnames(AcceptanceRate3) <- c("A","B","Question","APercent","BPercent")
 AcceptanceRate3 <- data.frame(AcceptanceRate3)
 AcceptanceRate3
 
+
 ## AcceptanceRate4 is acceptance of each option in the consequential sample
 AcceptanceRate4 <- rbind(t(data.frame("Q9"=c(c(length(Full_Cons$ID[(( (Full_Cons$Task == 1) & (Full_Cons$alt == "A") & (Full_Cons$Choice ==TRUE)) )] )),c(length(Full_Cons$ID[(( (Full_Cons$Task == 1) & (Full_Cons$alt == "A") & (Full_Cons$Choice ==FALSE)) )] ))))),
               t(data.frame("Q10"=c(c(length(Full_Cons$ID[(( (Full_Cons$Task == 2) & (Full_Cons$alt == "A") & (Full_Cons$Choice ==TRUE)) )] )),c(length(Full_Cons$ID[(( (Full_Cons$Task == 2) & (Full_Cons$alt == "A") & (Full_Cons$Choice ==FALSE)) )] ))))),
@@ -741,6 +635,7 @@ AcceptanceRate4 <- cbind(AcceptanceRate4,c(1,2,3,4),round(AcceptanceRate4[,1:2]/
 colnames(AcceptanceRate4) <- c("A","B","Question","APercent","BPercent")
 AcceptanceRate4 <- data.frame(AcceptanceRate4)
 AcceptanceRate4
+
 
 ## Combining line plots of acceptance rates over questions by dataset
 ### Note no major differences by question or data. 
@@ -760,10 +655,7 @@ ggplot()+
 
 
 # PART TWO: Attitudes
-
-
 Full_Cons <- data.frame(Full_Cons) ## Change into dataframe format 
-
 Full_Long <- data.frame(Full_Long) ## Same here - ggplot2 throws a fit without it.
 
 ## Here the Blue-Planet question is manipulated to be either of two values
@@ -855,10 +747,14 @@ PerformanceCurve <- ggplot(Fulls, aes(Choice,Performance_B)) +
 grid.arrange(PriceCurve, EmissionsCurve, PerformanceCurve)
 
 
-##########################################################  
-####### CE
-##########################################################  
+####################################################################################
+############ Section 4: Choice Experiment
+############ Lines: 745:1169
+############ Notes: Long and estimates a lot of models, initially in MLOGIT but later in GMNL.
 
+
+####################################################################################
+############ Section 4: Setup
 
 # Full <- cbind(Full,Classes)
 ## Have to do the manipulation section again to ignore the changes made in the graphics section
@@ -900,7 +796,8 @@ Full_Certain <- Full_Dominated[Full_Dominated$Q12CECertainty >= 2,]
 Full_Cons <- Full_Certain[Full_Certain$Q20Consequentiality >= 1,]
 
 
-######################## Estimation section:
+####################################################################################
+############ Section 4: Estimation with MLOGIT
 
 ###### Aim is here to estimate a range of possible specifications 
 
@@ -993,18 +890,18 @@ MXL_4_WTP <- c(-1*coef(MXL_4)["Emission"]/coef(MXL_4)["Price"],-1*coef(MXL_4)["P
 
 
 ## Model 7B: MXL all sociodemographics, WTP-space, attributes in levels
-MXL_4B <- mlogit(
-  Choice ~ Price + Performance.Level + Emission.Level | 
-    Order + Task + Q1Gender + Q2Age + Q3Distance
-  + Q4Trips + Q16BP + Q18Charity 
-  + Q20Consequentiality
-  + Q21Experts +Q22Education+ Q23Employment
-  +  Q24AIncome + Timing,
-  Full_Long, rpar=c(Price="n"),
-  R=1000,correlation = FALSE,
-  reflevel="A",halton=NA,method="bfgs",panel=FALSE,seed=123)
-summary(MXL_4B)
-MXL_4_WTP <- c(-1*coef(MXL_4)["Emission"]/coef(MXL_4)["Price"],-1*coef(MXL_4)["Performance"]/coef(MXL_4)["Price"])
+# MXL_4B <- mlogit(
+#   Choice ~ Price + Performance.Level + Emission.Level | 
+#     Order + Task + Q1Gender + Q2Age + Q3Distance
+#   + Q4Trips + Q16BP + Q18Charity 
+#   + Q20Consequentiality
+#   + Q21Experts +Q22Education+ Q23Employment
+#   +  Q24AIncome + Timing,
+#   Full_Long, rpar=c(Price="n"),
+#   R=1000,correlation = FALSE,
+#   reflevel="A",halton=NA,method="bfgs",panel=FALSE,seed=123)
+# summary(MXL_4B)
+# MXL_4_WTP <- c(-1*coef(MXL_4)["Emission"]/coef(MXL_4)["Price"],-1*coef(MXL_4)["Performance"]/coef(MXL_4)["Price"])
 
 
 
@@ -1027,28 +924,21 @@ summary(MXL_5)
 MXL_5_WTP <- c(-1*coef(MXL_5)["Emission"]/coef(MXL_5)["Price"],-1*coef(MXL_5)["Performance"]/coef(MXL_5)["Price"])
 
 
+####################################################################################
+############ Section 4: Post-estimation analysis
+############ Notes: LRtests, AIC, LLik, prediction accuracy
+
+
 ## Testing whether the MXL is preferred to the MNL:   
 lrtest(MNL_3,MXL_4)
 lrtest(MXL_3,MXL_4)
 lrtest(MXL_4,MXL_5)
 
 
-## Eliciting MWTP from each model:
-AllWTPs <- round(t(data.frame("Model 1: MNL - Attributes only" = c(MNL_1_WTP),
-                   "Model 2: MNL - Quadratic attributes:"=c(MNL_2_WTP),
-                   "Model 3: MNL - All sociodemographics:"=c(MNL_3_WTP),
-                   "Model 4: MXL - Attributes Only"=c(MXL_1_WTP),
-                   "Model 5: MXL - Quadratic attributes"=c(MXL_2_WTP),
-                   "Model 6: MXL - SDs, utility-space"=c(MXL_3_WTP),
-                   "Model 7: MXL - SDs, WTP-space"=c(MXL_4_WTP),
-                   "Model 8: MXL - SDs, WTP-space, truncated sample"=c(MXL_5_WTP))),6)
-AllWTPs <- data.frame(AllWTPs)
-AllWTP <- rownames(AllWTPs)
-colnames(AllWTPs) <- c("Emission","Performance")
-AllWTPs <- data.frame(cbind(AllWTPs$Emission,AllWTPs$Emission*100,AllWTPs$Performance,AllWTPs$Performance*100))
-colnames(AllWTPs) <- c("Emission MWTP","Emission Total","Performance MWTP", "Performance Total")
-rownames(AllWTPs) <- AllWTP
-## The aim above is to create a data.frame which stores all the MWTP and total WTP by model specification
+
+######################## Model goodness-of-fit:
+
+
 
 ## Storing all models AICs as an indicator of goodness-of-fit
 Models_AIC <- round(t(data.frame("Model 1: MNL - Attributes only" = AIC(MNL_1),
@@ -1073,69 +963,6 @@ Models_LogLik <- round(t(data.frame("Model 1: MNL - Attributes only" = logLik(MN
 Models_Evaluation <- cbind(AllWTPs,Models_AIC,Models_LogLik)
 xtable::xtable(Models_Evaluation,digits=3)
 
-## Compare attribute MWTP by sample
-FullWTPs <- data.frame("Full sample" = 
-                     c(-1*coef(MXL_4)["Emission"]/coef(MXL_4)["Price"],
-                       -1*coef(MXL_4)["Performance"]/coef(MXL_4)["Price"])
-                   ,"x100%" = 
-                     c(-1*(coef(MXL_4)["Emission"]/coef(MXL_4)["Price"] * 100),
-                       -1*(coef(MXL_4)["Performance"]/coef(MXL_4)["Price"] *100)),
-                   "Truncated" = 
-                     c(-1*coef(MXL_5)["Emission"]/coef(MXL_5)["Price"],
-                       -1*coef(MXL_5)["Performance"]/coef(MXL_5)["Price"]),
-                   " x100%" = 
-                     c(-1*(coef(MXL_5)["Emission"]/coef(MXL_5)["Price"] * 100),
-                       -1*(coef(MXL_5)["Performance"]/coef(MXL_5)["Price"] *100)))
-FullWTPs
-
-
-## Plot conditional distribution of MWTP. 
-layout(matrix(c(1,1,2,2), 2, 2, byrow = TRUE), widths=c(1,1), heights=c(4,4))
-plot(rpar(MXL_4,"Price"), main="MXL: Full sample")
-plot(rpar(MXL_5,"Price"), main="MXL: Truncation")
-AIC(MXLFullTruncated)
-
-## Bootstrapped clustered individual standard errors: 
-library(clusterSEs)
-CBSM <- cluster.bs.mlogit(MXL_5, Full_Cons, ~ ID, boot.reps=100,seed = 123)
-
-WTPbs <- data.frame("Emission" = c(CBSM$ci[4,1]/CBSM$ci[2,1],CBSM$ci[4,2]/CBSM$ci[2,2]),
-                    "Performance"=c(CBSM$ci[3,1]/CBSM$ci[2,1],CBSM$ci[3,2]/CBSM$ci[2,2]))
-WTPbs <- t(WTPbs)
-WTPbs <- -1* WTPbs
-WTPbs <- cbind(WTPbs[,1],FullWTPs[,2],FullWTPs[,2])
-colnames(WTPbs) <- c("Lower","Mean","Upper")
-round(WTPbs,3)
-
-
-######################## Fitting respondent-specific MWTP:
-
-
-Fulls <- cbind(Fulls,
-               "PriceParam"=fitted(MXL_4,type = "parameters"),
-               "EmissionWTP"=coef(MXL_4)["Emission"],
-               "PerformanceWTP"=coef(MXL_4)["Performance"])
-
-Fulls$EmissionWTP <- -1*Fulls$EmissionWTP/Fulls$Price
-Fulls$PerformanceWTP <- -1*Fulls$PerformanceWTP/Fulls$Price
-
-
-Full_Long <- cbind(Full_Long,
-                   "PriceCoef"=slice(.data = data.frame(fitted(MXL_4,type = "parameters")),rep(1:n(), each = 2)),
-                   "EmissionCoef"=coef(MXL_4)["Emission"],
-                   "PerformanceCoef"=coef(MXL_4)["Performance"])
-names(Full_Long)[45] <- "PriceCoef"
-Full_Long$EmissionCoef <- -1*Full_Long$EmissionCoef/Full_Long$PriceCoef
-Full_Long$PerformanceCoef <- -1*Full_Long$PerformanceCoef/Full_Long$PriceCoef
-
-
-ChoiceData <- data.frame("cs" = slice(.data = Choices,rep(1:n(), each = 2)))
-colnames(ChoiceData) <- c("cs")
-Full_Final <- cbind(Full_Final, "cs"=ChoiceData)
-
-# NewFull <- mlogit.data(Full, shape = "wide", choice = "Choice",
-#                          varying = 16:21, sep = "_", id.var = "ID")
-# Plotted in a latter section of code
 
 ######################## Model prediction accuracy:
 
@@ -1245,13 +1072,113 @@ MXL_5_Accuracy
 
 ## Data frame of all model's prediction accuracy: 
 Models_Predictions <- rbind("Model 1: MNL - Attributes only" = c(MNL_1_Accuracy),
-      "Model 2: MNL - Quadratic attributes:"=c(MNL_2_Accuracy),
-      "Model 3: MNL - All sociodemographics:"=c(MNL_3_Accuracy),
-      "Model 4: MXL - Attributes Only"=c(MXL_1_Accuracy),
-      "Model 5: MXL - Quadratic attributes"=c(MXL_2_Accuracy),
-      "Model 6: MXL - SDs, utility-space"=c(MXL_3_Accuracy),
-      "Model 7: MXL - SDs, WTP-space"=c(MXL_4_Accuracy),
-      "Model 8: MXL - SDs, WTP-space, truncated sample"=c(MXL_5_Accuracy))
+                            "Model 2: MNL - Quadratic attributes:"=c(MNL_2_Accuracy),
+                            "Model 3: MNL - All sociodemographics:"=c(MNL_3_Accuracy),
+                            "Model 4: MXL - Attributes Only"=c(MXL_1_Accuracy),
+                            "Model 5: MXL - Quadratic attributes"=c(MXL_2_Accuracy),
+                            "Model 6: MXL - SDs, utility-space"=c(MXL_3_Accuracy),
+                            "Model 7: MXL - SDs, WTP-space"=c(MXL_4_Accuracy),
+                            "Model 8: MXL - SDs, WTP-space, truncated sample"=c(MXL_5_Accuracy))
+
+
+######################## Model WTP:
+
+
+
+######################## Model-specific WTP:
+
+AllWTPs <- round(t(data.frame("Model 1: MNL - Attributes only" = c(MNL_1_WTP),
+                              "Model 2: MNL - Quadratic attributes:"=c(MNL_2_WTP),
+                              "Model 3: MNL - All sociodemographics:"=c(MNL_3_WTP),
+                              "Model 4: MXL - Attributes Only"=c(MXL_1_WTP),
+                              "Model 5: MXL - Quadratic attributes"=c(MXL_2_WTP),
+                              "Model 6: MXL - SDs, utility-space"=c(MXL_3_WTP),
+                              "Model 7: MXL - SDs, WTP-space"=c(MXL_4_WTP),
+                              "Model 8: MXL - SDs, WTP-space, truncated sample"=c(MXL_5_WTP))),6)
+AllWTPs <- data.frame(AllWTPs)
+AllWTP <- rownames(AllWTPs)
+colnames(AllWTPs) <- c("Emission","Performance")
+AllWTPs <- data.frame(cbind(AllWTPs$Emission,AllWTPs$Emission*100,AllWTPs$Performance,AllWTPs$Performance*100))
+colnames(AllWTPs) <- c("Emission MWTP","Emission Total","Performance MWTP", "Performance Total")
+rownames(AllWTPs) <- AllWTP
+## The aim above is to create a data.frame which stores all the MWTP and total WTP by model specification
+
+
+######################## Sample-specific WTP:
+
+FullWTPs <- data.frame("Full sample" = 
+                     c(-1*coef(MXL_4)["Emission"]/coef(MXL_4)["Price"],
+                       -1*coef(MXL_4)["Performance"]/coef(MXL_4)["Price"])
+                   ,"x100%" = 
+                     c(-1*(coef(MXL_4)["Emission"]/coef(MXL_4)["Price"] * 100),
+                       -1*(coef(MXL_4)["Performance"]/coef(MXL_4)["Price"] *100)),
+                   "Truncated" = 
+                     c(-1*coef(MXL_5)["Emission"]/coef(MXL_5)["Price"],
+                       -1*coef(MXL_5)["Performance"]/coef(MXL_5)["Price"]),
+                   " x100%" = 
+                     c(-1*(coef(MXL_5)["Emission"]/coef(MXL_5)["Price"] * 100),
+                       -1*(coef(MXL_5)["Performance"]/coef(MXL_5)["Price"] *100)))
+FullWTPs
+
+
+######################## Plotted WTP:
+
+## Plot conditional distribution of MWTP. 
+layout(matrix(c(1,1,2,2), 2, 2, byrow = TRUE), widths=c(1,1), heights=c(4,4))
+plot(rpar(MXL_4,"Price"), main="MXL: Full sample")
+plot(rpar(MXL_5,"Price"), main="MXL: Truncation")
+AIC(MXLFullTruncated)
+
+
+######################## Bootstrapped WTP:
+
+## Bootstrapped clustered individual standard errors: 
+library(clusterSEs)
+CBSM <- cluster.bs.mlogit(MXL_5, Full_Cons, ~ ID, boot.reps=100,seed = 123)
+
+WTPbs <- data.frame("Emission" = c(CBSM$ci[4,1]/CBSM$ci[2,1],CBSM$ci[4,2]/CBSM$ci[2,2]),
+                    "Performance"=c(CBSM$ci[3,1]/CBSM$ci[2,1],CBSM$ci[3,2]/CBSM$ci[2,2]))
+WTPbs <- t(WTPbs)
+WTPbs <- -1* WTPbs
+WTPbs <- cbind(WTPbs[,1],FullWTPs[,2],FullWTPs[,2])
+colnames(WTPbs) <- c("Lower","Mean","Upper")
+round(WTPbs,3)
+
+
+######################## Fitting respondent-specific MWTP:
+
+
+Fulls <- cbind(Fulls,
+               "PriceParam"=fitted(MXL_4,type = "parameters"),
+               "EmissionWTP"=coef(MXL_4)["Emission"],
+               "PerformanceWTP"=coef(MXL_4)["Performance"])
+
+Fulls$EmissionWTP <- -1*Fulls$EmissionWTP/Fulls$Price
+Fulls$PerformanceWTP <- -1*Fulls$PerformanceWTP/Fulls$Price
+
+
+Full_Long <- cbind(Full_Long,
+                   "PriceCoef"=slice(.data = data.frame(fitted(MXL_4,type = "parameters")),rep(1:n(), each = 2)),
+                   "EmissionCoef"=coef(MXL_4)["Emission"],
+                   "PerformanceCoef"=coef(MXL_4)["Performance"])
+names(Full_Long)[45] <- "PriceCoef"
+Full_Long$EmissionCoef <- -1*Full_Long$EmissionCoef/Full_Long$PriceCoef
+Full_Long$PerformanceCoef <- -1*Full_Long$PerformanceCoef/Full_Long$PriceCoef
+
+
+ChoiceData <- data.frame("cs" = slice(.data = Choices,rep(1:n(), each = 2)))
+colnames(ChoiceData) <- c("cs")
+Full_Final <- cbind(Full_Final, "cs"=ChoiceData)
+
+# NewFull <- mlogit.data(Full, shape = "wide", choice = "Choice",
+#                          varying = 16:21, sep = "_", id.var = "ID")
+# Plotted in a latter section of code
+
+
+####################################################################################
+############ Section 4B: Choice Experiment with GMNL
+############ Lines: 1173:1353
+############ NOTES: LCM currently not working with latest GMNL version.
 
 
 ##############  GMNL is an alternative to MLOGIT
@@ -1269,8 +1196,10 @@ MNL_GM <- gmnl(  Choice ~ Price + Performance + Emission |
                  model = "mnl",alt.subset = c("A","B"),reflevel = "A")
 summary(MNL_GM)
 
+
 ## GMNL has an inbuilt WTP function:
 wtp.gmnl(MNL_GM,"Price",3)
+
 
 ## Replicating the MXL
 GMNL_MXLDefault <- gmnl(Choice ~ Price + Performance + Emission | 1 | 0|
@@ -1290,11 +1219,18 @@ wtp.gmnl(GMNL_MXLDefault,"Price",3)
 coef(GMNL_MXLDefault)["Performance"]/coef(GMNL_MXLDefault)["Price"]
 coef(GMNL_MXLDefault)["Emission"]/coef(GMNL_MXLDefault)["Price"]
 
+
 ## GMNL has a plot function for the conditional distribution of the random parameters:
 plot(GMNL_MXLDefault, par = "Price",type = "density", col = "grey",wrt="Price")
 
 
-############ Estimating LATENT-CLASS MODELS
+####################################################################################
+############ Section 4B: Latent-Class Models:
+
+
+install.packages("versions")
+library(versions)
+install.versions(c('gmnl'), c('1.1-3.1')) ## May need to revert version for the LCM to work
 
 
 ## Two class model:
@@ -1311,6 +1247,7 @@ summary(LC_GM)
 AIC(LC_GM) ## 1749.514
 BIC(LC_GM) ## 1839.79
 
+
 ## Three class model:
 LC_GM3 <- gmnl(Choice ~ Price + Performance + Emission | 0 |
                  0 | 0 | 1+  Q1Gender + Q2Age + Q3Distance
@@ -1325,6 +1262,8 @@ summary(LC_GM3)
 AIC(LC_GM3) # 1691.97
 BIC(LC_GM3) # 1856.605
 
+
+## Four-class model: (NOTE: Does not compute) 
 LC_GM4 <- gmnl(Choice ~ Price + Performance + Emission | 0 |
                  0 | 0 | 1+  Q1Gender + Q2Age + Q3Distance
                + Q4Trips + Q16BP + Q18Charity
@@ -1351,6 +1290,7 @@ shares <- function(obj){
   names(shares) <- paste("share q", 1:Q, sep = "=")  
   return(shares)
 }
+
 
 ## Plot confidence-intervals for the LCM: 
 plot_ci_lc <- function(obj, var = NULL, mar = c(2, 5, 2, 2),
@@ -1396,6 +1336,7 @@ plot_ci_lc <- function(obj, var = NULL, mar = c(2, 5, 2, 2),
 shares(LC_GM)
 shares(LC_GM3)
 
+
 ## Assigning classes to individuals:
 ClassProbs <- LC_GM3$Qir ## Thankfully GMNL has an inbuilt method of calculating individual likelihood of class-memberships
 colnames(ClassProbs) <- c(1,2,3) ## Name columns as one of the classes. Here I'm using the 2-class model but this can easily be augmented if the 2+ models fit better. 
@@ -1403,14 +1344,17 @@ Classes <- data.frame("Classes" = as.integer(colnames(ClassProbs)[apply(round(Cl
 Full_Long <- cbind(Full_Long,slice(.data = Classes,rep(1:n(), each = 8)))
 Full_Long$Classes <- as.double(Full_Long$Classes)
 
+
 ## Plotting the confidence intervals of coefficients:
 plot_ci_lc(LC_GM,var = c("Price"))
+
 
 ## LCM class-specific WTP:
 -1* (coef(LC_GM)["class.1.Performance"]/coef(LC_GM)["class.1.Price"])
 -1* (coef(LC_GM)["class.1.Emission"]/coef(LC_GM)["class.1.Price"])
 -1* (coef(LC_GM)["class.2.Performance"]/coef(LC_GM)["class.2.Price"])
 -1* (coef(LC_GM)["class.2.Emission"]/coef(LC_GM)["class.2.Price"])
+
 
 ## Sample average WTP 
 wtp_bar <- data.frame("Emissions" = (-coef(LC_GM)["class.1.Emission"] / coef(LC_GM)["class.1.Price"]) * shares(LC_GM)[1] + 
@@ -1420,20 +1364,16 @@ wtp_bar <- data.frame("Emissions" = (-coef(LC_GM)["class.1.Emission"] / coef(LC_
 wtp_bar
 wtp_bar*100
 
-# 
-# library(poLCA)
-# res2 = poLCA(cbind(Choice=Choice+1, 
-#                    Price=as.integer(Price)+1, Performance=Performance+1, 
-#                    Emission=Emission+1) ~ 1, 
-#              maxiter=50000, nclass=3, 
-#              nrep=10, data=Full_Final)
 
-##########################################################  
-####### CVM
-##########################################################  
+####################################################################################
+############ Section 5: Contingent Valuation
+############ Lines: 1367:1749
+############ NOTES: Split into estimation (1367:1705) and Marginal Effects (1705:1745) sections
 
 
-#################### Setup using packages and manipulation:
+####################################################################################
+############ Section 5: Setup of packages and data
+
 
 ## Have to do some R magic here to install a package not on CRAN
 if (!requireNamespace("BiocManager", quietly = TRUE))
@@ -1444,16 +1384,19 @@ install.packages("interval")
 install.packages("DCchoice")
 library(DCchoice)
 
+
 ## Creating new dataframes depending on ordering or consequentiality. 
-Full_NormalOrder <-Full_Long[Full_Long$Order == 0]
-Full_OtherOrder <-Full_Long[Full_Long$Order == 1]
-Full_Consequential <-Full_Long[Full_Long$Q20Consequentiality == 1]
-Full_Inconsequential <-Full_Long[Full_Long$Q20Consequentiality != 1]
+Full_NormalOrder <-Full_Long[Full_Long$Order == 0,]
+Full_OtherOrder <-Full_Long[Full_Long$Order == 1,]
+Full_Consequential <-Full_Long[Full_Long$Q20Consequentiality == 1,]
+Full_Inconsequential <-Full_Long[Full_Long$Q20Consequentiality != 1,]
+
 
 ## I also split the other dataframe for ease of fitting WTP 
 FullSurvey2 <- data.frame(FullSurvey2)
 Full_Order1 <- FullSurvey2[ (FullSurvey2$Order ==0) ,]
 Full_Order2 <- FullSurvey2[ (FullSurvey2$Order ==1) ,]
+
 
 ## Here I construct dataframes which calculate acceptance rates for each CVM question by ordering 
 Q6 <- t(data.frame("Normal" = c(length(FullSurvey2$Q6ResearchResponse[(FullSurvey2$Order ==0) & (FullSurvey2$Q6ResearchResponse ==0)]),length(FullSurvey2$Q6ResearchResponse[(FullSurvey2$Order ==0) & (FullSurvey2$Q6ResearchResponse ==1)])),
@@ -1476,7 +1419,10 @@ CVM <- cbind(rbind(Q6,Q7,Q7b),c("Q6","Q6","Q7","Q7","Q7b","Q7b"))
 colnames(CVM) <- c("Reject","Accept","Percentage","Order","Question")
 CVM <- data.frame(CVM)
 
-#################### Graphing ordering effects:
+
+####################################################################################
+############ Section 5: Graphing
+
 
 ## Plotting order effects on bid acceptance by question. 
 ggplot(aes(x=Order,y=Percentage),data=CVM)+ 
@@ -1494,13 +1440,17 @@ Ordering <- data.frame(rbind("Normal order"=data.frame("Accepting higher bid"=c(
                                                        "Rejecting higher bid" = c(length(unique(Full_Long$ID[ (Full_Long$Q7Response2 == 1) & (Full_Long$Q7Bid > Full_Long$Q7Bid2) & (Full_Long$Order == 0) ])))),
                              "Reversed"=data.frame("Accepting higher bid"=c(length(unique(Full_Long$ID[ (Full_Long$Q7Response2 == 0) & (Full_Long$Q7Bid > Full_Long$Q7Bid2) & (Full_Long$Order == 1) ]))),
                                                    "Rejecting higher bid" = c(length(unique(Full_Long$ID[ (Full_Long$Q7Response2 == 1) & (Full_Long$Q7Bid > Full_Long$Q7Bid2) & (Full_Long$Order == 1) ]))))))
-#################### Plotting KMT survival functions:
+
+
+####################################################################################
+############ Section 5: WTP Distributions with KMT survival function
 
 
 ## This section deals with Q6 and Q7 respectively but uses a non-parametric Kaplan-Meier-Turnbull survival function:
 ResearchKMT <- turnbull.sb(formula = Q6ResearchResponse ~ Q6Bid,data = Full_Order1)
 summary(ResearchKMT)
 plot(ResearchKMT)
+
 
 ## Reporting the KMT for Q7.
 TreatmentKMT <- turnbull.db(formula = Q7TreatmentResponse + Q7Response2 ~  Q7Bid + Q7Bid2,data = Full_Order2)
@@ -1514,8 +1464,12 @@ plot(ResearchKMT, main="Q6 Kaplan-Meier-Turnbull survival function.")
 plot(TreatmentKMT, main="Q7 Kaplan-Meier-Turnbull survival function.")
 
 
-#################### Estimating WTP. Q6 then Q7 and exploring ordering and consequentiality
+####################################################################################
+############ Section 5: Estimation:
+############ NOTES: Q6 then Q7 and exploring ordering and consequentiality
 
+
+#################### Q6 WTP elicitation:
 
 ## The Q6 model basic:
 Research_SB <- sbchoice(Q6ResearchResponse ~ Order + Q1Gender + Q2Age + Q3Distance
@@ -1526,6 +1480,7 @@ summary(Research_SB) ## Reports the SBDC analysis for Q6 with mean, median and c
 krCI(Research_SB)
 bootCI(Research_SB)
 
+
 ## Q6 on truncated sample:
 Research_Truncated <- sbchoice(Q6ResearchResponse ~ Order + Q1Gender + Q2Age + Q3Distance
                         + Q4Trips + Q16BP + Q18Charity
@@ -1533,6 +1488,7 @@ Research_Truncated <- sbchoice(Q6ResearchResponse ~ Order + Q1Gender + Q2Age + Q
                         +  Q24AIncome + Timing | Q6Bid, data = Full_Full,dist="logistic")
 summary(Research_Truncated)
 krCI(Research_Truncated)
+
 
 ####### Testing ordering effects: 
 Research_Order1 <- sbchoice(Q6ResearchResponse ~ Q1Gender + Q2Age + Q3Distance
@@ -1549,6 +1505,7 @@ Research_Order2 <- sbchoice(Q6ResearchResponse ~  Q1Gender + Q2Age + Q3Distance
 summary(Research_Order2) ## Reports the SBDC analysis for Q6 with mean, median and coefficients.
 krCI(Research_Order1)
 krCI(Research_Order2)
+
 
 ## Testing the effect of consequentiality beliefs
 Research_Consequential <- sbchoice(Q6ResearchResponse ~ Q1Gender + Q2Age + Q3Distance
@@ -1577,14 +1534,16 @@ summary(Treatment_DB)
 krCI(Treatment_DB)
 bootCI(Treatment_DB)
 
+
 ## Q7 on truncated sample:
 Treatment_Truncated <- dbchoice(Q7TreatmentResponse + Q7Response2 ~ Order + Q1Gender + Q2Age + Q3Distance
                          + Q4Trips + Q16BP + Q18Charity
                          + Q21Experts + Q22Education + Q23Employment
-                         +  Q24AIncome + Timing | Q7Bid + Q7Bid2,data = Full_Cons,dist="logistic")
+                         +  Q24AIncome + Timing | Q7Bid + Q7Bid2,data = Full_Full,dist="logistic")
 summary(Treatment_Truncated)
 krCI(Treatment_Truncated)
 bootCI(Treatment_Truncated)
+
 
 ## Analysing only the firt bound if anchoring is an issue
 Treatment1_SB <- sbchoice(Q7TreatmentResponse ~ Order  + Q1Gender + Q2Age + Q3Distance
@@ -1593,6 +1552,7 @@ Treatment1_SB <- sbchoice(Q7TreatmentResponse ~ Order  + Q1Gender + Q2Age + Q3Di
                           +  Q24AIncome  + Timing | Q7Bid ,data = Full_Long,dist="logistic")
 summary(Treatment1_SB)
 krCI(Treatment1_SB)
+
 
 ## Estimating Q7 by both orders using DBDC:
 Treatment_DBOrder1 <- dbchoice(Q7TreatmentResponse + Q7Response2 ~ Q1Gender + Q2Age + Q3Distance
@@ -1609,6 +1569,7 @@ Treatment_DBOrder2 <- dbchoice(Q7TreatmentResponse + Q7Response2 ~ Q1Gender + Q2
 summary(Treatment_DBOrder2)
 krCI(Treatment_DBOrder1)
 krCI(Treatment_DBOrder2)
+
 
 ###### Still testing ordering effects using SBDC:
 Treatment_SBOrder1 <- sbchoice(Q7TreatmentResponse  ~ Q1Gender + Q2Age + Q3Distance
@@ -1641,6 +1602,7 @@ summary(Treatment_Inconsequential)
 krCI(Treatment_Consequential)
 krCI(Treatment_Inconsequential)
 
+
 Treatment_ConsequentialKMT <- turnbull.db(formula = Q7TreatmentResponse + Q7Response2 ~ Q7Bid + Q7Bid2,data = Full_Consequential)
 Treatment_InconsequentialKMT <- turnbull.db(formula = Q7TreatmentResponse + Q7Response2 ~ Q7Bid + Q7Bid2,data = Full_Inconsequential)
 layout(matrix(c(1,1,2,2), 2, 2, byrow = TRUE), widths=c(1,1), heights=c(4,4))
@@ -1648,7 +1610,7 @@ plot(Treatment_ConsequentialKMT)
 plot(Treatment_InconsequentialKMT)
 
 
-#################### Estimating QOV:
+#################### Estimating precautionary premia:
 
 
 ## In this section I directly compare the Full-bound Full-round Q6 and Q7 WTP valuations
@@ -1675,7 +1637,7 @@ Full_Order2 <- cbind(Full_Order2,
 colnames(Full_Order2)[56] <- "Q7WTP"
 
 
-## In this section I calculate each respondents QOV 
+#################### Fitting respondent precautionary-premia:
 ### This differs from above which elicits sample QOV by taking best-case sample WTP
 
 
@@ -1695,6 +1657,8 @@ O1 <- krCI(Treatment_DBWTP,individual = data.frame(Order=0, Q1Gender = mean(Full
 O2 <- krCI(Treatment_DBWTP,individual = data.frame(Order=1, Q1Gender = mean(FullSurvey2$Q1Gender), Q2Age = mean(FullSurvey2$Q2Age), Q3Distance = mean(FullSurvey2$Q3Distance),Q4Trips = mean(FullSurvey2$Q4Trips), Q16BP = mean(FullSurvey2$Q16BP),Q18Charity = mean(FullSurvey2$Q18Charity),Q21Experts = mean(FullSurvey2$Q21Experts),Q22Education = mean(FullSurvey2$Q22Education), Q23Employment = mean(FullSurvey2$Q23Employment), Q24AIncome = mean(FullSurvey2$Q24AIncome),Timing = mean(FullSurvey2$Timing)))
 data.frame("Order 1" = c(median(O1$medWTP)), "Order 2" = c(median(O2$medWTP)),"Ordering effect" = c(abs(median(O1$medWTP)-median(O2$medWTP))))
 i=1
+
+
 ## With this function I append bootstrapped individual WTP to the original dataframe 
 FullSurvey2 <- cbind(FullSurvey2,
                       apply(FullSurvey2, 
@@ -1746,9 +1710,10 @@ summary(CameronME$fit)
 #             function(i) c(krCI(Cameron,individual = data.frame(ET=FL$ET[i]))$out[4,1])))
 
 
-##########################################################  
-## Reporting Marginal Effects:
-##########################################################  
+####################################################################################
+############ Section 5B: Marginal Effects
+############ Lines: 1705:1749
+
 
 
 ## Install required packages to estimate Probit and reqport the marginal effects 
@@ -1756,6 +1721,7 @@ install.packages("aod")
 install.packages("mfx")
 library(mfx)
 require(aod)
+
 
 ## Model for Q6:
 CVMProbit <-glm(Q6ResearchResponse ~ Order + Q1Gender + Q2Age + Q3Distance
@@ -1766,6 +1732,7 @@ summary(CVMProbit) ## Report the model
 confint(CVMProbit) ## Estimate confidence interval -default 95%
 wald.test(b = coef(CVMProbit), Sigma = vcov(CVMProbit), Terms=2) ## Attempt a Wald-test
 stargazer(CVMProbit, title = "CVMProbit", align = TRUE,report="p*") ## Export results to LaTeX code
+
 
 CVMME <- probitmfx(formula = Q6ResearchResponse ~ Order + Q1Gender + Q2Age + Q3Distance
                    + Q4Trips + Q16BP + Q18Charity
@@ -1790,9 +1757,14 @@ wald.test(b = coef(QOVProbit), Sigma = vcov(QOVProbit), Terms=2)
 ## All the same commands as the Q6 models
 
 
+####################################################################################
+############ Section 6: Plotting covariates
+############ Lines: 1757:2626
+############ NOTES: Very long and possibly repetitive. Will update with Figure numbers.
+
+
 ##########################################################  
-## Plotting covariates on WTP:
-##########################################################  
+## Package installs:
 
 
 library(ggplot2)
@@ -1802,6 +1774,7 @@ library(gridExtra)
 ##########################################################  
 ## CE Section:
 
+
 ## Plotting a histogram of individual attribute-specific WTP 
 EmissionDistribution <- ggplot(Full_Long, aes(x=EmissionCoef)) + 
   geom_histogram(color="black", fill="white",bins = 50)+
@@ -1809,12 +1782,14 @@ EmissionDistribution <- ggplot(Full_Long, aes(x=EmissionCoef)) +
                      n.breaks = 10)+
   ggtitle("Histogram of emission WTP.")
 
+
 ## Plotting a histogram of individual attribute-specific WTP
 PerformanceDistribution <- ggplot(Full_Final, aes(x=PerformanceCoef)) + 
   geom_histogram(color="black", fill="white",bins = 50)+
   scale_x_continuous(breaks=waiver(),limits = c(-0.5,0.5),
                      n.breaks = 10)+
   ggtitle("Histogram of performance WTP.")
+
 
 ### Plotting Q8 Dominance test
 PerformanceWTP <- ggplot(Full_Long, aes(y= PerformanceCoef,x=as.numeric(Q24AIncome))) + 
@@ -1831,6 +1806,8 @@ PerformanceWTP <- ggplot(Full_Long, aes(y= PerformanceCoef,x=as.numeric(Q24AInco
         axis.title.y = element_text(size = 12)) +
   labs(x = "Income",y="Performance MWTP")
 
+
+### Plotting MWTP for emissions attribute
 EmissionWTP <- ggplot(Full_Long, aes(y= EmissionCoef,x=as.numeric(Q24AIncome))) + 
   geom_point(shape = 1) +
   facet_grid( ~ Q8DominatedTest, labeller = as_labeller(c(
@@ -1845,9 +1822,6 @@ EmissionWTP <- ggplot(Full_Long, aes(y= EmissionCoef,x=as.numeric(Q24AIncome))) 
         axis.title.y = element_text(size = 12)) +
   labs(x = "Income",y="Emission MWTP")
 
-
-grid.arrange(PerformanceWTP, EmissionWTP )
-grid.arrange(PerformanceDistribution, EmissionDistribution )
 
 ### Plotting Consequentiality effects
 ggplot(data=Fulls, aes(x=as.numeric(Q24AIncome))) + 
@@ -1981,6 +1955,7 @@ Q3Graph <- ggplot(Full_Final) +
         axis.title.y = element_text(size = 10))
 
 
+### Plotting the effect of distance:
 Q3GraphB <- ggplot(Full_Final, aes(x=as.numeric(Q3Distance))) + 
   geom_smooth(aes(y=as.numeric(Q24AIncome)),method="lm",se=F)+
   ggtitle("Relationship between income and distance from the coast") +
@@ -2021,6 +1996,7 @@ Q4GraphB <- ggplot(Full_Final, aes(x=Q4Trips)) +
   scale_y_continuous(name="Gross annual income",breaks = waiver(), n.breaks=10,
                      limits=c(0,60000),labels = function(x) paste0("£", round(x,2)/1000,",000"))+
   labs(x = "Trips",y="Income")
+
 
 ## Plotting WTP by pre-survey microplastic knowledge
 Q5Graph <- ggplot(Full_Final) + 
@@ -2221,6 +2197,7 @@ Q18GraphB <- ggplot(Full_Final, aes(x=as.numeric(Q18Charity))) +
   labs(x = "Charity",y="WTP")
 
 
+### Another method of plotting charity on WTP
 Q18GraphC <- ggplot(Full_Final, aes(x=as.numeric(Q18Charity))) + 
   geom_smooth(aes(y=abs(PerformanceCoef),color="blue"),method="lm",se=F) +
   geom_smooth(aes(y=EmissionCoef,color="red"),method="lm",se=F) +
@@ -2257,6 +2234,8 @@ Q21Graph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) +
                      limits=c(0,75),labels = function(x) paste0("£",x))+
   labs(x = "Income",y="WTP")
 
+
+### Plotting belief in experts
 Q21GraphB <- ggplot(Full_Final, aes(x=as.numeric(Q21Experts))) + 
   geom_smooth(aes(y=Q6WTP,color="blue"),method="lm",se=F) +
   geom_smooth(aes(y=Q7WTP,color="red"),method="lm",se=F) +
@@ -2271,6 +2250,8 @@ Q21GraphB <- ggplot(Full_Final, aes(x=as.numeric(Q21Experts))) +
                      limits=c(0,75),labels = function(x) paste0("£",x))+
   labs(x = "Experts",y="WTP")
 
+
+### Plotting the relationship between confidence in experts and WTP (lm fitting).
 Q21GraphC <- ggplot(Full_Final, aes(x=as.numeric(Q21Experts))) + 
   geom_smooth(aes(y=Q5Knowledge,color="blue"),method="lm",se=F) +
   geom_smooth(aes(y=Q19Knowledge,color="red"),method="lm",se=F) +
@@ -2289,6 +2270,7 @@ Q21GraphC <- ggplot(Full_Final, aes(x=as.numeric(Q21Experts))) +
   labs(x = "Experts",y="Likert scale")
 
 
+### Another experts plot but on MWTP
 Q21GraphD <- ggplot(Full_Final, aes(x=as.numeric(Q21Experts))) + 
   geom_smooth(aes(y=PerformanceCoef,color="blue"),method="lm",se=F) +
   geom_smooth(aes(y=EmissionCoef,color="red"),method="lm",se=F) +
@@ -2302,6 +2284,7 @@ Q21GraphD <- ggplot(Full_Final, aes(x=as.numeric(Q21Experts))) +
   scale_y_continuous(name="MWTP",breaks = waiver(), n.breaks=10,
                      limits=c(-0.5,0.5),labels = function(x) paste0("£",x))+
   labs(x = "Experts",y="WTP")
+
 
 ## Plotting CV WTP by employment type:
 Q22Graph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) + 
@@ -2325,7 +2308,7 @@ Q22Graph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) +
   labs(x = "Income",y="WTP")
 
 
-
+### Relationship between education levels and CV WTP
 Q22GraphB <- ggplot(Full_Final, aes(x=as.numeric(Q22Education))) + 
   geom_smooth(aes(y=Q6WTP,color="blue"),method="lm",se=F) +
   geom_smooth(aes(y=Q7WTP,color="red"),method="lm",se=F) +
@@ -2341,6 +2324,7 @@ Q22GraphB <- ggplot(Full_Final, aes(x=as.numeric(Q22Education))) +
   labs(x = "Education",y="WTP")
 
 
+### Alternative to plotting education/wtp
 Q22GraphC <- ggplot(Full_Final, aes(x=Q22Education)) + 
   geom_smooth(aes(y=as.numeric(Q24AIncome)),method="lm",se=F)+
   ggtitle("Relationship between education and income") +
@@ -2351,6 +2335,7 @@ Q22GraphC <- ggplot(Full_Final, aes(x=Q22Education)) +
   scale_y_continuous(name="Income",breaks = waiver(), n.breaks=5,
                      limits=c(0,5000),labels = function(x) paste0("£",x))+
   labs(x = "Education",y="Income")
+
 
 ## Plotting CV WTP by employment type:
 Q23Graph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) + 
@@ -2377,6 +2362,7 @@ Q23Graph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) +
 
 
 ###### Went a bit crazy here plotting points for Q16:
+
 
 ## First create subsets for each response:
 BP0 <- subset(Full_Final,Full_Final$Q16BP==0)
@@ -2492,6 +2478,7 @@ KnowledgeGraphB <- ggplot(Full_Final, aes(x=Q19Knowledge)) +
   labs(x = "Income",y="WTP")
 
 
+### Plotting age, gender, and concern
 KnowledgeGraphC <- ggplot(Full_Final, aes(x=Q2Age)) + 
   facet_grid( ~ Q1Gender, labeller = as_labeller(c(
     `0` = "Female",
@@ -2511,6 +2498,7 @@ KnowledgeGraphC <- ggplot(Full_Final, aes(x=Q2Age)) +
   labs(x = "Age",y="Concern")
 
 
+### Age, gender and knowledge
 KnowledgeGraphD <- ggplot(Full_Final, aes(x=Q2Age)) + 
   facet_grid( ~ Q1Gender, labeller = as_labeller(c(
     `0` = "Female",
@@ -2528,6 +2516,118 @@ KnowledgeGraphD <- ggplot(Full_Final, aes(x=Q2Age)) +
                      limits=c(1,5))+
   labs(x = "Age",y="Concern")
 
+
+## Reporting distance-decay WTP:
+DistanceDecay <- rbind("Q6"=data.frame("LowIncomeLowDistance"=mean(Full_Final$Q6WTP[ (Full_Final$Q3Distance < median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome < median(Full_Final$Q24AIncome)) ]),
+                                       "LowIncomeHighDistance"= mean(Full_Final$Q6WTP[ (Full_Final$Q3Distance > median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome < median(Full_Final$Q24AIncome)) ]),
+                                       "HighIncomeLowDistance"=mean(Full_Final$Q6WTP[ (Full_Final$Q3Distance < median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome > median(Full_Final$Q24AIncome)) ]),
+                                       "HighIncomeHighDistance"= mean(Full_Final$Q6WTP[ (Full_Final$Q3Distance > median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome > median(Full_Final$Q24AIncome)) ])),
+                       "Q7"=data.frame("LowIncomeLowDistance"=mean(Full_Final$Q7WTP[ (Full_Final$Q3Distance < median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome < median(Full_Final$Q24AIncome)) ]),
+                                       "LowIncomeHighDistance"= mean(Full_Final$Q7WTP[ (Full_Final$Q3Distance > median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome < median(Full_Final$Q24AIncome)) ]),
+                                       "HighIncomeLowDistance"=mean(Full_Final$Q7WTP[ (Full_Final$Q3Distance < median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome > median(Full_Final$Q24AIncome)) ]),
+                                       "HighIncomeHighDistance"= mean(Full_Final$Q7WTP[ (Full_Final$Q3Distance > median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome > median(Full_Final$Q24AIncome)) ])),
+                       "Emissions"=data.frame("LowIncomeLowDistance"=mean(Full_Final$EmissionCoef[ (Full_Final$Q3Distance < median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome < median(Full_Final$Q24AIncome)) ]),
+                                              "LowIncomeHighDistance"= mean(Full_Final$EmissionCoef[ (Full_Final$Q3Distance > median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome < median(Full_Final$Q24AIncome)) ]),
+                                              "HighIncomeLowDistance"=mean(Full_Final$EmissionCoef[ (Full_Final$Q3Distance < median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome > median(Full_Final$Q24AIncome)) ]),
+                                              "HighIncomeHighDistance"= mean(Full_Final$EmissionCoef[ (Full_Final$Q3Distance > median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome > median(Full_Final$Q24AIncome)) ])),
+                       "Performance"=data.frame("LowIncomeLowDistance"=mean(Full_Final$PerformanceCoef[ (Full_Final$Q3Distance < median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome < median(Full_Final$Q24AIncome)) ]),
+                                                "LowIncomeHighDistance"= mean(Full_Final$PerformanceCoef[ (Full_Final$Q3Distance > median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome < median(Full_Final$Q24AIncome)) ]),
+                                                "HighIncomeLowDistance"=mean(Full_Final$PerformanceCoef[ (Full_Final$Q3Distance < median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome > median(Full_Final$Q24AIncome)) ]),
+                                                "HighIncomeHighDistance"= mean(Full_Final$PerformanceCoef[ (Full_Final$Q3Distance > median(Full_Final$Q3Distance)) & (Full_Final$Q24AIncome > median(Full_Final$Q24AIncome)) ])))
+
+
+## Histograms of Q5 and Q19 understanding:
+Q5GraphA <- ggplot(Full_Final, aes(x=Q5Knowledge)) + 
+  geom_histogram(aes(y = ..density..),color="black", fill="white",bins = 50)+
+  stat_function(
+    fun = function(x, mean, sd, n){
+      n * dnorm(x = x, mean = mean, sd = sd)
+    }, 
+    args = with(Full_Final, c(mean = mean(Q5Knowledge), sd = sd(Q5Knowledge), n
+                              = 5)))+
+  scale_x_continuous(breaks=waiver(),labels=c("1\n (N = 71)","2\n (N = 187)","3\n (N = 252)","4\n (N = 113)","5\n (N = 47)"))+
+  ggtitle("Histogram of Q5 Knowledge responses.")
+
+
+### Plotting knowledge histograms
+Q19GraphA <- ggplot(Full_Final, aes(x=Q19Knowledge)) + 
+  geom_histogram(aes(y = ..density..),color="black", fill="white",bins = 50)+
+  stat_function(
+    fun = function(x, mean, sd, n){
+      n * dnorm(x = x, mean = mean, sd = sd)
+    }, 
+    args = with(Full_Final, c(mean = mean(Q19Knowledge), sd = sd(Q19Knowledge), n
+                              = 5)))+
+  scale_x_continuous(breaks=waiver(),labels=c("1\n (N = 43)","2\n (N = 158)","3\n (N = 267)","4\n (N = 159)","5\n (N = 43)"))+
+  ggtitle("Histogram of Q19 Knowledge responses.")
+grid.arrange(Q5GraphA, Q19GraphA)
+
+
+## Correlations between attitudes and awareness:
+# Q5/Q13: 0.309, p=0 
+# Q5/Q14: 0.238, p=0 
+# Q5/Q15: 0.273, p=0 
+# Q19/Q13: 0.321, p=0 
+# Q19/Q14: 0.359, p=0 
+# Q19/Q15: 0.364, p=0 
+
+
+## Histograms of Q13, 14, 15 concern:
+Q13GraphA <- ggplot(Full_Final, aes(x=Q13CurrentThreatToSelf)) + 
+  geom_histogram(aes(y = ..density..),color="black", fill="white",bins = 50)+
+  stat_function(
+    fun = function(x, mean, sd, n){
+      n * dnorm(x = x, mean = mean, sd = sd)
+    }, 
+    args = with(Full_Final, c(mean = mean(Q13CurrentThreatToSelf), sd = sd(Q13CurrentThreatToSelf), n
+                              = 5)))+
+  scale_x_continuous(breaks=waiver(),labels=c("1\n (N = 32)","2\n (N = 55)","3\n (N = 290)","4\n (N = 184)","5\n (N = 109)"))+
+  ggtitle("Histogram of Q13 Current Threat to Self responses.")
+
+
+### Q14 histogram
+Q14GraphA <- ggplot(Full_Final, aes(x=Q14FutureThreatToSelf)) + 
+  geom_histogram(aes(y = ..density..),color="black", fill="white",bins = 50)+
+  stat_function(
+    fun = function(x, mean, sd, n){
+      n * dnorm(x = x, mean = mean, sd = sd)
+    }, 
+    args = with(Full_Final, c(mean = mean(Q14FutureThreatToSelf), sd = sd(Q14FutureThreatToSelf), n
+                              = 5)))+
+  scale_x_continuous(breaks=waiver(),labels=c("1\n (N = 20)","2\n (N = 37)","3\n (N = 204)","4\n (N = 243)","5\n (N = 166)"))+
+  ggtitle("Histogram of Q14FutureThreatToSelf responses.")
+
+
+### Q15 Histogram
+Q15GraphA <- ggplot(Full_Final, aes(x=Q15ThreatToEnvironment)) + 
+  geom_histogram(aes(y = ..density..),color="black", fill="white",bins = 50)+
+  stat_function(
+    fun = function(x, mean, sd, n){
+      n * dnorm(x = x, mean = mean, sd = sd)
+    }, 
+    args = with(Full_Final, c(mean = mean(Q15ThreatToEnvironment), sd = sd(Q15ThreatToEnvironment), n
+                              = 5)))+
+  scale_x_continuous(breaks=waiver(),labels=c("1\n (N = 12)","2\n (N = 30)","3\n (N = 154)","4\n (N = 216)","5\n (N = 258)"))+
+  ggtitle("Histogram of Q15ThreatToEnvironment responses.")
+grid.arrange(Q13GraphA, Q14GraphA,Q15GraphA)
+
+
+### Q21 Histogram
+Q21Hist <- ggplot(Full_Final, aes(x=Q21Experts)) + 
+  geom_histogram(aes(y = ..density..),color="black", fill="white",bins = 50)+
+  stat_function(
+    fun = function(x, mean, sd, n){
+      n * dnorm(x = x, mean = mean, sd = sd)
+    }, 
+    args = with(Full_Final, c(mean = mean(Q21Experts), sd = sd(Q21Experts), n
+                              = 6)))+
+  scale_x_continuous(breaks=waiver(),
+                     name="Experts",
+                     labels = c("1: Unconfident\n (N = 16)","2\n (N = 46)","3\n (N = 251)","4\n (N = 237)","5: Confident\n (N = 120)"))+
+  ggtitle("Histogram of Q21Experts")
+
+
+### Plotting notable plots:
 Q3Graph
 Q4Graph
 Q12Graph
@@ -2542,11 +2642,15 @@ Q20Graph
 Q21Graph
 
 
+### Combining multiple plots:
 grid.arrange(Q3Graph, Q4Graph)
 grid.arrange(Q5Graph, Q19Graph)
 grid.arrange(Q18GraphB, Q18GraphC)
 grid.arrange(KnowledgeGraphA, KnowledgeGraphB)
 grid.arrange(KnowledgeGraphD, KnowledgeGraphC)
+grid.arrange(PerformanceWTP, EmissionWTP )
+grid.arrange(PerformanceDistribution, EmissionDistribution )
+
 
 ##########################################################  
 ## The following code is experimental:
