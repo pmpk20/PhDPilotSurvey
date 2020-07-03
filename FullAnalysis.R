@@ -392,23 +392,23 @@ Full_Long <- mlogit.data(Full, shape = "wide", choice = "Choice",
 
 
 # Reporting a high understanding of the survey
-Full_Understanding <- Full_Long[Full_Long$Q25Understanding >= 7]
+Full_Understanding <- Full_Long[Full_Long$Q25Understanding >= 7,]
 # 6.4% failure rate (43/670 failed)
 
 # Speeders:
-Full_Timing <- Full_Long[Full_Long$Timing >= (median(Full_Long$Timing)/60)/100*48]
+Full_Timing <- Full_Long[Full_Long$Timing >= (median(Full_Long$Timing)/60)/100*48,]
 # 30.30% failure rate (170/561 failed)
 
 # Passing the Q8 dominated test scenario
-Full_Dominated <- Full_Long[Full_Long$Q8DominatedTest == 0]
+Full_Dominated <- Full_Long[Full_Long$Q8DominatedTest == 0,]
 # 30.30% failure rate (170/561 failed)
 
 ### Trimming by having certainty in their CE choices.
-Full_Certain <- Full_Long[Full_Long$Q12CECertainty >= 1]
+Full_Certain <- Full_Long[Full_Long$Q12CECertainty >= 1,]
 # 6% failure (40/670 failed)
 
 ###  Believing the survey responses to be consequential.
-Full_Cons <- Full_Long[Full_Long$Q20Consequentiality >= 1]
+Full_Cons <- Full_Long[Full_Long$Q20Consequentiality >= 1,]
 # Only 16% (110/670 failed)
 
 ### Fully-truncated sample:
@@ -422,7 +422,7 @@ AllCriteria <- data.frame("IDs" = unique(Full_Long$ID[ (Full_Long$Q25Understandi
 AllCriteria <- AllCriteria[ !(AllCriteria$IDs %in% c(24,33,44,61,121,127,182,200,211,219,239,251,275,306,320,326,341,360,363,371,399,464,467,479,480,506,579,591,649,654,931,932,935,953,989,1002,1011,1024,14,35,39,54,79,106,130,146,149,155,163,203,214,215,217,244,246,249,252,267,268,282,290,327,343,362,364,374,380,393,398,407,414,425,426,433,477,519,524,536,543,545,547,557,567,575,589,590,595,614,617,629,637,638,639,651,665,674,680,915,933,940,950,959,960,975,978,996,1026,1027,1028)),]
 
 ## Fully truncated:
-Full_Full <- Full_Long[ (Full_Long$ID) %in% c(AllCriteria)  ]
+Full_Full <- Full_Long[ (Full_Long$ID) %in% c(AllCriteria),]
 
 
 ####################################################################################
@@ -922,6 +922,87 @@ MXL_5 <- mlogit(
   reflevel="A",halton=NA,method="bfgs",panel=FALSE,seed=123)
 summary(MXL_5)
 MXL_5_WTP <- c(-1*coef(MXL_5)["Emission"]/coef(MXL_5)["Price"],-1*coef(MXL_5)["Performance"]/coef(MXL_5)["Price"])
+
+
+## Repeating MXL_4 but experimenting with number of random draws, here 100
+MXL_5_Draws1 <- mlogit(
+  Choice ~ Price + Performance + Emission | 
+    Order + Task + Q1Gender + Q2Age + Q3Distance
+  + Q4Trips + Q16BP + Q18Charity 
+  + Q20Consequentiality
+  + Q21Experts +Q22Education+ Q23Employment
+  +  Q24AIncome + Timing,
+  Full_Long, rpar=c(Price="n"),
+  R=100,correlation = FALSE,
+  reflevel="A",halton=NA,method="bfgs",panel=FALSE,seed=123)
+summary(MXL_5_Draws1)
+MXL_5_Draws1_WTP <- c(-1*coef(MXL_5_Draws1)["Emission"]/coef(MXL_5_Draws1)["Price"],-1*coef(MXL_5_Draws1)["Performance"]/coef(MXL_5_Draws1)["Price"])
+
+
+## Repeating MXL_4 but experimenting with number of random draws, here 500
+MXL_5_Draws2 <- mlogit(
+  Choice ~ Price + Performance + Emission | 
+    Order + Task + Q1Gender + Q2Age + Q3Distance
+  + Q4Trips + Q16BP + Q18Charity 
+  + Q20Consequentiality
+  + Q21Experts +Q22Education+ Q23Employment
+  +  Q24AIncome + Timing,
+  Full_Long, rpar=c(Price="n"),
+  R=500,correlation = FALSE,
+  reflevel="A",halton=NA,method="bfgs",panel=FALSE,seed=123)
+summary(MXL_5_Draws2)
+MXL_5_Draws2_WTP <- c(-1*coef(MXL_5_Draws2)["Emission"]/coef(MXL_5_Draws2)["Price"],-1*coef(MXL_5_Draws2)["Performance"]/coef(MXL_5_Draws2)["Price"])
+
+
+## Repeating MXL_4 but experimenting with number of random draws, here 5000
+MXL_5_Draws3 <- mlogit(
+  Choice ~ Price + Performance + Emission | 
+    Order + Task + Q1Gender + Q2Age + Q3Distance
+  + Q4Trips + Q16BP + Q18Charity 
+  + Q20Consequentiality
+  + Q21Experts +Q22Education+ Q23Employment
+  +  Q24AIncome + Timing,
+  Full_Long, rpar=c(Price="n"),
+  R=5000,correlation = FALSE,
+  reflevel="A",halton=NA,method="bfgs",panel=FALSE,seed=123)
+summary(MXL_5_Draws3)
+MXL_5_Draws3_WTP <- c(-1*coef(MXL_5_Draws3)["Emission"]/coef(MXL_5_Draws3)["Price"],-1*coef(MXL_5_Draws3)["Performance"]/coef(MXL_5_Draws3)["Price"])
+
+
+## Repeating MXL_4 but experimenting with number of random draws, here 10,000
+MXL_5_Draws4 <- mlogit(
+  Choice ~ Price + Performance + Emission | 
+    Order + Task + Q1Gender + Q2Age + Q3Distance
+  + Q4Trips + Q16BP + Q18Charity 
+  + Q20Consequentiality
+  + Q21Experts +Q22Education+ Q23Employment
+  +  Q24AIncome + Timing,
+  Full_Long, rpar=c(Price="n"),
+  R=10000,correlation = FALSE,
+  reflevel="A",halton=NA,method="bfgs",panel=FALSE,seed=123)
+summary(MXL_5_Draws4)
+MXL_5_Draws4_WTP <- c(-1*coef(MXL_5_Draws4)["Emission"]/coef(MXL_5_Draws4)["Price"],-1*coef(MXL_5_Draws4)["Performance"]/coef(MXL_5_Draws4)["Price"])
+
+
+
+
+## Repeating MXL_4 but experimenting with number of random draws, here 10,000
+MXL_5_Draws5 <- mlogit(
+  Choice ~ Price + Performance + Emission | 
+    Order + Task + Q1Gender + Q2Age + Q3Distance
+  + Q4Trips + Q16BP + Q18Charity 
+  + Q20Consequentiality
+  + Q21Experts +Q22Education+ Q23Employment
+  +  Q24AIncome + Timing,
+  Full_Long, rpar=c(Price="n"),
+  R=100000,correlation = FALSE,
+  reflevel="A",halton=NA,method="bfgs",panel=FALSE,seed=123)
+summary(MXL_5_Draws5)
+MXL_5_Draws5_WTP <- c(-1*coef(MXL_5_Draws5)["Emission"]/coef(MXL_5_Draws5)["Price"],-1*coef(MXL_5_Draws5)["Performance"]/coef(MXL_5_Draws5)["Price"])
+
+
+## Reporting MWTP with draws:  
+round(cbind("Draws: 100"=MXL_5_Draws1_WTP,"Draws: 500"=MXL_5_Draws2_WTP,"Draws: 1,000"=MXL_4_WTP,"Draws: 5,000"=MXL_5_Draws3_WTP,"Draws: 10,000"=MXL_5_Draws4_WTP,"Draws: 100,000"=MXL_5_Draws5_WTP),5)
 
 
 ####################################################################################
@@ -1719,8 +1800,8 @@ summary(CameronME$fit)
 ## Install required packages to estimate Probit and reqport the marginal effects 
 install.packages("aod")
 install.packages("mfx")
-library(mfx)
 require(aod)
+library(mfx)
 
 
 ## Model for Q6:
@@ -1730,7 +1811,7 @@ CVMProbit <-glm(Q6ResearchResponse ~ Order + Q1Gender + Q2Age + Q3Distance
                                         +  Q24AIncome + Timing + Q6Bid, family = binomial(link = "probit"),data = FullSurvey2)
 summary(CVMProbit) ## Report the model
 confint(CVMProbit) ## Estimate confidence interval -default 95%
-wald.test(b = coef(CVMProbit), Sigma = vcov(CVMProbit), Terms=2) ## Attempt a Wald-test
+# wald.test(b = coef(CVMProbit), Sigma = vcov(CVMProbit), Terms=2) ## Attempt a Wald-test
 stargazer(CVMProbit, title = "CVMProbit", align = TRUE,report="p*") ## Export results to LaTeX code
 
 
@@ -2816,8 +2897,173 @@ apollo_deltaMethod(model, deltaMethod_settings)
 
 
 # ################################################################# #
-#### Apollo MXL                       
+#### Apollo MNL: Quadratic                      
 # ################################################################# #
+
+apollo_control = list(
+  modelName  ="Replicating Full_MNL",
+  indivID    ="ID"
+)
+
+
+## Set parameters and their initial values here 
+apollo_beta=c(asc_A      = 0,
+              asc_B      = 0,
+              b_Price    = 0,
+              b_Performance   = 0,
+              b_Emission      = 0,
+              b_Performance_SQ   = 0,
+              b_Emission_SQ      = 0)
+
+## Set one of the ASCs as zero using the utility-difference approach: 
+apollo_fixed = c("asc_A")
+
+## Check model is good so far 
+apollo_inputs = apollo_validateInputs()
+
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  
+  ## Attach inputs and detach after function exit
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  
+  ## Create list of probabilities P
+  P = list()
+  
+  
+  ### List of utilities: these must use the same names as in mnl_settings, order is irrelevant
+  V = list()
+  V[['A']]  = asc_A        + b_Performance  * Performance_A + b_Emission * Emission_A + b_Price * Price_A
+  V[['B']]  = asc_B  + b_Performance  * Performance_B  + b_Emission * Emission_B + b_Price * Price_B + b_Performance_SQ*(Performance_B^2) + b_Emission_SQ*(Emission_B^2) 
+  
+  ### Define settings for MNL model component
+  mnl_settings = list(
+    alternatives = c(A=1, B=2),
+    avail        = list(A=1, B=1),
+    choiceVar    = Choice,
+    V            = V
+  )
+  
+  ### Compute probabilities using MNL model
+  P[["model"]] = apollo_mnl(mnl_settings, functionality)
+  
+  ### Take product across observation for same individual
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  
+  ### Prepare and return outputs of function
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+model = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+
+apollo_modelOutput(model,modelOutput_settings = list(printPVal=TRUE))
+
+## WTP calculations: 
+deltaMethod_settings=list(operation="ratio", parName1="b_Performance", parName2="b_Price")
+apollo_deltaMethod(model, deltaMethod_settings)
+
+deltaMethod_settings=list(operation="ratio", parName1="b_Emission", parName2="b_Price")
+apollo_deltaMethod(model, deltaMethod_settings)
+
+
+# ################################################################# #
+#### Apollo MNL: Piecewise                      
+# ################################################################# #
+
+
+### Load Apollo library
+apollo_initialise()
+
+apollo_control = list(
+  modelName  ="Replicating Full_MNL",
+  indivID    ="ID")
+
+## Set parameters and their initial values here 
+apollo_beta=c(asc_A      = 0,
+              asc_B      = 0,
+              b_Price    = 0,
+              b_Emission_Low     = 0, 
+              b_Emission_Medium  = 0, 
+              b_Emission_High    = 0, 
+              b_Performance_Low       = 0, 
+              b_Performance_Middle       = 0, 
+              b_Performance_High      = 0)
+
+## Set one of the ASCs as zero using the utility-difference approach: 
+apollo_fixed = c("asc_A","b_Emission_Low","b_Performance_Low")
+
+## Check model is good so far 
+apollo_inputs = apollo_validateInputs()
+
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  
+  ## Attach inputs and detach after function exit
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  
+  ## Create list of probabilities P
+  P = list()
+
+  
+  ### List of utilities: these must use the same names as in mnl_settings, order is irrelevant
+  V = list()
+  V[['A']] = asc_A + (b_Emission_Low*(Emission_A==0) + b_Performance_Low*(Performance_A==0)  + b_Price*Price_A)
+  
+  V[['B']] = asc_B + ( b_Emission_Low*(Emission_B==0.1) + b_Emission_Medium*(Emission_B==0.4) + b_Emission_High*(Emission_B==0.9) 
+                       + b_Performance_Low*(Performance_B==0.05) + b_Performance_Middle*(Performance_B==0.10) + b_Performance_High*(Performance_B==0.50) 
+                       + b_Price*Price_B )
+  
+  ### Define settings for MNL model component
+  mnl_settings = list(
+    alternatives = c(A=1, B=2),
+    avail        = list(A=1, B=1),
+    choiceVar    = Choice,
+    V            = V
+  )
+  
+  ### Compute probabilities using MNL model
+  P[["model"]] = apollo_mnl(mnl_settings, functionality)
+  
+  ### Take product across observation for same individual
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  
+  ### Prepare and return outputs of function
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+model = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+
+apollo_modelOutput(model,modelOutput_settings = list(printPVal=TRUE))
+
+
+## WTP calculations: 
+deltaMethod_settings=list(operation="ratio", parName1="b_Performance_Middle", parName2="b_Price")
+apollo_deltaMethod(model, deltaMethod_settings)
+WTP_Performance_Middle <- 0.0459
+deltaMethod_settings=list(operation="ratio", parName1="b_Performance_High", parName2="b_Price")
+apollo_deltaMethod(model, deltaMethod_settings)
+WTP_Performance_High <- 1.7312
+
+deltaMethod_settings=list(operation="ratio", parName1="b_Emission_Medium", parName2="b_Price")
+apollo_deltaMethod(model, deltaMethod_settings)
+WTP_Emissions_Medium <- -1.8243
+
+deltaMethod_settings=list(operation="ratio", parName1="b_Emission_High", parName2="b_Price")
+apollo_deltaMethod(model, deltaMethod_settings)
+WTP_Emissions_High <- -3.0662
+
+## Scope for Emissions:
+(WTP_Emissions_High - WTP_Emissions_Medium)/((WTP_Emissions_High + WTP_Emissions_Medium)/2) / ((0.9-0.4)/((0.9+0.4)/2))
+
+## Scope for Performance:
+((WTP_Performance_High - WTP_Performance_Middle)/((WTP_Performance_High + WTP_Performance_Middle)/2)) / ((0.50-0.10)/((0.50+0.10)/2))
+
+
+
 
 
 # ################################################################# #
