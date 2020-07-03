@@ -5,7 +5,12 @@
 
 
 ####################################################################################
-############### To Do: - fix GMNL LCM   
+############### 03/07 To Do: - fix GMNL LCM
+############### - fix GMNL LCM   
+############### - Estimate APOLLO MXL PMC, MLHS, Sobol
+############### - Estimate APOLLO MXL Piecewise
+############### - RRM2 with fully truncated sample
+############### - ICLV change gammas
 
 
 ####################################################################################
@@ -844,7 +849,7 @@ MXL_1 <- mlogit(
   Choice ~ Price + Performance + Emission ,
   Full_Long, rpar=c(Price="n"),
   R=1000,correlation = FALSE,
-  reflevel="A",halton=NA,method="bfgs",panel=FALSE,seed=123)
+  reflevel="A",halton=NA,method="bfgs",panel=TRUE,seed=13)
 summary(MXL_1)
 MXL_1_WTP <- c(-1*coef(MXL_1)["Emission"]/coef(MXL_1)["Price"],-1*coef(MXL_1)["Performance"]/coef(MXL_1)["Price"])
 
@@ -884,7 +889,7 @@ MXL_4 <- mlogit(
   +  Q24AIncome + Timing,
   Full_Long, rpar=c(Price="n"),
   R=1000,correlation = FALSE,
-  reflevel="A",halton=NA,method="bfgs",panel=FALSE,seed=123)
+  reflevel="A",halton=NA,method="bfgs",panel=TRUE,seed=13)
 summary(MXL_4)
 MXL_4_WTP <- c(-1*coef(MXL_4)["Emission"]/coef(MXL_4)["Price"],-1*coef(MXL_4)["Performance"]/coef(MXL_4)["Price"])
 
@@ -1288,13 +1293,13 @@ GMNL_MXLDefault <- gmnl(Choice ~ Price + Performance + Emission | 1 | 0|
                         + Q4Trips + Q16BP + Q18Charity 
                         + Q20Consequentiality
                         + Q21Experts +Q22Education+ Q23Employment
-                        +  Q24AIncome, data = Full_Long,
+                        +  Q24AIncome + Timing, data = Full_Long,
                         model = "mixl",
                         ranp = c( Price = "n"),
                         mvar = list(Price = c("Q18Charity")),
                         R = 1000,
                         haltons = NA
-                        ,seed = 123,reflevel = "A")
+                        ,seed = 13,reflevel = "A",correlation=FALSE,panel=TRUE)
 summary(GMNL_MXLDefault)
 wtp.gmnl(GMNL_MXLDefault,"Price",3)
 coef(GMNL_MXLDefault)["Performance"]/coef(GMNL_MXLDefault)["Price"]
@@ -3067,7 +3072,7 @@ WTP_Emissions_High <- -3.0662
 
 
 # ################################################################# #
-#### Apollo MXL                       
+#### Apollo MXL  [Halton draws - currently does not replicate MLOGIT]                       
 # ################################################################# #
 
 rm(list = ls())
@@ -3189,6 +3194,653 @@ mean(unconditionals[["b_Price"]])
 sd(unconditionals[["b_Price"]])
 
 summary(conditionals[["b_Price"]])
+
+
+
+# ################################################################# #
+#### Apollo MXL [Pseudo-Monte-Carlo Draws for the appendix]          
+# ################################################################# #
+
+rm(list = ls())
+install.packages("Rcpp")
+library(Rcpp)
+install.packages("rngWELL")
+library(rngWELL)
+install.packages("randtoolbox")
+library(randtoolbox)
+install.packages("apollo")
+library(apollo)
+
+apollo_initialise()
+
+## Set core controls
+apollo_control = list(
+  modelName ="MXL",
+  indivID   ="ID",  
+  mixing    = TRUE, 
+  nCores    = 5
+)
+
+
+## Vector of parameters, including any that are kept fixed in estimation
+apollo_beta = c(asc_A      = 0,
+                asc_B      = 0,
+                b_Performance   = 0,
+                b_Emission      = 0,
+                mu_log_b_Price    =0,
+                sigma_log_b_Price = 0)
+
+## Vector with names (in quotes) of parameters to be kept fixed at their starting value in apollo_beta, use apollo_beta_fixed = c() if none
+apollo_fixed = c("asc_A")
+
+
+### Set parameters for generating draws
+apollo_draws = list(
+  interDrawsType = "pmc",
+  interNDraws    = 100,
+  interUnifDraws = c("draws_Price_inter"),
+  interNormDraws = c(),
+  intraDrawsType = "pmc",
+  intraNDraws    = 100,
+  intraUnifDraws = c(),
+  intraNormDraws = c()
+)
+### Create random parameters
+apollo_randCoeff = function(apollo_beta, apollo_inputs){
+  randcoeff = list()
+  
+  randcoeff[["b_Price"]] = -exp( mu_log_b_Price + sigma_log_b_Price * draws_Price_inter )
+  
+  return(randcoeff)
+}
+
+apollo_inputs = apollo_validateInputs()
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  
+  ## Function initialisation: do not change the following three commands
+  ## Attach inputs and detach after function exit
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  
+  ## Create list of probabilities P
+  P = list()
+  
+  
+  ## List of utilities: these must use the same names as in mnl_settings, order is irrelevant
+  V = list()
+  V[['A']] = asc_A + b_Price*(Price_A + b_Performance*Performance_A + b_Emission*Emission_A)
+  V[['B']] = asc_B + b_Price*(Price_B + b_Performance*Performance_B + b_Emission*Emission_B)
+  
+  ## Define settings for MNL model component
+  mnl_settings = list(
+    alternatives  = c(A=1, B=2),
+    avail         = list(A=1, B=1),
+    choiceVar     = Choice,
+    V             = V
+  )
+  
+  ## Compute probabilities using MNL model
+  P[['model']] = apollo_mnl(mnl_settings, functionality)
+  
+  ## Take product across observation for same individual
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  
+  ## Average across inter-individual draws
+  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
+  
+  ## Prepare and return outputs of function
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+### Optional speedTest
+#speedTest_settings=list(
+#   nDrawsTry = c(50, 75, 100),
+#   nCoresTry = 1:3,
+#   nRep      = 10
+#)
+
+#apollo_speedTest(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs, speedTest_settings)
+
+MXLmodel_PMC = apollo_estimate(apollo_beta, apollo_fixed,
+                           apollo_probabilities, apollo_inputs, 
+                           estimate_settings=list(hessianRoutine="numDeriv"))
+
+apollo_modelOutput(MXLmodel_PMC,modelOutput_settings = list(printPVal=TRUE))
+
+
+
+# ################################################################# #
+#### Apollo MXL [MLHS Draws for the appendix]          
+# ################################################################# #
+
+rm(list = ls())
+install.packages("Rcpp")
+library(Rcpp)
+install.packages("rngWELL")
+library(rngWELL)
+install.packages("randtoolbox")
+library(randtoolbox)
+install.packages("apollo")
+library(apollo)
+
+apollo_initialise()
+
+## Set core controls
+apollo_control = list(
+  modelName ="MXL",
+  indivID   ="ID",  
+  mixing    = TRUE, 
+  nCores    = 5
+)
+
+
+## Vector of parameters, including any that are kept fixed in estimation
+apollo_beta = c(asc_A      = 0,
+                asc_B      = 0,
+                b_Performance   = 0,
+                b_Emission      = 0,
+                mu_log_b_Price    =0,
+                sigma_log_b_Price = 0)
+
+## Vector with names (in quotes) of parameters to be kept fixed at their starting value in apollo_beta, use apollo_beta_fixed = c() if none
+apollo_fixed = c("asc_A")
+
+
+### Set parameters for generating draws
+apollo_draws = list(
+  interDrawsType = "mlhs",
+  interNDraws    = 100,
+  interUnifDraws = c("draws_Price_inter"),
+  interNormDraws = c(),
+  intraDrawsType = "mlhs",
+  intraNDraws    = 100,
+  intraUnifDraws = c(),
+  intraNormDraws = c()
+)
+### Create random parameters
+apollo_randCoeff = function(apollo_beta, apollo_inputs){
+  randcoeff = list()
+  
+  randcoeff[["b_Price"]] = -exp( mu_log_b_Price + sigma_log_b_Price * draws_Price_inter )
+  
+  return(randcoeff)
+}
+
+apollo_inputs = apollo_validateInputs()
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  
+  ## Function initialisation: do not change the following three commands
+  ## Attach inputs and detach after function exit
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  
+  ## Create list of probabilities P
+  P = list()
+  
+  
+  ## List of utilities: these must use the same names as in mnl_settings, order is irrelevant
+  V = list()
+  V[['A']] = asc_A + b_Price*(Price_A + b_Performance*Performance_A + b_Emission*Emission_A)
+  V[['B']] = asc_B + b_Price*(Price_B + b_Performance*Performance_B + b_Emission*Emission_B)
+  
+  ## Define settings for MNL model component
+  mnl_settings = list(
+    alternatives  = c(A=1, B=2),
+    avail         = list(A=1, B=1),
+    choiceVar     = Choice,
+    V             = V
+  )
+  
+  ## Compute probabilities using MNL model
+  P[['model']] = apollo_mnl(mnl_settings, functionality)
+  
+  ## Take product across observation for same individual
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  
+  ## Average across inter-individual draws
+  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
+  
+  ## Prepare and return outputs of function
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+### Optional speedTest
+#speedTest_settings=list(
+#   nDrawsTry = c(50, 75, 100),
+#   nCoresTry = 1:3,
+#   nRep      = 10
+#)
+
+#apollo_speedTest(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs, speedTest_settings)
+
+MXLmodel_MLHS = apollo_estimate(apollo_beta, apollo_fixed,
+                               apollo_probabilities, apollo_inputs, 
+                               estimate_settings=list(hessianRoutine="numDeriv"))
+
+apollo_modelOutput(MXLmodel_MLHS,modelOutput_settings = list(printPVal=TRUE))
+
+
+# ################################################################# #
+#### Apollo MXL [Sobol Draws for the appendix]          
+# ################################################################# #
+
+rm(list = ls())
+install.packages("Rcpp")
+library(Rcpp)
+install.packages("rngWELL")
+library(rngWELL)
+install.packages("randtoolbox")
+library(randtoolbox)
+install.packages("apollo")
+library(apollo)
+
+apollo_initialise()
+
+## Set core controls
+apollo_control = list(
+  modelName ="MXL",
+  indivID   ="ID",  
+  mixing    = TRUE, 
+  nCores    = 5
+)
+
+
+## Vector of parameters, including any that are kept fixed in estimation
+apollo_beta = c(asc_A      = 0,
+                asc_B      = 0,
+                b_Performance   = 0,
+                b_Emission      = 0,
+                mu_log_b_Price    =0,
+                sigma_log_b_Price = 0)
+
+## Vector with names (in quotes) of parameters to be kept fixed at their starting value in apollo_beta, use apollo_beta_fixed = c() if none
+apollo_fixed = c("asc_A")
+
+
+### Set parameters for generating draws
+apollo_draws = list(
+  interDrawsType = "sobol",
+  interNDraws    = 100,
+  interUnifDraws = c("draws_Price_inter"),
+  interNormDraws = c(),
+  intraDrawsType = "sobol",
+  intraNDraws    = 100,
+  intraUnifDraws = c(),
+  intraNormDraws = c()
+)
+### Create random parameters
+apollo_randCoeff = function(apollo_beta, apollo_inputs){
+  randcoeff = list()
+  
+  randcoeff[["b_Price"]] = -exp( mu_log_b_Price + sigma_log_b_Price * draws_Price_inter )
+  
+  return(randcoeff)
+}
+
+apollo_inputs = apollo_validateInputs()
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  
+  ## Function initialisation: do not change the following three commands
+  ## Attach inputs and detach after function exit
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  
+  ## Create list of probabilities P
+  P = list()
+  
+  
+  ## List of utilities: these must use the same names as in mnl_settings, order is irrelevant
+  V = list()
+  V[['A']] = asc_A + b_Price*(Price_A + b_Performance*Performance_A + b_Emission*Emission_A)
+  V[['B']] = asc_B + b_Price*(Price_B + b_Performance*Performance_B + b_Emission*Emission_B)
+  
+  ## Define settings for MNL model component
+  mnl_settings = list(
+    alternatives  = c(A=1, B=2),
+    avail         = list(A=1, B=1),
+    choiceVar     = Choice,
+    V             = V
+  )
+  
+  ## Compute probabilities using MNL model
+  P[['model']] = apollo_mnl(mnl_settings, functionality)
+  
+  ## Take product across observation for same individual
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  
+  ## Average across inter-individual draws
+  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
+  
+  ## Prepare and return outputs of function
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+### Optional speedTest
+#speedTest_settings=list(
+#   nDrawsTry = c(50, 75, 100),
+#   nCoresTry = 1:3,
+#   nRep      = 10
+#)
+
+#apollo_speedTest(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs, speedTest_settings)
+
+MXLmodel_Sobol = apollo_estimate(apollo_beta, apollo_fixed,
+                                apollo_probabilities, apollo_inputs, 
+                                estimate_settings=list(hessianRoutine="numDeriv"))
+
+apollo_modelOutput(MXLmodel_Sobol,modelOutput_settings = list(printPVal=TRUE))
+
+
+
+# ################################################################# #
+#### Apollo MXL [Piecewise indirect utility for the appendix]          
+# ################################################################# #
+
+rm(list = ls())
+install.packages("Rcpp")
+library(Rcpp)
+install.packages("rngWELL")
+library(rngWELL)
+install.packages("randtoolbox")
+library(randtoolbox)
+install.packages("apollo")
+library(apollo)
+
+apollo_initialise()
+
+## Set core controls
+apollo_control = list(
+  modelName ="MXL",
+  indivID   ="ID",  
+  mixing    = TRUE, 
+  nCores    = 5
+)
+
+
+## Vector of parameters, including any that are kept fixed in estimation
+apollo_beta = c(asc_A      = 0,
+                asc_B      = 0,
+                mu_log_b_Price    =0,
+                sigma_log_b_Price = 0,
+                b_Emission_Low     = 0, 
+                b_Emission_Medium  = 0,  
+                b_Emission_High    = 0,  
+                b_Performance_Low       = 0, 
+                b_Performance_Middle       = 0, 
+                b_Performance_High      = 0)
+
+## Set one of the ASCs as zero using the utility-difference approach: 
+apollo_fixed = c("asc_A","b_Emission_Low","b_Performance_Low")
+
+
+### Set parameters for generating draws
+apollo_draws = list(
+  interDrawsType = "halton",
+  interNDraws    = 100,
+  interUnifDraws = c("draws_Price_inter"),
+  interNormDraws = c(),
+  intraDrawsType = "halton",
+  intraNDraws    = 100,
+  intraUnifDraws = c(),
+  intraNormDraws = c()
+)
+### Create random parameters
+apollo_randCoeff = function(apollo_beta, apollo_inputs){
+  randcoeff = list()
+  
+  randcoeff[["b_Price"]] = -exp( mu_log_b_Price + sigma_log_b_Price * draws_Price_inter )
+  
+  return(randcoeff)
+}
+
+apollo_inputs = apollo_validateInputs()
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  
+  ## Function initialisation: do not change the following three commands
+  ## Attach inputs and detach after function exit
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  
+  ## Create list of probabilities P
+  P = list()
+  
+  
+  ## List of utilities: these must use the same names as in mnl_settings, order is irrelevant
+  V = list()
+  V[['A']] = asc_A + b_Price*(Price_A + b_Emission_Low*(Emission_A==0) + b_Performance_Low*(Performance_A==0) )
+  
+  V[['B']] = asc_B + b_Price*(Price_B+ b_Emission_Low*(Emission_B==0.1) + b_Emission_Medium*(Emission_B==0.4) + b_Emission_High*(Emission_B==0.9) 
+                       + b_Performance_Low*(Performance_B==0.05) + b_Performance_Middle*(Performance_B==0.10) + b_Performance_High*(Performance_B==0.50))
+  
+  ## Define settings for MNL model component
+  mnl_settings = list(
+    alternatives  = c(A=1, B=2),
+    avail         = list(A=1, B=1),
+    choiceVar     = Choice,
+    V             = V
+  )
+  
+  ## Compute probabilities using MNL model
+  P[['model']] = apollo_mnl(mnl_settings, functionality)
+  
+  ## Take product across observation for same individual
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  
+  ## Average across inter-individual draws
+  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
+  
+  ## Prepare and return outputs of function
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+### Optional speedTest
+#speedTest_settings=list(
+#   nDrawsTry = c(50, 75, 100),
+#   nCoresTry = 1:3,
+#   nRep      = 10
+#)
+
+#apollo_speedTest(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs, speedTest_settings)
+
+MXLmodel_Piecewise = apollo_estimate(apollo_beta, apollo_fixed,
+                                 apollo_probabilities, apollo_inputs, 
+                                 estimate_settings=list(hessianRoutine="numDeriv"))
+
+apollo_modelOutput(MXLmodel_Piecewise,modelOutput_settings = list(printPVal=TRUE))
+
+
+
+#############################################################################
+## APOLLO: LCM [Note does not currently replicate GMNL]
+#############################################################################
+
+
+apollo_initialise()
+
+apollo_control = list(
+  modelName  ="Apollo_example_20",
+  modelDescr ="LC model with class allocation model on Swiss route choice data",
+  indivID    ="ID",
+  nCores     = 3
+)
+
+apollo_beta = c(asc_1           = 0,
+                asc_2           = 0,
+                beta_Price_a       = 0,
+                beta_Price_b       = 0,
+                beta_Performance_a       = 0,
+                beta_Performance_b       = 0,
+                beta_Emission_a       =0,
+                beta_Emission_b       =0,
+                delta_a         = 0,
+                delta_b = 0,
+                b_Gender_a = 0,
+                b_Gender_b = 0,
+                b_Age_a      = 0,
+                b_Age_b      = 0,
+                b_Distance_a = 0,
+                b_Distance_b = 0,
+                b_Trips_a    = 0,
+                b_Trips_b    = 0,
+                b_BP_a       = 0,
+                b_BP_b       = 0,
+                b_Charity_a  = 0,
+                b_Charity_b  = 0,
+                b_Education_a  = 0,
+                b_Education_b  = 0,
+                b_Employment_a = 0,
+                b_Employment_b = 0,
+                b_Income_a     = 0,
+                b_Income_b     = 0,
+                b_Cons_a       = 0,
+                b_Cons_b       = 0,
+                b_Experts_a    = 0,
+                b_Experts_b    = 0)
+
+### Vector with names (in quotes) of parameters to be kept fixed at their starting value in apollo_beta, use apollo_beta_fixed = c() if none
+apollo_fixed = c("asc_2","delta_b","b_Gender_b","b_Age_b",
+                 "b_Distance_b","b_Trips_b","b_BP_b",
+                 "b_Charity_b","b_Education_b","b_Employment_b",
+                 "b_Income_b","b_Cons_b",
+                 "b_Experts_b")
+
+# ################################################################# #
+#### DEFINE LATENT CLASS COMPONENTS                              ####
+# ################################################################# #
+
+apollo_lcPars=function(apollo_beta, apollo_inputs){
+  lcpars = list()
+  lcpars[["beta_Price"]] = list(beta_Price_a, beta_Price_b)
+  lcpars[["beta_Performance"]] = list(beta_Performance_a, beta_Performance_b)
+  lcpars[["beta_Emission"]] = list(beta_Emission_a, beta_Emission_b)
+  
+  V=list()
+  V[["class_a"]] = delta_a + b_Gender_a*Q1Gender + b_Age_a*Age +
+    b_Distance_a * Distance + 
+    b_Trips_a * Trips +
+    b_BP_a * BP +
+    b_Charity_a * Charity + 
+    b_Education_a * Education +
+    b_Employment_a * Employment + 
+    b_Income_a * Income +
+    b_Cons_a * Consequentiality +       
+    b_Experts_a * Experts
+  V[["class_b"]] = delta_b + b_Gender_b*Q1Gender + b_Age_b*Age +
+    b_Distance_b * Distance + 
+    b_Trips_b * Trips +
+    b_BP_b * BP +
+    b_Charity_b * Charity + 
+    b_Education_b * Education +
+    b_Employment_b * Employment + 
+    b_Income_b * Income+
+    b_Cons_b * Consequentiality +       
+    b_Experts_b * Experts
+  
+  mnl_settings = list(
+    alternatives = c(class_a=1, class_b=2), 
+    avail        = 1, 
+    choiceVar    = NA, 
+    V            = V
+  )
+  lcpars[["pi_values"]] = apollo_mnl(mnl_settings, functionality="raw")
+  
+  lcpars[["pi_values"]] = apollo_firstRow(lcpars[["pi_values"]], apollo_inputs)
+  
+  return(lcpars)
+}
+
+# ################################################################# #
+#### GROUP AND VALIDATE INPUTS                                   ####
+# ################################################################# #
+
+apollo_inputs = apollo_validateInputs()
+
+# ################################################################# #
+#### DEFINE MODEL AND LIKELIHOOD FUNCTION                        ####
+# ################################################################# #
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  
+  ### Attach inputs and detach after function exit
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  
+  ### Create list of probabilities P
+  P = list()
+  
+  ### Define settings for MNL model component that are generic across classes
+  mnl_settings = list(
+    alternatives = c(alt1=1, alt2=2),
+    avail        = list(alt1=1, alt2=1),
+    choiceVar    = Choice
+  )
+  
+  ### Loop over classes
+  s=1
+  while(s<=2){
+    
+    ### Compute class-specific utilities
+    V=list()
+    V[['alt1']]  = asc_1 + beta_Performance[[s]]*Performance_A + beta_Price[[s]]*Price_A + beta_Emission[[s]]*Emission_A
+    V[['alt2']]  = asc_2 + beta_Performance[[s]]*Performance_B + beta_Price[[s]]*Price_B + beta_Emission[[s]]*Emission_B
+    
+    mnl_settings$V = V
+    mnl_settings$componentName = paste0("Class_",s)
+    
+    ### Compute within-class choice probabilities using MNL model
+    P[[paste0("Class_",s)]] = apollo_mnl(mnl_settings, functionality)
+    
+    ### Take product across observation for same individual
+    P[[paste0("Class_",s)]] = apollo_panelProd(P[[paste0("Class_",s)]], apollo_inputs ,functionality)
+    
+    s=s+1}
+  
+  ### Compute latent class model probabilities
+  lc_settings   = list(inClassProb = P, classProb=pi_values)
+  P[["model"]] = apollo_lc(lc_settings, apollo_inputs, functionality)
+  
+  ### Prepare and return outputs of function
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+
+# ################################################################# #
+#### MODEL ESTIMATION                                            ####
+# ################################################################# #
+
+#apollo_beta=apollo_searchStart(apollo_beta, apollo_fixed,apollo_probabilities, apollo_inputs)
+#apollo_outOfSample(apollo_beta, apollo_fixed,apollo_probabilities, apollo_inputs)
+
+### Estimate model
+LCmodel = apollo_estimate(apollo_beta, apollo_fixed, 
+                          apollo_probabilities, apollo_inputs,
+                          estimate_settings=list(writeIter=FALSE))
+
+### Show output in screen
+apollo_modelOutput(LCmodel)
+
+
+deltaMethod_settings=list(operation="ratio", parName1="beta_Performance_a", parName2="beta_Price_a")
+apollo_deltaMethod(LCmodel, deltaMethod_settings)
+
+deltaMethod_settings=list(operation="ratio", parName1="beta_Performance_b", parName2="beta_Price_b")
+apollo_deltaMethod(LCmodel, deltaMethod_settings)
+
+deltaMethod_settings=list(operation="ratio", parName1="beta_Emission_a", parName2="beta_Price_a")
+apollo_deltaMethod(LCmodel, deltaMethod_settings)
+
+deltaMethod_settings=list(operation="ratio", parName1="beta_Emission_b", parName2="beta_Price_b")
+apollo_deltaMethod(LCmodel, deltaMethod_settings)
+
 
 
 #############################################################################
