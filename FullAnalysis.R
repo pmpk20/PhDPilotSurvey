@@ -563,7 +563,7 @@ ProtestGraph <- ggplot(Full_Final, aes(x=as.numeric(Protestors))) +
   ggtitle("WTP by protesting") +
   theme(plot.title = element_text(hjust = 0.5),
         axis.title.y = element_text(size = 12)) +
-  scale_x_continuous(name="Protests",breaks = waiver(),limits = c(0,1)),
+  scale_x_continuous(name="Protests",breaks = waiver(),limits = c(0,1),
                      n.breaks = 2, labels = c("Protested","Did not"))+
   scale_y_continuous(name="WTP",breaks = waiver(), n.breaks=10,
                      limits=c(0,75),labels = function(x) paste0("£",x))+
@@ -3141,11 +3141,9 @@ model = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_
 apollo_modelOutput(model,modelOutput_settings = list(printPVal=TRUE))
 
 ## WTP calculations: 
-deltaMethod_settings=list(operation="ratio", parName1="b_Performance", parName2="b_Price")
-apollo_deltaMethod(model, deltaMethod_settings)
 
-deltaMethod_settings=list(operation="ratio", parName1="b_Emission", parName2="b_Price")
-apollo_deltaMethod(model, deltaMethod_settings)
+apollo_deltaMethod(model, list(operation="ratio", parName1="b_Performance", parName2="b_Price"))
+apollo_deltaMethod(model, list(operation="ratio", parName1="b_Emission", parName2="b_Price"))
 
 
 # ################################################################# #
@@ -3896,15 +3894,15 @@ apollo_modelOutput(MXLmodel_Piecewise,modelOutput_settings = list(printPVal=TRUE
 
 
 #############################################################################
-## APOLLO: LCM [Note does not currently replicate GMNL]
+## APOLLO: LCM 2-class [Note does not currently replicate GMNL]
 #############################################################################
 
 
 apollo_initialise()
 
 apollo_control = list(
-  modelName  ="Apollo_example_20",
-  modelDescr ="LC model with class allocation model on Swiss route choice data",
+  modelName  ="2-class LCM",
+  modelDescr ="2-class LCM",
   indivID    ="ID",
   nCores     = 3
 )
@@ -3923,35 +3921,12 @@ apollo_beta = c(asc_1           = 0,
                 b_Gender_b = 0,
                 b_Age_a      = 0,
                 b_Age_b      = 0,
-                b_Distance_a = 0,
-                b_Distance_b = 0,
-                b_Trips_a    = 0,
-                b_Trips_b    = 0,
-                b_BP_a       = 0,
-                b_BP_b       = 0,
-                b_Charity_a  = 0,
-                b_Charity_b  = 0,
-                b_Education_a  = 0,
-                b_Education_b  = 0,
-                b_Employment_a = 0,
-                b_Employment_b = 0,
-                b_Income_a     = 0,
-                b_Income_b     = 0,
-                b_Cons_a       = 0,
-                b_Cons_b       = 0,
-                b_Experts_a    = 0,
-                b_Experts_b    = 0)
+                b_Distance_a =0,
+                b_Distance_b=0)
+
 
 ### Vector with names (in quotes) of parameters to be kept fixed at their starting value in apollo_beta, use apollo_beta_fixed = c() if none
-apollo_fixed = c("asc_2","delta_b","b_Gender_b","b_Age_b",
-                 "b_Distance_b","b_Trips_b","b_BP_b",
-                 "b_Charity_b","b_Education_b","b_Employment_b",
-                 "b_Income_b","b_Cons_b",
-                 "b_Experts_b")
-
-# ################################################################# #
-#### DEFINE LATENT CLASS COMPONENTS                              ####
-# ################################################################# #
+apollo_fixed = c("asc_2","delta_b","b_Gender_a","b_Age_a","b_Distance_a")
 
 apollo_lcPars=function(apollo_beta, apollo_inputs){
   lcpars = list()
@@ -3960,26 +3935,8 @@ apollo_lcPars=function(apollo_beta, apollo_inputs){
   lcpars[["beta_Emission"]] = list(beta_Emission_a, beta_Emission_b)
   
   V=list()
-  V[["class_a"]] = delta_a + b_Gender_a*Q1Gender + b_Age_a*Age +
-    b_Distance_a * Distance + 
-    b_Trips_a * Trips +
-    b_BP_a * BP +
-    b_Charity_a * Charity + 
-    b_Education_a * Education +
-    b_Employment_a * Employment + 
-    b_Income_a * Income +
-    b_Cons_a * Consequentiality +       
-    b_Experts_a * Experts
-  V[["class_b"]] = delta_b + b_Gender_b*Q1Gender + b_Age_b*Age +
-    b_Distance_b * Distance + 
-    b_Trips_b * Trips +
-    b_BP_b * BP +
-    b_Charity_b * Charity + 
-    b_Education_b * Education +
-    b_Employment_b * Employment + 
-    b_Income_b * Income+
-    b_Cons_b * Consequentiality +       
-    b_Experts_b * Experts
+  V[["class_a"]] = delta_a + b_Gender_a*Q1Gender + b_Age_a*Age +b_Distance_a*Distance
+  V[["class_b"]] = delta_b + b_Gender_b*Q1Gender + b_Age_b*Age + b_Distance_b*Distance 
   
   mnl_settings = list(
     alternatives = c(class_a=1, class_b=2), 
@@ -3994,15 +3951,7 @@ apollo_lcPars=function(apollo_beta, apollo_inputs){
   return(lcpars)
 }
 
-# ################################################################# #
-#### GROUP AND VALIDATE INPUTS                                   ####
-# ################################################################# #
-
 apollo_inputs = apollo_validateInputs()
-
-# ################################################################# #
-#### DEFINE MODEL AND LIKELIHOOD FUNCTION                        ####
-# ################################################################# #
 
 apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
   
@@ -4049,11 +3998,6 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
   return(P)
 }
 
-
-# ################################################################# #
-#### MODEL ESTIMATION                                            ####
-# ################################################################# #
-
 #apollo_beta=apollo_searchStart(apollo_beta, apollo_fixed,apollo_probabilities, apollo_inputs)
 #apollo_outOfSample(apollo_beta, apollo_fixed,apollo_probabilities, apollo_inputs)
 
@@ -4063,21 +4007,281 @@ LCmodel = apollo_estimate(apollo_beta, apollo_fixed,
                           estimate_settings=list(writeIter=FALSE))
 
 ### Show output in screen
-apollo_modelOutput(LCmodel)
+apollo_modelOutput(LCmodel,modelOutput_settings = list(printPVal=TRUE))
+
+### Reporting WTP:
+apollo_deltaMethod(LCmodel, list(operation="ratio", parName1="beta_Performance_a", parName2="beta_Price_a"))
+apollo_deltaMethod(LCmodel, list(operation="ratio", parName1="beta_Performance_b", parName2="beta_Price_b"))
+apollo_deltaMethod(LCmodel, list(operation="ratio", parName1="beta_Emission_a", parName2="beta_Price_a"))
+apollo_deltaMethod(LCmodel, list(operation="ratio", parName1="beta_Emission_b", parName2="beta_Price_b"))
 
 
-deltaMethod_settings=list(operation="ratio", parName1="beta_Performance_a", parName2="beta_Price_a")
-apollo_deltaMethod(LCmodel, deltaMethod_settings)
+#############################################################################
+## APOLLO: LCM 3-class [Note does not currently replicate GMNL]
+#############################################################################
 
-deltaMethod_settings=list(operation="ratio", parName1="beta_Performance_b", parName2="beta_Price_b")
-apollo_deltaMethod(LCmodel, deltaMethod_settings)
 
-deltaMethod_settings=list(operation="ratio", parName1="beta_Emission_a", parName2="beta_Price_a")
-apollo_deltaMethod(LCmodel, deltaMethod_settings)
+apollo_initialise()
 
-deltaMethod_settings=list(operation="ratio", parName1="beta_Emission_b", parName2="beta_Price_b")
-apollo_deltaMethod(LCmodel, deltaMethod_settings)
+apollo_control = list(
+  modelName  ="3-class LCM",
+  modelDescr ="3-class LCM",
+  indivID    ="ID",
+  nCores     = 3
+)
 
+apollo_beta = c(asc_1           = 0,
+                asc_2           = 0,
+                beta_Price_a       = 0,
+                beta_Price_b       = 0,
+                beta_Price_c       = 0,
+                beta_Performance_a       = 0,
+                beta_Performance_b       = 0,
+                beta_Performance_c       = 0,
+                beta_Emission_a       =0,
+                beta_Emission_b       =0,
+                beta_Emission_c       =0,
+                delta_a         = 0,
+                delta_b = 0,
+                delta_c =0,
+                b_Gender_a = 0,
+                b_Gender_b = 0,
+                b_Gender_c = 0,
+                b_Age_a      = 0,
+                b_Age_b      = 0,
+                b_Age_c      = 0)
+
+### Vector with names (in quotes) of parameters to be kept fixed at their starting value in apollo_beta, use apollo_beta_fixed = c() if none
+apollo_fixed = c("asc_2","delta_b","b_Gender_b","b_Age_b")
+
+apollo_lcPars=function(apollo_beta, apollo_inputs){
+  lcpars = list()
+  lcpars[["beta_Price"]] = list(beta_Price_a, beta_Price_b,beta_Price_c)
+  lcpars[["beta_Performance"]] = list(beta_Performance_a, beta_Performance_b,beta_Performance_c)
+  lcpars[["beta_Emission"]] = list(beta_Emission_a, beta_Emission_b,beta_Emission_c)
+  
+  V=list()
+  V[["class_a"]] = delta_a + b_Gender_a*Q1Gender + b_Age_a*Age
+  V[["class_b"]] = delta_b + b_Gender_b*Q1Gender + b_Age_b*Age
+  V[["class_c"]] = delta_c + b_Gender_c*Q1Gender + b_Age_c*Age
+  
+  mnl_settings = list(
+    alternatives = c(class_a=1, class_b=2,class_c=3), 
+    avail        = 1, 
+    choiceVar    = NA, 
+    V            = V
+  )
+  lcpars[["pi_values"]] = apollo_mnl(mnl_settings, functionality="raw")
+  
+  lcpars[["pi_values"]] = apollo_firstRow(lcpars[["pi_values"]], apollo_inputs)
+  
+  return(lcpars)
+}
+
+apollo_inputs = apollo_validateInputs()
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  
+  ### Attach inputs and detach after function exit
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  
+  ### Create list of probabilities P
+  P = list()
+  
+  ### Define settings for MNL model component that are generic across classes
+  mnl_settings = list(
+    alternatives = c(alt1=1, alt2=2),
+    avail        = list(alt1=1, alt2=1),
+    choiceVar    = Choice
+  )
+  
+  ### Loop over classes
+  s=1
+  while(s<=3){
+    
+    ### Compute class-specific utilities
+    V=list()
+    V[['alt1']]  = asc_1 + beta_Performance[[s]]*Performance_A + beta_Price[[s]]*Price_A + beta_Emission[[s]]*Emission_A
+    V[['alt2']]  = asc_2 + beta_Performance[[s]]*Performance_B + beta_Price[[s]]*Price_B + beta_Emission[[s]]*Emission_B
+    mnl_settings$V = V
+    mnl_settings$componentName = paste0("Class_",s)
+    
+    ### Compute within-class choice probabilities using MNL model
+    P[[paste0("Class_",s)]] = apollo_mnl(mnl_settings, functionality)
+    
+    ### Take product across observation for same individual
+    P[[paste0("Class_",s)]] = apollo_panelProd(P[[paste0("Class_",s)]], apollo_inputs ,functionality)
+    
+    s=s+1}
+  
+  ### Compute latent class model probabilities
+  lc_settings   = list(inClassProb = P, classProb=pi_values)
+  P[["model"]] = apollo_lc(lc_settings, apollo_inputs, functionality)
+  
+  ### Prepare and return outputs of function
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+
+#apollo_beta=apollo_searchStart(apollo_beta, apollo_fixed,apollo_probabilities, apollo_inputs)
+#apollo_outOfSample(apollo_beta, apollo_fixed,apollo_probabilities, apollo_inputs)
+
+### Estimate model
+LCmodel_3 = apollo_estimate(apollo_beta, apollo_fixed, 
+                            apollo_probabilities, apollo_inputs,
+                            estimate_settings=list(writeIter=FALSE))
+
+### Show output in screen
+apollo_modelOutput(LCmodel_3,modelOutput_settings = list(printPVal=TRUE))
+
+
+apollo_deltaMethod(LCmodel_3, list(operation="ratio", parName1="beta_Performance_a", parName2="beta_Price_a"))
+apollo_deltaMethod(LCmodel_3, list(operation="ratio", parName1="beta_Performance_b", parName2="beta_Price_b"))
+apollo_deltaMethod(LCmodel_3, list(operation="ratio", parName1="beta_Performance_c", parName2="beta_Price_c"))
+
+apollo_deltaMethod(LCmodel_3, list(operation="ratio", parName1="beta_Emission_a", parName2="beta_Price_a"))
+apollo_deltaMethod(LCmodel_3, list(operation="ratio", parName1="beta_Emission_b", parName2="beta_Price_b"))
+apollo_deltaMethod(LCmodel_3, list(operation="ratio", parName1="beta_Emission_c", parName2="beta_Price_c"))
+
+
+#############################################################################
+## APOLLO: LCM 4-class [Note does not currently replicate GMNL]
+#############################################################################
+
+
+apollo_initialise()
+
+apollo_control = list(
+  modelName  ="4-class LCM",
+  modelDescr ="4-class LCM",
+  indivID    ="ID",
+  nCores     = 3
+)
+
+apollo_beta = c(asc_1           = 0,
+                asc_2           = 0,
+                beta_Price_a       = 0,
+                beta_Price_b       = 0,
+                beta_Price_c       = 0,
+                beta_Price_d       = 0,
+                beta_Performance_a       = 0,
+                beta_Performance_b       = 0,
+                beta_Performance_c       = 0,
+                beta_Performance_d       = 0,
+                beta_Emission_a       =0,
+                beta_Emission_b       =0,
+                beta_Emission_c       =0,
+                beta_Emission_d       =0,
+                delta_a         = 0,
+                delta_b = 0,
+                delta_c =0,
+                delta_d =0,
+                b_Gender_a = 0,
+                b_Gender_b = 0,
+                b_Gender_c = 0,
+                b_Gender_d = 0,
+                b_Age_a      = 0,
+                b_Age_b      = 0,
+                b_Age_c      = 0,
+                b_Age_d      = 0)
+
+### Vector with names (in quotes) of parameters to be kept fixed at their starting value in apollo_beta, use apollo_beta_fixed = c() if none
+apollo_fixed = c("asc_2","delta_b","b_Gender_b","b_Age_b")
+
+apollo_lcPars=function(apollo_beta, apollo_inputs){
+  lcpars = list()
+  lcpars[["beta_Price"]] = list(beta_Price_a, beta_Price_b,beta_Price_c,beta_Price_d)
+  lcpars[["beta_Performance"]] = list(beta_Performance_a, beta_Performance_b,beta_Performance_c,beta_Performance_d)
+  lcpars[["beta_Emission"]] = list(beta_Emission_a, beta_Emission_b,beta_Emission_c,beta_Emission_d)
+  
+  V=list()
+  V[["class_a"]] = delta_a + b_Gender_a*Q1Gender + b_Age_a*Age
+  V[["class_b"]] = delta_b + b_Gender_b*Q1Gender + b_Age_b*Age
+  V[["class_c"]] = delta_c + b_Gender_c*Q1Gender + b_Age_c*Age
+  V[["class_d"]] = delta_d + b_Gender_d*Q1Gender + b_Age_d*Age
+  
+  mnl_settings = list(
+    alternatives = c(class_a=1, class_b=2,class_c=3,class_d=4), 
+    avail        = 1, 
+    choiceVar    = NA, 
+    V            = V
+  )
+  lcpars[["pi_values"]] = apollo_mnl(mnl_settings, functionality="raw")
+  
+  lcpars[["pi_values"]] = apollo_firstRow(lcpars[["pi_values"]], apollo_inputs)
+  
+  return(lcpars)
+}
+
+apollo_inputs = apollo_validateInputs()
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  
+  ### Attach inputs and detach after function exit
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  
+  ### Create list of probabilities P
+  P = list()
+  
+  ### Define settings for MNL model component that are generic across classes
+  mnl_settings = list(
+    alternatives = c(alt1=1, alt2=2),
+    avail        = list(alt1=1, alt2=1),
+    choiceVar    = Choice
+  )
+  
+  ### Loop over classes
+  s=1
+  while(s<=4){
+    
+    ### Compute class-specific utilities
+    V=list()
+    V[['alt1']]  = asc_1 + beta_Performance[[s]]*Performance_A + beta_Price[[s]]*Price_A + beta_Emission[[s]]*Emission_A
+    V[['alt2']]  = asc_2 + beta_Performance[[s]]*Performance_B + beta_Price[[s]]*Price_B + beta_Emission[[s]]*Emission_B
+    mnl_settings$V = V
+    mnl_settings$componentName = paste0("Class_",s)
+    
+    ### Compute within-class choice probabilities using MNL model
+    P[[paste0("Class_",s)]] = apollo_mnl(mnl_settings, functionality)
+    
+    ### Take product across observation for same individual
+    P[[paste0("Class_",s)]] = apollo_panelProd(P[[paste0("Class_",s)]], apollo_inputs ,functionality)
+    
+    s=s+1}
+  
+  ### Compute latent class model probabilities
+  lc_settings   = list(inClassProb = P, classProb=pi_values)
+  P[["model"]] = apollo_lc(lc_settings, apollo_inputs, functionality)
+  
+  ### Prepare and return outputs of function
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+
+#apollo_beta=apollo_searchStart(apollo_beta, apollo_fixed,apollo_probabilities, apollo_inputs)
+#apollo_outOfSample(apollo_beta, apollo_fixed,apollo_probabilities, apollo_inputs)
+
+### Estimate model
+LCmodel_4 = apollo_estimate(apollo_beta, apollo_fixed, 
+                            apollo_probabilities, apollo_inputs,
+                            estimate_settings=list(writeIter=FALSE))
+
+### Show output in screen
+apollo_modelOutput(LCmodel_4,modelOutput_settings = list(printPVal=TRUE))
+
+apollo_deltaMethod(LCmodel_4, list(operation="ratio", parName1="beta_Performance_a", parName2="beta_Price_a"))
+apollo_deltaMethod(LCmodel_4, list(operation="ratio", parName1="beta_Performance_b", parName2="beta_Price_b"))
+apollo_deltaMethod(LCmodel_4, list(operation="ratio", parName1="beta_Performance_c", parName2="beta_Price_c"))
+apollo_deltaMethod(LCmodel_4, list(operation="ratio", parName1="beta_Performance_d", parName2="beta_Price_d"))
+
+apollo_deltaMethod(LCmodel, list(operation="ratio", parName1="beta_Emission_a", parName2="beta_Price_a"))
+apollo_deltaMethod(LCmodel, list(operation="ratio", parName1="beta_Emission_b", parName2="beta_Price_b"))
+apollo_deltaMethod(LCmodel, list(operation="ratio", parName1="beta_Emission_c", parName2="beta_Price_c"))
+apollo_deltaMethod(LCmodel, list(operation="ratio", parName1="beta_Emission_d", parName2="beta_Price_d"))
 
 
 #############################################################################
