@@ -19,8 +19,8 @@
 ############### Notes: May have to reinstall rTools package.
 
 
-pkgbuild::find_rtools(debug = TRUE)
 pkgbuild::has_build_tools()
+pkgbuild::find_rtools(debug = TRUE)
 install.packages("Rcpp") ## Necessary dependency for rngWELL
 install.packages("rngWELL") ## Can sometimes fix APOLLO issues
 install.packages("randtoolbox") ## Necessary for APOLLO random draws
@@ -1038,90 +1038,9 @@ summary(MXL_5)
 MXL_5_WTP <- c(-1*coef(MXL_5)["Emission"]/coef(MXL_5)["Price"],-1*coef(MXL_5)["Performance"]/coef(MXL_5)["Price"])
 
 
-## Repeating MXL_4 but experimenting with number of random draws, here 100
-MXL_5_Draws1 <- mlogit(
-  Choice ~ Price + Performance + Emission | 
-    Order + Task + Q1Gender + Q2Age + Q3Distance
-  + Q4Trips + Q16BP + Q18Charity 
-  + Q20Consequentiality
-  + Q21Experts +Q22Education+ Q23Employment
-  +  Q24AIncome + Timing,
-  Full_Long, rpar=c(Price="n"),
-  R=100,correlation = FALSE,
-  reflevel="A",halton=NA,method="bfgs",panel=FALSE,seed=123)
-summary(MXL_5_Draws1)
-MXL_5_Draws1_WTP <- c(-1*coef(MXL_5_Draws1)["Emission"]/coef(MXL_5_Draws1)["Price"],-1*coef(MXL_5_Draws1)["Performance"]/coef(MXL_5_Draws1)["Price"])
-
-
-## Repeating MXL_4 but experimenting with number of random draws, here 500
-MXL_5_Draws2 <- mlogit(
-  Choice ~ Price + Performance + Emission | 
-    Order + Task + Q1Gender + Q2Age + Q3Distance
-  + Q4Trips + Q16BP + Q18Charity 
-  + Q20Consequentiality
-  + Q21Experts +Q22Education+ Q23Employment
-  +  Q24AIncome + Timing,
-  Full_Long, rpar=c(Price="n"),
-  R=500,correlation = FALSE,
-  reflevel="A",halton=NA,method="bfgs",panel=FALSE,seed=123)
-summary(MXL_5_Draws2)
-MXL_5_Draws2_WTP <- c(-1*coef(MXL_5_Draws2)["Emission"]/coef(MXL_5_Draws2)["Price"],-1*coef(MXL_5_Draws2)["Performance"]/coef(MXL_5_Draws2)["Price"])
-
-
-## Repeating MXL_4 but experimenting with number of random draws, here 5000
-MXL_5_Draws3 <- mlogit(
-  Choice ~ Price + Performance + Emission | 
-    Order + Task + Q1Gender + Q2Age + Q3Distance
-  + Q4Trips + Q16BP + Q18Charity 
-  + Q20Consequentiality
-  + Q21Experts +Q22Education+ Q23Employment
-  +  Q24AIncome + Timing,
-  Full_Long, rpar=c(Price="n"),
-  R=5000,correlation = FALSE,
-  reflevel="A",halton=NA,method="bfgs",panel=FALSE,seed=123)
-summary(MXL_5_Draws3)
-MXL_5_Draws3_WTP <- c(-1*coef(MXL_5_Draws3)["Emission"]/coef(MXL_5_Draws3)["Price"],-1*coef(MXL_5_Draws3)["Performance"]/coef(MXL_5_Draws3)["Price"])
-
-
-## Repeating MXL_4 but experimenting with number of random draws, here 10,000
-MXL_5_Draws4 <- mlogit(
-  Choice ~ Price + Performance + Emission | 
-    Order + Task + Q1Gender + Q2Age + Q3Distance
-  + Q4Trips + Q16BP + Q18Charity 
-  + Q20Consequentiality
-  + Q21Experts +Q22Education+ Q23Employment
-  +  Q24AIncome + Timing,
-  Full_Long, rpar=c(Price="n"),
-  R=10000,correlation = FALSE,
-  reflevel="A",halton=NA,method="bfgs",panel=FALSE,seed=123)
-summary(MXL_5_Draws4)
-MXL_5_Draws4_WTP <- c(-1*coef(MXL_5_Draws4)["Emission"]/coef(MXL_5_Draws4)["Price"],-1*coef(MXL_5_Draws4)["Performance"]/coef(MXL_5_Draws4)["Price"])
-
-
-
-
-## Repeating MXL_4 but experimenting with number of random draws, here 10,000
-MXL_5_Draws5 <- mlogit(
-  Choice ~ Price + Performance + Emission | 
-    Order + Task + Q1Gender + Q2Age + Q3Distance
-  + Q4Trips + Q16BP + Q18Charity 
-  + Q20Consequentiality
-  + Q21Experts +Q22Education+ Q23Employment
-  +  Q24AIncome + Timing,
-  Full_Long, rpar=c(Price="n"),
-  R=100000,correlation = FALSE,
-  reflevel="A",halton=NA,method="bfgs",panel=FALSE,seed=123)
-summary(MXL_5_Draws5)
-MXL_5_Draws5_WTP <- c(-1*coef(MXL_5_Draws5)["Emission"]/coef(MXL_5_Draws5)["Price"],-1*coef(MXL_5_Draws5)["Performance"]/coef(MXL_5_Draws5)["Price"])
-
-
-## Reporting MWTP with draws:  
-round(cbind("Draws: 100"=MXL_5_Draws1_WTP,"Draws: 500"=MXL_5_Draws2_WTP,"Draws: 1,000"=MXL_4_WTP,"Draws: 5,000"=MXL_5_Draws3_WTP,"Draws: 10,000"=MXL_5_Draws4_WTP,"Draws: 100,000"=MXL_5_Draws5_WTP),5)
-
-
 ####################################################################################
 ############ Section 4: Post-estimation analysis
-############ Notes: LRtests, AIC, LLik, prediction accuracy
+############ Notes: LRtests, AIC, LLik, prediction accuracy, sensitivity analysis
 
 
 ## Testing whether the MXL is preferred to the MNL:   
@@ -1368,6 +1287,127 @@ Full_Final <- cbind(Full_Final, "cs"=ChoiceData)
 # NewFull <- mlogit.data(Full, shape = "wide", choice = "Choice",
 #                          varying = 16:21, sep = "_", id.var = "ID")
 # Plotted in a latter section of code
+
+
+####################################################################################
+############ Section 4: Sensitivity Analysis
+
+############## Testing random distribution: 
+
+
+## MXL1 with Lognormal distribution for the price parameter
+MXL_1_Lognormal <- mlogit(
+  Choice ~ Price + Performance + Emission ,
+  Full_Long, rpar=c(Price="ln"),
+  R=1000,correlation = FALSE,
+  reflevel="A",halton=NA,method="bfgs",panel=TRUE,seed=13)
+summary(MXL_1_Lognormal)
+MXL_1_Lognormal_WTP <- c(-1*coef(MXL_1_Lognormal)["Emission"]/coef(MXL_1_Lognormal)["Price"],-1*coef(MXL_1_Lognormal)["Performance"]/coef(MXL_1_Lognormal)["Price"])
+
+
+## MXL1 with uniform distribution for the price parameter
+MXL_1_Uniform <- mlogit(
+  Choice ~ Price + Performance + Emission ,
+  Full_Long, rpar=c(Price="u"),
+  R=1000,correlation = FALSE,
+  reflevel="A",halton=NA,method="bfgs",panel=TRUE,seed=13)
+summary(MXL_1_Uniform)
+MXL_1_Uniform_WTP <- c(-1*coef(MXL_1_Uniform)["Emission"]/coef(MXL_1_Uniform)["Price"],-1*coef(MXL_1_Uniform)["Performance"]/coef(MXL_1_Uniform)["Price"])
+
+## MXL1 with triangular distribution for the price parameter
+MXL_1_Tri <- mlogit(
+  Choice ~ Price + Performance + Emission ,
+  Full_Long, rpar=c(Price="t"),
+  R=1000,correlation = FALSE,
+  reflevel="A",halton=NA,method="bfgs",panel=TRUE,seed=13)
+summary(MXL_1_Tri)
+MXL_1_Tri_WTP <- c(-1*coef(MXL_1_Tri)["Emission"]/coef(MXL_1_Tri)["Price"],-1*coef(MXL_1_Tri)["Performance"]/coef(MXL_1_Tri)["Price"])
+
+
+round(cbind("Normal"=MXL_1_WTP,"Uniform"=MXL_1_Uniform_WTP,"Triangular"=MXL_1_Tri_WTP),5)
+plot(rpar(MXL_1,"Price"))
+plot(rpar(MXL_1_Tri,"Price"))
+plot(rpar(MXL_1_Uniform,"Price"))
+
+############## Testing number of draws: 
+
+## Repeating MXL_4 but experimenting with number of random draws, here 100
+MXL_5_Draws1 <- mlogit(
+  Choice ~ Price + Performance + Emission | 
+    Order + Task + Q1Gender + Q2Age + Q3Distance
+  + Q4Trips + Q16BP + Q18Charity 
+  + Q20Consequentiality
+  + Q21Experts +Q22Education+ Q23Employment
+  +  Q24AIncome + Timing,
+  Full_Long, rpar=c(Price="n"),
+  R=100,correlation = FALSE,
+  reflevel="A",halton=NA,method="bfgs",panel=FALSE,seed=123)
+summary(MXL_5_Draws1)
+MXL_5_Draws1_WTP <- c(-1*coef(MXL_5_Draws1)["Emission"]/coef(MXL_5_Draws1)["Price"],-1*coef(MXL_5_Draws1)["Performance"]/coef(MXL_5_Draws1)["Price"])
+
+
+## Repeating MXL_4 but experimenting with number of random draws, here 500
+MXL_5_Draws2 <- mlogit(
+  Choice ~ Price + Performance + Emission | 
+    Order + Task + Q1Gender + Q2Age + Q3Distance
+  + Q4Trips + Q16BP + Q18Charity 
+  + Q20Consequentiality
+  + Q21Experts +Q22Education+ Q23Employment
+  +  Q24AIncome + Timing,
+  Full_Long, rpar=c(Price="n"),
+  R=500,correlation = FALSE,
+  reflevel="A",halton=NA,method="bfgs",panel=FALSE,seed=123)
+summary(MXL_5_Draws2)
+MXL_5_Draws2_WTP <- c(-1*coef(MXL_5_Draws2)["Emission"]/coef(MXL_5_Draws2)["Price"],-1*coef(MXL_5_Draws2)["Performance"]/coef(MXL_5_Draws2)["Price"])
+
+
+## Repeating MXL_4 but experimenting with number of random draws, here 5000
+MXL_5_Draws3 <- mlogit(
+  Choice ~ Price + Performance + Emission | 
+    Order + Task + Q1Gender + Q2Age + Q3Distance
+  + Q4Trips + Q16BP + Q18Charity 
+  + Q20Consequentiality
+  + Q21Experts +Q22Education+ Q23Employment
+  +  Q24AIncome + Timing,
+  Full_Long, rpar=c(Price="n"),
+  R=5000,correlation = FALSE,
+  reflevel="A",halton=NA,method="bfgs",panel=FALSE,seed=123)
+summary(MXL_5_Draws3)
+MXL_5_Draws3_WTP <- c(-1*coef(MXL_5_Draws3)["Emission"]/coef(MXL_5_Draws3)["Price"],-1*coef(MXL_5_Draws3)["Performance"]/coef(MXL_5_Draws3)["Price"])
+
+
+## Repeating MXL_4 but experimenting with number of random draws, here 10,000
+MXL_5_Draws4 <- mlogit(
+  Choice ~ Price + Performance + Emission | 
+    Order + Task + Q1Gender + Q2Age + Q3Distance
+  + Q4Trips + Q16BP + Q18Charity 
+  + Q20Consequentiality
+  + Q21Experts +Q22Education+ Q23Employment
+  +  Q24AIncome + Timing,
+  Full_Long, rpar=c(Price="n"),
+  R=10000,correlation = FALSE,
+  reflevel="A",halton=NA,method="bfgs",panel=FALSE,seed=123)
+summary(MXL_5_Draws4)
+MXL_5_Draws4_WTP <- c(-1*coef(MXL_5_Draws4)["Emission"]/coef(MXL_5_Draws4)["Price"],-1*coef(MXL_5_Draws4)["Performance"]/coef(MXL_5_Draws4)["Price"])
+
+
+## Repeating MXL_4 but experimenting with number of random draws, here 10,000
+MXL_5_Draws5 <- mlogit(
+  Choice ~ Price + Performance + Emission | 
+    Order + Task + Q1Gender + Q2Age + Q3Distance
+  + Q4Trips + Q16BP + Q18Charity 
+  + Q20Consequentiality
+  + Q21Experts +Q22Education+ Q23Employment
+  +  Q24AIncome + Timing,
+  Full_Long, rpar=c(Price="n"),
+  R=100000,correlation = FALSE,
+  reflevel="A",halton=NA,method="bfgs",panel=FALSE,seed=123)
+summary(MXL_5_Draws5)
+MXL_5_Draws5_WTP <- c(-1*coef(MXL_5_Draws5)["Emission"]/coef(MXL_5_Draws5)["Price"],-1*coef(MXL_5_Draws5)["Performance"]/coef(MXL_5_Draws5)["Price"])
+
+
+## Reporting MWTP with draws:  
+round(cbind("Draws: 100"=MXL_5_Draws1_WTP,"Draws: 500"=MXL_5_Draws2_WTP,"Draws: 1,000"=MXL_4_WTP,"Draws: 5,000"=MXL_5_Draws3_WTP,"Draws: 10,000"=MXL_5_Draws4_WTP,"Draws: 100,000"=MXL_5_Draws5_WTP),5)
 
 
 ####################################################################################
