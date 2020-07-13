@@ -431,435 +431,6 @@ AllCriteria <- AllCriteria[ !(AllCriteria$IDs %in% c(24,33,44,61,121,127,182,200
 ## Fully truncated:
 Full_Full <- Full_Final[ (Full_Final$ID) %in% c(AllCriteria),]
 
-## Truncation Strategy One:
-round(mean(Full_Full$Q6WTP),2) ## 24.89
-round(mean(Full_Full$Q7WTP),2) ## 45.25
-round(mean(Full_Full$PerformanceCoef),3) ## -0.041
-round(mean(Full_Full$EmissionCoef),3) ## 0.035
-
-
-## Truncation Strategy Two:
-round(mean(Full_Full$Q6WTP),2) ## 23.72
-round(mean(Full_Full$Q7WTP),2) ## 45.33
-round(mean(Full_Full$PerformanceCoef),3) ## -0.053
-round(mean(Full_Full$EmissionCoef),3) ## 0.045
-
-####################################################################################
-############ Section 3: Descriptive Statistics and calculations
-############ Lines: 430:734
-############ Notes: Very long and verbose. Skip if uninterested.
-
-
-## Gender: 
-100/nrow(FullSurvey)*length(FullSurvey$Q1Gender[FullSurvey$Q1Gender=="Male"]) ## Proportion of the sample that is male. Actual: 46, Target: 49
-100/nrow(FullSurvey)*length(FullSurvey$Q1Gender[FullSurvey$Q1Gender=="Female"]) ## Proportion of the sample that is female. Actual: 53, Target: 51 
-100/nrow(FullSurvey)*length(FullSurvey$Q1Gender[(FullSurvey$Q1Gender !="Female")  & (FullSurvey$Q1Gender != "Male")]) ## Estimating the percentage who reported otherwise
-
-
-## Age: 
-mean(FullSurvey2$Q2Age) ## Estimating average age
-
-
-## Trips: 
-mean(FullSurvey2$Q4Trips) ## Estimating average annual trips
-
-
-## Charity: 
-100/nrow(FullSurvey)*length(FullSurvey$Q18Charity[FullSurvey$Q18Charity=="No"])
-100/nrow(FullSurvey)*length(FullSurvey$Q18Charity[FullSurvey$Q18Charity=="Yes"])
-100/nrow(FullSurvey)*length(FullSurvey$Q18Charity[FullSurvey$Q18Charity=="Prefer not to say"])
-
-
-## Education: 
-100/nrow(FullSurvey2)*length(FullSurvey2$Q22Education[FullSurvey2$Q22Education==0]) ## 0 = Prefer not to say 2.23%
-100/nrow(FullSurvey2)*length(FullSurvey2$Q22Education[FullSurvey2$Q22Education==1]) ## 1 = GCSE 21.94%
-100/nrow(FullSurvey2)*length(FullSurvey2$Q22Education[FullSurvey2$Q22Education==2]) ## 2 = A level 26.56%
-100/nrow(FullSurvey2)*length(FullSurvey2$Q22Education[FullSurvey2$Q22Education==3]) ## 3 = Bachelors 31.64%
-100/nrow(FullSurvey2)*length(FullSurvey2$Q22Education[FullSurvey2$Q22Education==4]) ## 4 = PG 17.61%
-# Less than University: 50.74%
-100/nrow(FullSurvey2)*length(FullSurvey2$Q22Education[FullSurvey2$Q22Education==0]) + 100/nrow(FullSurvey2)*length(FullSurvey2$Q22Education[FullSurvey2$Q22Education==1]) + 100/nrow(FullSurvey2)*length(FullSurvey2$Q22Education[FullSurvey2$Q22Education==2])
-# Bachelors or more: 49.25%
-100/nrow(FullSurvey2)*length(FullSurvey2$Q22Education[FullSurvey2$Q22Education==3]) + 100/nrow(FullSurvey2)*length(FullSurvey2$Q22Education[FullSurvey2$Q22Education==4])
-
-
-## Employment: 
-100/nrow(FullSurvey2)*length(FullSurvey2$Q23Employment[FullSurvey2$Q23Employment==0]) ## 0 = Prefer not to say 2.68%
-100/nrow(FullSurvey2)*length(FullSurvey2$Q23Employment[FullSurvey2$Q23Employment==1]) ## 1 = NEET 11.34%
-100/nrow(FullSurvey2)*length(FullSurvey2$Q23Employment[FullSurvey2$Q23Employment==2]) ## 2 = Retired 7.76%
-100/nrow(FullSurvey2)*length(FullSurvey2$Q23Employment[FullSurvey2$Q23Employment==3]) ## 3 = Student 4.47%
-100/nrow(FullSurvey2)*length(FullSurvey2$Q23Employment[FullSurvey2$Q23Employment==4]) ## 4 = Part-time 14.95%
-100/nrow(FullSurvey2)*length(FullSurvey2$Q23Employment[FullSurvey2$Q23Employment==4]) ## 5 = Self 6.85%
-100/nrow(FullSurvey2)*length(FullSurvey2$Q23Employment[FullSurvey2$Q23Employment==4]) ## 6 = Full-time 51.94
-
-
-## Income: 
-mean(FullSurvey2$Q24AIncome) ## Estimating sample income
-
-
-## Timing (faster than 48% time)
-(median(Full_Long$Timing)/60)/100*48
-library(ggplot2)
-ggplot(FullSurvey2, aes(x=Timing/60)) + 
-  geom_histogram(color="black", fill="white",binwidth = 1)+
-  geom_vline(aes(xintercept=(median(FullSurvey2$Timing)/60)/100*48),
-             color="blue", linetype="dashed", size=1)+
-  scale_x_continuous(name="Completion length in minutes")+
-  geom_vline(xintercept=((median(FullSurvey2$Timing)/60)/100*48), colour="grey") +
-  geom_text(aes(x=((median(FullSurvey2$Timing)/60)/100*48)-2, label="Speeders", y=100), colour="red", angle=0) +
-  geom_text(aes(x=((median(FullSurvey2$Timing)/60)/100*48)+2, label="Included", y=100), colour="blue", angle=0)+
-  ggtitle("Distribution of survey completion timings.")
-
-
-### Plotting survey understanding
-ggplot(FullSurvey2, aes(x=Q25Understanding)) + 
-  geom_histogram(color="black", fill="white",binwidth = 1)+
-  geom_vline(aes(xintercept=7),color="blue", linetype="dashed", size=1)+
-  scale_x_continuous(name="Self-reported survey undertanding in 1-10")+
-  geom_vline(xintercept=(7), colour="grey") +
-  geom_text(aes(x=5, label="Excluded", y=400), colour="red", angle=0) +
-  geom_text(aes(x=8, label="Included", y=400), colour="blue", angle=0)+
-  ggtitle("Distribution of survey understanding")
-
-
-## Protest analysis:
-FullSurvey3 <- data.frame(read.csv("FullSurvey.csv")) 
-Protestors <- c(24,33,44,61,121,127,182,200,211,219,239,251,275,306,320,326,341,360,363,371,399,464,467,479,480,506,579,591,649,654,931,932,935,953,989,1002,1011,1024,14,35,39,54,79,106,130,146,149,155,163,203,214,215,217,244,246,249,252,267,268,282,290,327,343,362,364,374,380,393,398,407,414,425,426,433,477,519,524,536,543,545,547,557,567,575,589,590,595,614,617,629,637,638,639,651,665,674,680,915,933,940,950,959,960,975,978,996,1026,1027,1028)
-Protestors <- ifelse(FullSurvey3$ï..Respondent %in%  Protestors== TRUE, 1,0)
-Full_Final <- cbind(Full_Final,slice(.data = data.frame(Protestors),rep(1:n(), each = 8)))
-
-### Plotting protest effects:
-ProtestGraph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) + 
-  facet_grid( ~ Protestors, labeller = as_labeller(c(
-    `0` = "Protest\n (N = 561)",
-    `1` = "Included\n (N = 109)")))+
-  geom_smooth(aes(y=Q6WTP,color="blue"),method="lm",se=F) +
-  geom_smooth(aes(y=Q7WTP,color="red"),method="lm",se=F) +
-  ggtitle("Relationship between income and WTP by protest votes") +
-  scale_color_discrete(name = "Lines", 
-                       labels = c("WTP for research", "WTP for treatment"))+
-  theme(plot.title = element_text(hjust = 0.5),
-        axis.title.y = element_text(size = 12)) +
-  scale_x_continuous(name="Income",breaks = waiver(),limits = c(0,5000),
-                     n.breaks = 5, labels = function(x) paste0("£",x))+
-  scale_y_continuous(name="WTP",breaks = waiver(), n.breaks=10,
-                     limits=c(0,75),labels = function(x) paste0("£",x))+
-  labs(x = "Protesting",y="WTP")
-
-
-grid.arrange(ggplot(Full_Final[Full_Final$Protestors==0,], aes(x=Full_Final$Q6WTP[Full_Final$Protestors ==0])) + 
-  geom_histogram(color="black", fill="white",bins = 50)+
-  scale_x_continuous(breaks=waiver(),limits = c(0,50),
-                     n.breaks = 10)+
-  ggtitle("Histogram of CV Q6 WTP for protestors."),
-ggplot(Full_Final[Full_Final$Protestors==1,], aes(x=Full_Final$Q6WTP[Full_Final$Protestors ==1])) + 
-  geom_histogram(color="black", fill="white",bins = 50)+
-  scale_x_continuous(breaks=waiver(),limits = c(0,50),
-                     n.breaks = 10)+
-  ggtitle("Histogram of CV Q6 WTP for non-protestors."))
-
-### Plotting protest effects a different way:
-ProtestGraph <- ggplot(Full_Final, aes(x=as.numeric(Protestors))) +
-  geom_col(aes(y=Q6WTP)) +
-  ggtitle("WTP by protesting") +
-  theme(plot.title = element_text(hjust = 0.5),
-        axis.title.y = element_text(size = 12)) +
-  scale_x_continuous(name="Protests",breaks = waiver(),limits = c(0,1),
-                     n.breaks = 2, labels = c("Protested","Did not"))+
-  scale_y_continuous(name="WTP",breaks = waiver(), n.breaks=10,
-                     limits=c(0,75),labels = function(x) paste0("£",x))+
-  labs(x = "Income",y="Precaution")
-
-
-## Reporting WTP by responsibility:
-round(mean(Full_Final$PerformanceCoef[Full_Final$Q17_Firms == 0]),2)
-round(mean(Full_Final$PerformanceCoef[Full_Final$Q17_Cons == 0]),2)
-round(mean(Full_Final$PerformanceCoef[Full_Final$Q17_Gov == 0]),2)
-round(mean(Full_Final$PerformanceCoef[Full_Final$Q17_LA == 0]),2)
-round(mean(Full_Final$PerformanceCoef[Full_Final$Q17_Other == 0]),2)
-round(mean(Full_Final$EmissionCoef[Full_Final$Q17_Firms == 0]),2)
-round(mean(Full_Final$EmissionCoef[Full_Final$Q17_Cons == 0]),2)
-round(mean(Full_Final$EmissionCoef[Full_Final$Q17_Gov == 0]),2)
-round(mean(Full_Final$EmissionCoef[Full_Final$Q17_LA == 0]),2)
-round(mean(Full_Final$EmissionCoef[Full_Final$Q17_Other == 0]),2)
-
-
-## Responsibility beliefs:
-Full_Final$Q17_Firms[ (Full_Final$Q17_Cons == 0) & (Full_Final$Q17_Gov == 0) & (Full_Final$Q17_LA == 0) & (Full_Final$Q17_Other == 0) ] <- 2
-Full_Final$Q17_Cons[ (Full_Final$Q17_Firms == 0) & (Full_Final$Q17_Gov == 0) & (Full_Final$Q17_LA == 0) & (Full_Final$Q17_Other == 0) ] <- 2
-Full_Final$Q17_Cons[Full_Final$Q17_Cons != 2] <- 0
-Full_Final$Q17_Cons[Full_Final$Q17_Cons == 2] <- 1
-Full_Final$Q17_Other[ (Full_Final$Q17_Cons == 0) & (Full_Final$Q17_Gov == 0) & (Full_Final$Q17_LA == 0) & (Full_Final$Q17_Firms == 0) ] <- 2
-
-
-## Correlation heatmap:
-Full_Final <- data.frame(read.csv("FinalData.csv")) ## Imports from the excel file straight from the survey companies website.
-Full_Final <- Full_Final[ -c(2,grep("av_A", colnames(Full_Final)),grep("av_B", colnames(Full_Final)))] ## Drop columns of no importance to the quantitative analysis, namely text responses.
-Full_Final$Choice[Full_Final$Choice==FALSE] <- 0
-Full_Final$Choice[Full_Final$Choice==TRUE] <- 1
-Full_Final$alt <- as.numeric(Full_Final$alt)
-library(ggplot2)
-library(reshape2)
-cormat <- round(cor(Full_Final),2) ## store correlations in a matrix
-melted_cormat <- melt(cormat) ## Simplify corr matrix
-## Get lower triangle
-get_lower_tri<-function(cormat){
-  cormat[upper.tri(cormat)] <- NA
-  return(cormat)
-}
-##  Get upper triangle
-get_upper_tri <- function(cormat){
-  cormat[lower.tri(cormat)]<- NA
-  return(cormat)
-}
-upper_tri <- get_upper_tri(cormat)
-melted_cormat <- melt(upper_tri, na.rm = TRUE)
-reorder_cormat <- function(cormat){
-  dd <- as.dist((1-cormat)/2)
-  hc <- hclust(dd)
-  cormat <-cormat[hc$order, hc$order]
-}
-
-cormat <- reorder_cormat(cormat)
-upper_tri <- get_upper_tri(cormat)
-## Use the melt function to simplify the matrix
-melted_cormat <- melt(upper_tri, na.rm = TRUE)
-
-## Rename matrix columns
-colnames(melted_cormat) <- c("Variable1", "Variable2","Correlation")
-
-
-## Correlation heatmap
-ggheatmap <- ggplot(melted_cormat, aes(Variable2, Variable1, fill = Correlation))+
-  geom_tile(color = "white")+
-  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
-                       midpoint = 0, limit = c(-1,1), space = "Lab", 
-                       name="Pearson\nCorrelation") +
-  theme_minimal()+ # minimal theme
-  theme(axis.text.x = element_text(angle = 90, vjust = 1, 
-                                   size = 6, hjust = 1),
-        axis.text.y = element_text(angle = 0, vjust = 1, 
-                                   size = 6, hjust = 1))+
-  coord_fixed()
-
-
-####################################################################################
-############ Section 3B: Test of means for the truncation strategies
-
-
-## Rule 1) Timing testing: Shows there is a significant difference
-wilcox.test(x=Full_Final$Q6WTP[Full_Final$Timing/60 < (median(Full_Long$Timing)/60)/100*48],y=Full_Final$Q6WTP[Full_Final$Timing/60 >= (median(Full_Long$Timing)/60)/100*48]) ## Outcome: Alternative of =/=
-wilcox.test(x=Full_Final$Q7WTP[Full_Final$Timing/60 < (median(Full_Long$Timing)/60)/100*48],y=Full_Final$Q7WTP[Full_Final$Timing/60 >= (median(Full_Long$Timing)/60)/100*48]) ## Outcome: Alternative of =/= 
-wilcox.test(x=Full_Final$PerformanceCoef[Full_Final$Timing/60 < (median(Full_Long$Timing)/60)/100*48],y=Full_Final$PerformanceCoef[Full_Final$Timing/60 >= (median(Full_Long$Timing)/60)/100*48]) ## Outcome: Alternative of =/=
-wilcox.test(x=Full_Final$EmissionCoef[Full_Final$Timing/60 < (median(Full_Long$Timing)/60)/100*48],y=Full_Final$EmissionCoef[Full_Final$Timing/60 >= (median(Full_Long$Timing)/60)/100*48]) ## Outcome: Alternative of =/= 
-
-
-## Rule 2) Understanding testing: Shows there is a significant difference
-wilcox.test(x=Full_Final$Q6WTP[Full_Final$Q25Understanding < (median(Full_Long$Q25Understanding))],y=Full_Final$Q6WTP[Full_Final$Q25Understanding >= (median(Full_Long$Q25Understanding))]) ## Outcome: NULL
-wilcox.test(x=Full_Final$Q7WTP[Full_Final$Q25Understanding < (median(Full_Long$Q25Understanding))],y=Full_Final$Q7WTP[Full_Final$Q25Understanding >= (median(Full_Long$Q25Understanding))]) ## Outcome: Alternative of =/= 
-wilcox.test(x=Full_Final$PerformanceCoef[Full_Final$Q25Understanding < (median(Full_Long$Q25Understanding))],y=Full_Final$PerformanceCoef[Full_Final$Q25Understanding >= (median(Full_Long$Q25Understanding))]) ## Outcome: Alternative of =/=
-wilcox.test(x=Full_Final$EmissionCoef[Full_Final$Q25Understanding < (median(Full_Long$Q25Understanding))],y=Full_Final$EmissionCoef[Full_Final$Q25Understanding >= (median(Full_Long$Q25Understanding))]) ## Outcome: Alternative of =/= 
-
-
-## Rule 3) Protest vote testing: Shows there is a significant difference
-wilcox.test(x=Full_Final$Q6WTP[Full_Final$Protestors==0],y=Full_Final$Q6WTP[Full_Final$Protestors==1]) ## Outcome: NULL
-wilcox.test(x=Full_Final$Q7WTP[Full_Final$Protestors==0],y=Full_Final$Q7WTP[Full_Final$Protestors==1]) ## Outcome: Alternative of =/= 
-wilcox.test(x=Full_Final$PerformanceCoef[Full_Final$Protestors==0],y=Full_Final$PerformanceCoef[Full_Final$Protestors==1]) ## Outcome: Alternative of =/=
-wilcox.test(x=Full_Final$EmissionCoef[Full_Final$Protestors==0],y=Full_Final$EmissionCoef[Full_Final$Protestors==1]) ## Outcome: Alternative of =/= 
-
-
-## Rule 4) Dominated scenario testing: Shows there is a significant difference
-wilcox.test(x=Full_Final$Q6WTP[Full_Final$Q8DominatedTest==0],y=Full_Final$Q6WTP[Full_Final$Q8DominatedTest==1]) ## Outcome: Alternative of =/=
-wilcox.test(x=Full_Final$Q7WTP[Full_Final$Q8DominatedTest==0],y=Full_Final$Q7WTP[Full_Final$Q8DominatedTest==1]) ## Outcome: Alternative of =/= 
-wilcox.test(x=Full_Final$PerformanceCoef[Full_Final$Q8DominatedTest==0],y=Full_Final$PerformanceCoef[Full_Final$Q8DominatedTest==1]) ## Outcome: Alternative of =/=
-wilcox.test(x=Full_Final$EmissionCoef[Full_Final$Q8DominatedTest==0],y=Full_Final$EmissionCoef[Full_Final$Q8DominatedTest==1]) ## Outcome: Alternative of =/= 
-
-
-## Rule 5) Consequentiality testing: Shows there is a significant difference
-wilcox.test(x=Full_Final$Q6WTP[Full_Final$Q20Consequentiality==0],y=Full_Final$Q6WTP[Full_Final$Q20Consequentiality==1]) ## Outcome: NULL
-wilcox.test(x=Full_Final$Q7WTP[Full_Final$Q20Consequentiality==0],y=Full_Final$Q7WTP[Full_Final$Q20Consequentiality==1]) ## Outcome: Alternative of =/= 
-wilcox.test(x=Full_Final$PerformanceCoef[Full_Final$Q20Consequentiality==0],y=Full_Final$PerformanceCoef[Full_Final$Q20Consequentiality==1]) ## Outcome: Alternative of =/=
-wilcox.test(x=Full_Final$EmissionCoef[Full_Final$Q20Consequentiality==0],y=Full_Final$EmissionCoef[Full_Final$Q20Consequentiality==1]) ## Outcome: Alternative of =/= 
-
-
-## Rule 6) Certainty testing: Shows there is a significant difference
-wilcox.test(x=Full_Final$Q6WTP[Full_Final$Q6ResearchCertainty==0],y=Full_Final$Q6WTP[Full_Final$Q6ResearchCertainty==2]) ## Outcome: Alternative of =/=
-wilcox.test(x=Full_Final$Q7WTP[Full_Final$Q7TreatmentCertainty==0],y=Full_Final$Q7WTP[Full_Final$Q7TreatmentCertainty==1]) ## Outcome: Alternative of =/= 
-wilcox.test(x=Full_Final$PerformanceCoef[Full_Final$Q12CECertainty==0],y=Full_Final$PerformanceCoef[Full_Final$Q12CECertainty==2]) ## Outcome: NULL
-wilcox.test(x=Full_Final$EmissionCoef[Full_Final$Q12CECertainty==1],y=Full_Final$EmissionCoef[Full_Final$Q12CECertainty==2]) ## Outcome: NULL 
-
-
-####################################################################################
-############ Section 3C: Descriptive Graphics
-############ Notes: Long and also tackled in Section 7 after the CVM
-
-
-# PART ONE: Acceptance Rates
-library(ggplot2)
-
-
-Acceptance <- data.frame("Full_Long" =c(length(Full_Long$ID[(((Full_Long$alt == "A") & (Full_Long$Choice ==TRUE)))]),length(Full_Long$ID[(((Full_Long$alt == "A") & (Full_Long$Choice ==FALSE)))])), 
-                         "Full_Cons" =c(length(Full_Cons$ID[(((Full_Cons$alt == "A") & (Full_Cons$Choice ==TRUE)))]),length(Full_Cons$ID[(((Full_Cons$alt == "A") & (Full_Cons$Choice ==FALSE)))])),
-                         "Full_Dominated" =c(length(Full_Dominated$ID[(((Full_Dominated$alt == "A") & (Full_Dominated$Choice ==TRUE)))]),length(Full_Dominated$ID[(((Full_Dominated$alt == "A") & (Full_Dominated$Choice ==FALSE)))])),
-                         "Full_Certain" =c(length(Full_Certain$ID[(((Full_Certain$alt == "A") & (Full_Certain$Choice ==TRUE)))]),length(Full_Certain$ID[(((Full_Certain$alt == "A") & (Full_Certain$Choice ==FALSE)))])))
-Acceptance <- t(Acceptance) ## Transposed is easier to work with
-Acceptance <- cbind(Acceptance,rowSums(Acceptance),deparse.level = 2) ## Add total responses
-Acceptance <- cbind(Acceptance,100/Acceptance[,3]*Acceptance[,1],100/Acceptance[,3]*Acceptance[,2],c(1,2,3,4),deparse.level = 2) ## Add percentage accepting and rejecting A and number the questions.
-colnames(Acceptance) <- c("A","B","Total","Acceptance","Rejected","Dataset")
-Acceptance <- data.frame(Acceptance)
-
-
-## AcceptanceRate1 is acceptance of each option in the Full sample
-AcceptanceRate1 <- rbind(t(data.frame("Q9"=c(c(length(Full_Long$ID[(( (Full_Long$Task == 1) & (Full_Long$alt == "A") & (Full_Long$Choice ==TRUE)) )] )),c(length(Full_Long$ID[(( (Full_Long$Task == 1) & (Full_Long$alt == "A") & (Full_Long$Choice ==FALSE)) )] ))))),
-              t(data.frame("Q10"=c(c(length(Full_Long$ID[(( (Full_Long$Task == 2) & (Full_Long$alt == "A") & (Full_Long$Choice ==TRUE)) )] )),c(length(Full_Long$ID[(( (Full_Long$Task == 2) & (Full_Long$alt == "A") & (Full_Long$Choice ==FALSE)) )] ))))),
-              t(data.frame("Q11"=c(c(length(Full_Long$ID[(( (Full_Long$Task == 3) & (Full_Long$alt == "A") & (Full_Long$Choice ==TRUE)) )] )),c(length(Full_Long$ID[(( (Full_Long$Task == 3) & (Full_Long$alt == "A") & (Full_Long$Choice ==FALSE)) )] ))))),
-              t(data.frame("Q12"=c(c(length(Full_Long$ID[(( (Full_Long$Task == 4) & (Full_Long$alt == "A") & (Full_Long$Choice ==TRUE)) )] )),c(length(Full_Long$ID[(( (Full_Long$Task == 4) & (Full_Long$alt == "A") & (Full_Long$Choice ==FALSE)) )] ))))))
-AcceptanceRate1 <- cbind(AcceptanceRate1,c(1,2,3,4),round(AcceptanceRate1[,1:2]/sum(AcceptanceRate1[1,1:2])*100,3))
-colnames(AcceptanceRate1) <- c("A","B","Question","APercent","BPercent")
-AcceptanceRate1 <- data.frame(AcceptanceRate1)
-
-
-## AcceptanceRate2 is acceptance of each option in the sample eliminating those failing the dominance test
-AcceptanceRate2 <- rbind(t(data.frame("Q9"=c(c(length(Full_Dominated$ID[(( (Full_Dominated$Task == 1) & (Full_Dominated$alt == "A") & (Full_Dominated$Choice ==TRUE)) )] )),c(length(Full_Dominated$ID[(( (Full_Dominated$Task == 1) & (Full_Dominated$alt == "A") & (Full_Dominated$Choice ==FALSE)) )] ))))),
-              t(data.frame("Q10"=c(c(length(Full_Dominated$ID[(( (Full_Dominated$Task == 2) & (Full_Dominated$alt == "A") & (Full_Dominated$Choice ==TRUE)) )] )),c(length(Full_Dominated$ID[(( (Full_Dominated$Task == 2) & (Full_Dominated$alt == "A") & (Full_Dominated$Choice ==FALSE)) )] ))))),
-              t(data.frame("Q11"=c(c(length(Full_Dominated$ID[(( (Full_Dominated$Task == 3) & (Full_Dominated$alt == "A") & (Full_Dominated$Choice ==TRUE)) )] )),c(length(Full_Dominated$ID[(( (Full_Dominated$Task == 3) & (Full_Dominated$alt == "A") & (Full_Dominated$Choice ==FALSE)) )] ))))),
-              t(data.frame("Q12"=c(c(length(Full_Dominated$ID[(( (Full_Dominated$Task == 4) & (Full_Dominated$alt == "A") & (Full_Dominated$Choice ==TRUE)) )] )),c(length(Full_Dominated$ID[(( (Full_Dominated$Task == 4) & (Full_Dominated$alt == "A") & (Full_Dominated$Choice ==FALSE)) )] ))))))
-AcceptanceRate2 <- cbind(AcceptanceRate2,c(1,2,3,4),round(AcceptanceRate2[,1:2]/sum(AcceptanceRate2[1,1:2])*100,3))
-colnames(AcceptanceRate2) <- c("A","B","Question","APercent","BPercent")
-AcceptanceRate2 <- data.frame(AcceptanceRate2)
-AcceptanceRate2
-
-
-## AcceptanceRate3 is acceptance of each option in the sample relying on certainty
-AcceptanceRate3 <- rbind(t(data.frame("Q9"=c(c(length(Full_Certain$ID[(( (Full_Certain$Task == 1) & (Full_Certain$alt == "A") & (Full_Certain$Choice ==TRUE)) )] )),c(length(Full_Certain$ID[(( (Full_Certain$Task == 1) & (Full_Certain$alt == "A") & (Full_Certain$Choice ==FALSE)) )] ))))),
-              t(data.frame("Q10"=c(c(length(Full_Certain$ID[(( (Full_Certain$Task == 2) & (Full_Certain$alt == "A") & (Full_Certain$Choice ==TRUE)) )] )),c(length(Full_Certain$ID[(( (Full_Certain$Task == 2) & (Full_Certain$alt == "A") & (Full_Certain$Choice ==FALSE)) )] ))))),
-              t(data.frame("Q11"=c(c(length(Full_Certain$ID[(( (Full_Certain$Task == 3) & (Full_Certain$alt == "A") & (Full_Certain$Choice ==TRUE)) )] )),c(length(Full_Certain$ID[(( (Full_Certain$Task == 3) & (Full_Certain$alt == "A") & (Full_Certain$Choice ==FALSE)) )] ))))),
-              t(data.frame("Q12"=c(c(length(Full_Certain$ID[(( (Full_Certain$Task == 4) & (Full_Certain$alt == "A") & (Full_Certain$Choice ==TRUE)) )] )),c(length(Full_Certain$ID[(( (Full_Certain$Task == 4) & (Full_Certain$alt == "A") & (Full_Certain$Choice ==FALSE)) )] ))))))
-AcceptanceRate3 <- cbind(AcceptanceRate3,c(1,2,3,4),round(AcceptanceRate3[,1:2]/sum(AcceptanceRate3[1,1:2])*100,3))
-colnames(AcceptanceRate3) <- c("A","B","Question","APercent","BPercent")
-AcceptanceRate3 <- data.frame(AcceptanceRate3)
-AcceptanceRate3
-
-
-## AcceptanceRate4 is acceptance of each option in the consequential sample
-AcceptanceRate4 <- rbind(t(data.frame("Q9"=c(c(length(Full_Cons$ID[(( (Full_Cons$Task == 1) & (Full_Cons$alt == "A") & (Full_Cons$Choice ==TRUE)) )] )),c(length(Full_Cons$ID[(( (Full_Cons$Task == 1) & (Full_Cons$alt == "A") & (Full_Cons$Choice ==FALSE)) )] ))))),
-              t(data.frame("Q10"=c(c(length(Full_Cons$ID[(( (Full_Cons$Task == 2) & (Full_Cons$alt == "A") & (Full_Cons$Choice ==TRUE)) )] )),c(length(Full_Cons$ID[(( (Full_Cons$Task == 2) & (Full_Cons$alt == "A") & (Full_Cons$Choice ==FALSE)) )] ))))),
-              t(data.frame("Q11"=c(c(length(Full_Cons$ID[(( (Full_Cons$Task == 3) & (Full_Cons$alt == "A") & (Full_Cons$Choice ==TRUE)) )] )),c(length(Full_Cons$ID[(( (Full_Cons$Task == 3) & (Full_Cons$alt == "A") & (Full_Cons$Choice ==FALSE)) )] ))))),
-              t(data.frame("Q12"=c(c(length(Full_Cons$ID[(( (Full_Cons$Task == 4) & (Full_Cons$alt == "A") & (Full_Cons$Choice ==TRUE)) )] )),c(length(Full_Cons$ID[(( (Full_Cons$Task == 4) & (Full_Cons$alt == "A") & (Full_Cons$Choice ==FALSE)) )] ))))))
-AcceptanceRate4 <- cbind(AcceptanceRate4,c(1,2,3,4),round(AcceptanceRate4[,1:2]/sum(AcceptanceRate4[1,1:2])*100,3))
-colnames(AcceptanceRate4) <- c("A","B","Question","APercent","BPercent")
-AcceptanceRate4 <- data.frame(AcceptanceRate4)
-AcceptanceRate4
-
-
-## Combining line plots of acceptance rates over questions by dataset
-### Note no major differences by question or data. 
-ggplot()+
-  geom_line(aes(x=Question,y=APercent,color="red"),data=AcceptanceRate1)+
-  geom_line(aes(x=Question,y=APercent,color="blue"),data=AcceptanceRate2)+
-  geom_line(aes(x=Question,y=APercent,color="green"),data=AcceptanceRate3)+
-  geom_line(aes(x=Question,y=APercent,color="orange"),data=AcceptanceRate4)+
-  scale_x_continuous(name="Question",breaks = 1:4, 
-                     labels=c(rownames(AcceptanceRate1)))+
-  scale_y_continuous(name="Percent choosing Option A",
-                     breaks=waiver(),limits = c(25,75),
-                     n.breaks = 10, labels = function(x) paste0(x, "%"))+
-  scale_color_discrete(name = "Lines", 
-                       labels = c("Full sample", "Dominated","Certainty","Consequentiality"))+
-  ggtitle("Percentage choosing the status quo by question and truncation strategy.")
-
-
-# PART TWO: Attitudes
-Full_Cons <- data.frame(Full_Cons) ## Change into dataframe format 
-Full_Long <- data.frame(Full_Long) ## Same here - ggplot2 throws a fit without it.
-
-## Here the Blue-Planet question is manipulated to be either of two values
-Full_Cons$Q16BP[Full_Cons$Q16BP == 0] <- "Not watched" 
-Full_Cons$Q16BP[Full_Cons$Q16BP == 1] <- "Watched"
-Full_Cons$Q16BP[Full_Cons$Q16BP == 2] <- "Watched"
-
-## Categorising charity involvement.
-Full_Cons$Q18Charity[Full_Cons$Q18Charity == 0] <- "No involvement"
-Full_Cons$Q18Charity[Full_Cons$Q18Charity == 1] <- "Donated or joined"
-
-## Rephrasing consequentiality into strings for use in graphics. 
-### The strings used here and above are changed back later for econometric analysis. 
-Full_Long$Q20Consequentiality[Full_Long$Q20Consequentiality == 0] <- "Inconsequential"
-Full_Long$Q20Consequentiality[Full_Long$Q20Consequentiality == 1] <- "Consequential"
-
-
-## Using these two packages for graphics.
-library(scales)
-library(ggplot2) 
-
-## Plot 1 (of 2):
-P1 <- ggplot(Full_Long, aes(Q3Distance,Q4Trips)) + 
-  geom_point(shape = 1) +
-  facet_grid(~Q18Charity) + 
-  geom_smooth(method="lm",se=F) +
-  ggtitle("Relationship between distance and trips by charity involvement.") +
-  theme(plot.title = element_text(hjust = 0.5),
-        plot.margin=unit(c(1,1,-0.5,1),"cm"),
-        axis.title.y = element_text(size = 12)) +
-  labs(x = "Distance",y="Trips")+
-  scale_y_continuous(limits = c(0,1))
-
-## Plot 2 (of 2):
-P2 <- ggplot(Full_Long, aes(Q3Distance,Q4Trips)) + 
-  geom_point(shape = 1) +
-  facet_grid(~Q16BP) + 
-  geom_smooth(method="lm",se=F) +
-  ggtitle("Relationship between distance and trips by Blue-Planet II") +
-  theme(plot.title = element_text(hjust = 0.5),
-        plot.margin=unit(c(1,1,-0.5,1),"cm"),
-        axis.title.y = element_text(size = 12)) +
-  labs(x = "Distance",y="Trips")+
-  scale_y_continuous(limits = c(0,1))
-
-## Plots both Plot1 and Plot2 together in the same view.
-library(gridExtra)
-grid.arrange(P1, P2 )
-
-
-# PART THREE: Demand Curves
-
-
-## Demand Curve: Plotting choice versus price levels 
-PriceCurve <- ggplot(Fulls, aes(Choice,Price_B)) + 
-  geom_point(shape = 1) +
-  geom_smooth(method="lm",se=T) +
-  ggtitle("Demand curve") +
-  theme(plot.title = element_text(hjust = 0.5),
-        plot.margin=unit(c(1,1,-0.5,1),"cm"),
-        axis.title.y = element_text(size = 10)) +
-  labs(x = "Likelihood of accepting option B",y="Attribute levels")+
-  scale_x_continuous(breaks = 0:1, labels=c(0,1))+
-  scale_y_continuous(breaks = 0:3, labels=c(0.5,1.0,2.5,5.0))
-
-
-## Emission Curve: Plotting choice versus emission levels 
-EmissionsCurve <- ggplot(Fulls, aes(Choice,Emission_B)) + 
-  geom_point(shape = 1) +
-  geom_smooth(method="lm",se=T) +
-  ggtitle("Emission curve") +
-  theme(plot.title = element_text(hjust = 0.5),
-        plot.margin=unit(c(1,1,-0.5,1),"cm"),
-        axis.title.y = element_text(size = 10)) +
-  labs(x = "Likelihood of accepting option B",y="Attribute levels")+
-  scale_x_continuous(breaks = 0:1, labels=c(0,1))
-
-## Performance Curve: Plotting choice versus performance levels 
-PerformanceCurve <- ggplot(Fulls, aes(Choice,Performance_B)) + 
-  geom_point(shape = 1) +
-  geom_smooth(method="lm",se=T) +
-  ggtitle("Performance curve") +
-  theme(plot.title = element_text(hjust = 0.5),
-        plot.margin=unit(c(1,1,-0.5,1),"cm"),
-        axis.title.y = element_text(size = 10)) +
-  labs(x = "Likelihood of accepting option B",y="Attribute levels")+
-  scale_x_continuous(breaks = 0:1,labels=c(0,1))
-
-grid.arrange(PriceCurve, EmissionsCurve, PerformanceCurve)
-
 
 ####################################################################################
 ############ Section 4: Choice Experiment
@@ -2022,6 +1593,437 @@ QOVME <- probitmfx(formula = Q7TreatmentResponse ~ Order + Q1Gender + Q2Age + Q3
 confint(QOVProbit)
 wald.test(b = coef(QOVProbit), Sigma = vcov(QOVProbit), Terms=2)
 ## All the same commands as the Q6 models
+
+
+####################################################################################
+############ Section 3: Descriptive Statistics and calculations
+############ Lines: 430:734
+############ Notes: Very long and verbose. Skip if uninterested.
+
+
+## Truncation Strategy One:
+round(mean(Full_Full$Q6WTP),2) ## 24.89
+round(mean(Full_Full$Q7WTP),2) ## 45.25
+round(mean(Full_Full$PerformanceCoef),3) ## -0.041
+round(mean(Full_Full$EmissionCoef),3) ## 0.035
+
+
+## Truncation Strategy Two:
+round(mean(Full_Full$Q6WTP),2) ## 23.72
+round(mean(Full_Full$Q7WTP),2) ## 45.33
+round(mean(Full_Full$PerformanceCoef),3) ## -0.053
+round(mean(Full_Full$EmissionCoef),3) ## 0.045
+
+
+## Gender: 
+100/nrow(FullSurvey)*length(FullSurvey$Q1Gender[FullSurvey$Q1Gender=="Male"]) ## Proportion of the sample that is male. Actual: 46, Target: 49
+100/nrow(FullSurvey)*length(FullSurvey$Q1Gender[FullSurvey$Q1Gender=="Female"]) ## Proportion of the sample that is female. Actual: 53, Target: 51 
+100/nrow(FullSurvey)*length(FullSurvey$Q1Gender[(FullSurvey$Q1Gender !="Female")  & (FullSurvey$Q1Gender != "Male")]) ## Estimating the percentage who reported otherwise
+
+
+## Age: 
+mean(FullSurvey2$Q2Age) ## Estimating average age
+
+
+## Trips: 
+mean(FullSurvey2$Q4Trips) ## Estimating average annual trips
+
+
+## Charity: 
+100/nrow(FullSurvey)*length(FullSurvey$Q18Charity[FullSurvey$Q18Charity=="No"])
+100/nrow(FullSurvey)*length(FullSurvey$Q18Charity[FullSurvey$Q18Charity=="Yes"])
+100/nrow(FullSurvey)*length(FullSurvey$Q18Charity[FullSurvey$Q18Charity=="Prefer not to say"])
+
+
+## Education: 
+100/nrow(FullSurvey2)*length(FullSurvey2$Q22Education[FullSurvey2$Q22Education==0]) ## 0 = Prefer not to say 2.23%
+100/nrow(FullSurvey2)*length(FullSurvey2$Q22Education[FullSurvey2$Q22Education==1]) ## 1 = GCSE 21.94%
+100/nrow(FullSurvey2)*length(FullSurvey2$Q22Education[FullSurvey2$Q22Education==2]) ## 2 = A level 26.56%
+100/nrow(FullSurvey2)*length(FullSurvey2$Q22Education[FullSurvey2$Q22Education==3]) ## 3 = Bachelors 31.64%
+100/nrow(FullSurvey2)*length(FullSurvey2$Q22Education[FullSurvey2$Q22Education==4]) ## 4 = PG 17.61%
+# Less than University: 50.74%
+100/nrow(FullSurvey2)*length(FullSurvey2$Q22Education[FullSurvey2$Q22Education==0]) + 100/nrow(FullSurvey2)*length(FullSurvey2$Q22Education[FullSurvey2$Q22Education==1]) + 100/nrow(FullSurvey2)*length(FullSurvey2$Q22Education[FullSurvey2$Q22Education==2])
+# Bachelors or more: 49.25%
+100/nrow(FullSurvey2)*length(FullSurvey2$Q22Education[FullSurvey2$Q22Education==3]) + 100/nrow(FullSurvey2)*length(FullSurvey2$Q22Education[FullSurvey2$Q22Education==4])
+
+
+## Employment: 
+100/nrow(FullSurvey2)*length(FullSurvey2$Q23Employment[FullSurvey2$Q23Employment==0]) ## 0 = Prefer not to say 2.68%
+100/nrow(FullSurvey2)*length(FullSurvey2$Q23Employment[FullSurvey2$Q23Employment==1]) ## 1 = NEET 11.34%
+100/nrow(FullSurvey2)*length(FullSurvey2$Q23Employment[FullSurvey2$Q23Employment==2]) ## 2 = Retired 7.76%
+100/nrow(FullSurvey2)*length(FullSurvey2$Q23Employment[FullSurvey2$Q23Employment==3]) ## 3 = Student 4.47%
+100/nrow(FullSurvey2)*length(FullSurvey2$Q23Employment[FullSurvey2$Q23Employment==4]) ## 4 = Part-time 14.95%
+100/nrow(FullSurvey2)*length(FullSurvey2$Q23Employment[FullSurvey2$Q23Employment==4]) ## 5 = Self 6.85%
+100/nrow(FullSurvey2)*length(FullSurvey2$Q23Employment[FullSurvey2$Q23Employment==4]) ## 6 = Full-time 51.94
+
+
+## Income: 
+mean(FullSurvey2$Q24AIncome) ## Estimating sample income
+
+
+## Timing (faster than 48% time)
+(median(Full_Long$Timing)/60)/100*48
+library(ggplot2)
+ggplot(FullSurvey2, aes(x=Timing/60)) + 
+  geom_histogram(color="black", fill="white",binwidth = 1)+
+  geom_vline(aes(xintercept=(median(FullSurvey2$Timing)/60)/100*48),
+             color="blue", linetype="dashed", size=1)+
+  scale_x_continuous(name="Completion length in minutes")+
+  geom_vline(xintercept=((median(FullSurvey2$Timing)/60)/100*48), colour="grey") +
+  geom_text(aes(x=((median(FullSurvey2$Timing)/60)/100*48)-2, label="Speeders", y=100), colour="red", angle=0) +
+  geom_text(aes(x=((median(FullSurvey2$Timing)/60)/100*48)+2, label="Included", y=100), colour="blue", angle=0)+
+  ggtitle("Distribution of survey completion timings.")
+
+
+### Plotting survey understanding
+ggplot(FullSurvey2, aes(x=Q25Understanding)) + 
+  geom_histogram(color="black", fill="white",binwidth = 1)+
+  geom_vline(aes(xintercept=7),color="blue", linetype="dashed", size=1)+
+  scale_x_continuous(name="Self-reported survey undertanding in 1-10")+
+  geom_vline(xintercept=(7), colour="grey") +
+  geom_text(aes(x=5, label="Excluded", y=400), colour="red", angle=0) +
+  geom_text(aes(x=8, label="Included", y=400), colour="blue", angle=0)+
+  ggtitle("Distribution of survey understanding")
+
+
+## Protest analysis:
+FullSurvey3 <- data.frame(read.csv("FullSurvey.csv")) 
+Protestors <- c(24,33,44,61,121,127,182,200,211,219,239,251,275,306,320,326,341,360,363,371,399,464,467,479,480,506,579,591,649,654,931,932,935,953,989,1002,1011,1024,14,35,39,54,79,106,130,146,149,155,163,203,214,215,217,244,246,249,252,267,268,282,290,327,343,362,364,374,380,393,398,407,414,425,426,433,477,519,524,536,543,545,547,557,567,575,589,590,595,614,617,629,637,638,639,651,665,674,680,915,933,940,950,959,960,975,978,996,1026,1027,1028)
+Protestors <- ifelse(FullSurvey3$ï..Respondent %in%  Protestors== TRUE, 1,0)
+Full_Final <- cbind(Full_Final,slice(.data = data.frame(Protestors),rep(1:n(), each = 8)))
+
+### Plotting protest effects:
+ProtestGraph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) + 
+  facet_grid( ~ Protestors, labeller = as_labeller(c(
+    `0` = "Protest\n (N = 561)",
+    `1` = "Included\n (N = 109)")))+
+  geom_smooth(aes(y=Q6WTP,color="blue"),method="lm",se=F) +
+  geom_smooth(aes(y=Q7WTP,color="red"),method="lm",se=F) +
+  ggtitle("Relationship between income and WTP by protest votes") +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("WTP for research", "WTP for treatment"))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Income",breaks = waiver(),limits = c(0,5000),
+                     n.breaks = 5, labels = function(x) paste0("£",x))+
+  scale_y_continuous(name="WTP",breaks = waiver(), n.breaks=10,
+                     limits=c(0,75),labels = function(x) paste0("£",x))+
+  labs(x = "Protesting",y="WTP")
+
+
+grid.arrange(ggplot(Full_Final[Full_Final$Protestors==0,], aes(x=Full_Final$Q6WTP[Full_Final$Protestors ==0])) + 
+               geom_histogram(color="black", fill="white",bins = 50)+
+               scale_x_continuous(breaks=waiver(),limits = c(0,50),
+                                  n.breaks = 10)+
+               ggtitle("Histogram of CV Q6 WTP for protestors."),
+             ggplot(Full_Final[Full_Final$Protestors==1,], aes(x=Full_Final$Q6WTP[Full_Final$Protestors ==1])) + 
+               geom_histogram(color="black", fill="white",bins = 50)+
+               scale_x_continuous(breaks=waiver(),limits = c(0,50),
+                                  n.breaks = 10)+
+               ggtitle("Histogram of CV Q6 WTP for non-protestors."))
+
+### Plotting protest effects a different way:
+ProtestGraph <- ggplot(Full_Final, aes(x=as.numeric(Protestors))) +
+  geom_col(aes(y=Q6WTP)) +
+  ggtitle("WTP by protesting") +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Protests",breaks = waiver(),limits = c(0,1),
+                     n.breaks = 2, labels = c("Protested","Did not"))+
+  scale_y_continuous(name="WTP",breaks = waiver(), n.breaks=10,
+                     limits=c(0,75),labels = function(x) paste0("£",x))+
+  labs(x = "Income",y="Precaution")
+
+
+## Reporting WTP by responsibility:
+round(mean(Full_Final$PerformanceCoef[Full_Final$Q17_Firms == 0]),2)
+round(mean(Full_Final$PerformanceCoef[Full_Final$Q17_Cons == 0]),2)
+round(mean(Full_Final$PerformanceCoef[Full_Final$Q17_Gov == 0]),2)
+round(mean(Full_Final$PerformanceCoef[Full_Final$Q17_LA == 0]),2)
+round(mean(Full_Final$PerformanceCoef[Full_Final$Q17_Other == 0]),2)
+round(mean(Full_Final$EmissionCoef[Full_Final$Q17_Firms == 0]),2)
+round(mean(Full_Final$EmissionCoef[Full_Final$Q17_Cons == 0]),2)
+round(mean(Full_Final$EmissionCoef[Full_Final$Q17_Gov == 0]),2)
+round(mean(Full_Final$EmissionCoef[Full_Final$Q17_LA == 0]),2)
+round(mean(Full_Final$EmissionCoef[Full_Final$Q17_Other == 0]),2)
+
+
+## Responsibility beliefs:
+Full_Final$Q17_Firms[ (Full_Final$Q17_Cons == 0) & (Full_Final$Q17_Gov == 0) & (Full_Final$Q17_LA == 0) & (Full_Final$Q17_Other == 0) ] <- 2
+Full_Final$Q17_Cons[ (Full_Final$Q17_Firms == 0) & (Full_Final$Q17_Gov == 0) & (Full_Final$Q17_LA == 0) & (Full_Final$Q17_Other == 0) ] <- 2
+Full_Final$Q17_Cons[Full_Final$Q17_Cons != 2] <- 0
+Full_Final$Q17_Cons[Full_Final$Q17_Cons == 2] <- 1
+Full_Final$Q17_Other[ (Full_Final$Q17_Cons == 0) & (Full_Final$Q17_Gov == 0) & (Full_Final$Q17_LA == 0) & (Full_Final$Q17_Firms == 0) ] <- 2
+
+
+## Correlation heatmap:
+Full_Final <- data.frame(read.csv("FinalData.csv")) ## Imports from the excel file straight from the survey companies website.
+Full_Final <- Full_Final[ -c(2,grep("av_A", colnames(Full_Final)),grep("av_B", colnames(Full_Final)))] ## Drop columns of no importance to the quantitative analysis, namely text responses.
+Full_Final$Choice[Full_Final$Choice==FALSE] <- 0
+Full_Final$Choice[Full_Final$Choice==TRUE] <- 1
+Full_Final$alt <- as.numeric(Full_Final$alt)
+library(ggplot2)
+library(reshape2)
+cormat <- round(cor(Full_Final),2) ## store correlations in a matrix
+melted_cormat <- melt(cormat) ## Simplify corr matrix
+## Get lower triangle
+get_lower_tri<-function(cormat){
+  cormat[upper.tri(cormat)] <- NA
+  return(cormat)
+}
+##  Get upper triangle
+get_upper_tri <- function(cormat){
+  cormat[lower.tri(cormat)]<- NA
+  return(cormat)
+}
+upper_tri <- get_upper_tri(cormat)
+melted_cormat <- melt(upper_tri, na.rm = TRUE)
+reorder_cormat <- function(cormat){
+  dd <- as.dist((1-cormat)/2)
+  hc <- hclust(dd)
+  cormat <-cormat[hc$order, hc$order]
+}
+
+cormat <- reorder_cormat(cormat)
+upper_tri <- get_upper_tri(cormat)
+## Use the melt function to simplify the matrix
+melted_cormat <- melt(upper_tri, na.rm = TRUE)
+
+## Rename matrix columns
+colnames(melted_cormat) <- c("Variable1", "Variable2","Correlation")
+
+
+## Correlation heatmap
+ggheatmap <- ggplot(melted_cormat, aes(Variable2, Variable1, fill = Correlation))+
+  geom_tile(color = "white")+
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                       midpoint = 0, limit = c(-1,1), space = "Lab", 
+                       name="Pearson\nCorrelation") +
+  theme_minimal()+ # minimal theme
+  theme(axis.text.x = element_text(angle = 90, vjust = 1, 
+                                   size = 6, hjust = 1),
+        axis.text.y = element_text(angle = 0, vjust = 1, 
+                                   size = 6, hjust = 1))+
+  coord_fixed()
+
+
+####################################################################################
+############ Section 3B: Test of means for the truncation strategies
+
+
+## Rule 1) Timing testing: Shows there is a significant difference
+wilcox.test(x=Full_Final$Q6WTP[Full_Final$Timing/60 < (median(Full_Long$Timing)/60)/100*48],y=Full_Final$Q6WTP[Full_Final$Timing/60 >= (median(Full_Long$Timing)/60)/100*48]) ## Outcome: Alternative of =/=
+wilcox.test(x=Full_Final$Q7WTP[Full_Final$Timing/60 < (median(Full_Long$Timing)/60)/100*48],y=Full_Final$Q7WTP[Full_Final$Timing/60 >= (median(Full_Long$Timing)/60)/100*48]) ## Outcome: Alternative of =/= 
+wilcox.test(x=Full_Final$PerformanceCoef[Full_Final$Timing/60 < (median(Full_Long$Timing)/60)/100*48],y=Full_Final$PerformanceCoef[Full_Final$Timing/60 >= (median(Full_Long$Timing)/60)/100*48]) ## Outcome: Alternative of =/=
+wilcox.test(x=Full_Final$EmissionCoef[Full_Final$Timing/60 < (median(Full_Long$Timing)/60)/100*48],y=Full_Final$EmissionCoef[Full_Final$Timing/60 >= (median(Full_Long$Timing)/60)/100*48]) ## Outcome: Alternative of =/= 
+
+
+## Rule 2) Understanding testing: Shows there is a significant difference
+wilcox.test(x=Full_Final$Q6WTP[Full_Final$Q25Understanding < (median(Full_Long$Q25Understanding))],y=Full_Final$Q6WTP[Full_Final$Q25Understanding >= (median(Full_Long$Q25Understanding))]) ## Outcome: NULL
+wilcox.test(x=Full_Final$Q7WTP[Full_Final$Q25Understanding < (median(Full_Long$Q25Understanding))],y=Full_Final$Q7WTP[Full_Final$Q25Understanding >= (median(Full_Long$Q25Understanding))]) ## Outcome: Alternative of =/= 
+wilcox.test(x=Full_Final$PerformanceCoef[Full_Final$Q25Understanding < (median(Full_Long$Q25Understanding))],y=Full_Final$PerformanceCoef[Full_Final$Q25Understanding >= (median(Full_Long$Q25Understanding))]) ## Outcome: Alternative of =/=
+wilcox.test(x=Full_Final$EmissionCoef[Full_Final$Q25Understanding < (median(Full_Long$Q25Understanding))],y=Full_Final$EmissionCoef[Full_Final$Q25Understanding >= (median(Full_Long$Q25Understanding))]) ## Outcome: Alternative of =/= 
+
+
+## Rule 3) Protest vote testing: Shows there is a significant difference
+wilcox.test(x=Full_Final$Q6WTP[Full_Final$Protestors==0],y=Full_Final$Q6WTP[Full_Final$Protestors==1]) ## Outcome: NULL
+wilcox.test(x=Full_Final$Q7WTP[Full_Final$Protestors==0],y=Full_Final$Q7WTP[Full_Final$Protestors==1]) ## Outcome: Alternative of =/= 
+wilcox.test(x=Full_Final$PerformanceCoef[Full_Final$Protestors==0],y=Full_Final$PerformanceCoef[Full_Final$Protestors==1]) ## Outcome: Alternative of =/=
+wilcox.test(x=Full_Final$EmissionCoef[Full_Final$Protestors==0],y=Full_Final$EmissionCoef[Full_Final$Protestors==1]) ## Outcome: Alternative of =/= 
+
+
+## Rule 4) Dominated scenario testing: Shows there is a significant difference
+wilcox.test(x=Full_Final$Q6WTP[Full_Final$Q8DominatedTest==0],y=Full_Final$Q6WTP[Full_Final$Q8DominatedTest==1]) ## Outcome: Alternative of =/=
+wilcox.test(x=Full_Final$Q7WTP[Full_Final$Q8DominatedTest==0],y=Full_Final$Q7WTP[Full_Final$Q8DominatedTest==1]) ## Outcome: Alternative of =/= 
+wilcox.test(x=Full_Final$PerformanceCoef[Full_Final$Q8DominatedTest==0],y=Full_Final$PerformanceCoef[Full_Final$Q8DominatedTest==1]) ## Outcome: Alternative of =/=
+wilcox.test(x=Full_Final$EmissionCoef[Full_Final$Q8DominatedTest==0],y=Full_Final$EmissionCoef[Full_Final$Q8DominatedTest==1]) ## Outcome: Alternative of =/= 
+
+
+## Rule 5) Consequentiality testing: Shows there is a significant difference
+wilcox.test(x=Full_Final$Q6WTP[Full_Final$Q20Consequentiality==0],y=Full_Final$Q6WTP[Full_Final$Q20Consequentiality==1]) ## Outcome: NULL
+wilcox.test(x=Full_Final$Q7WTP[Full_Final$Q20Consequentiality==0],y=Full_Final$Q7WTP[Full_Final$Q20Consequentiality==1]) ## Outcome: Alternative of =/= 
+wilcox.test(x=Full_Final$PerformanceCoef[Full_Final$Q20Consequentiality==0],y=Full_Final$PerformanceCoef[Full_Final$Q20Consequentiality==1]) ## Outcome: Alternative of =/=
+wilcox.test(x=Full_Final$EmissionCoef[Full_Final$Q20Consequentiality==0],y=Full_Final$EmissionCoef[Full_Final$Q20Consequentiality==1]) ## Outcome: Alternative of =/= 
+
+
+## Rule 6) Certainty testing: Shows there is a significant difference
+wilcox.test(x=Full_Final$Q6WTP[Full_Final$Q6ResearchCertainty==0],y=Full_Final$Q6WTP[Full_Final$Q6ResearchCertainty==2]) ## Outcome: Alternative of =/=
+wilcox.test(x=Full_Final$Q7WTP[Full_Final$Q7TreatmentCertainty==0],y=Full_Final$Q7WTP[Full_Final$Q7TreatmentCertainty==1]) ## Outcome: Alternative of =/= 
+wilcox.test(x=Full_Final$PerformanceCoef[Full_Final$Q12CECertainty==0],y=Full_Final$PerformanceCoef[Full_Final$Q12CECertainty==2]) ## Outcome: NULL
+wilcox.test(x=Full_Final$EmissionCoef[Full_Final$Q12CECertainty==1],y=Full_Final$EmissionCoef[Full_Final$Q12CECertainty==2]) ## Outcome: NULL 
+
+
+####################################################################################
+############ Section 3C: Descriptive Graphics
+############ Notes: Long and also tackled in Section 7 after the CVM
+
+
+# PART ONE: Acceptance Rates
+library(ggplot2)
+
+
+Acceptance <- data.frame("Full_Long" =c(length(Full_Long$ID[(((Full_Long$alt == "A") & (Full_Long$Choice ==TRUE)))]),length(Full_Long$ID[(((Full_Long$alt == "A") & (Full_Long$Choice ==FALSE)))])), 
+                         "Full_Cons" =c(length(Full_Cons$ID[(((Full_Cons$alt == "A") & (Full_Cons$Choice ==TRUE)))]),length(Full_Cons$ID[(((Full_Cons$alt == "A") & (Full_Cons$Choice ==FALSE)))])),
+                         "Full_Dominated" =c(length(Full_Dominated$ID[(((Full_Dominated$alt == "A") & (Full_Dominated$Choice ==TRUE)))]),length(Full_Dominated$ID[(((Full_Dominated$alt == "A") & (Full_Dominated$Choice ==FALSE)))])),
+                         "Full_Certain" =c(length(Full_Certain$ID[(((Full_Certain$alt == "A") & (Full_Certain$Choice ==TRUE)))]),length(Full_Certain$ID[(((Full_Certain$alt == "A") & (Full_Certain$Choice ==FALSE)))])))
+Acceptance <- t(Acceptance) ## Transposed is easier to work with
+Acceptance <- cbind(Acceptance,rowSums(Acceptance),deparse.level = 2) ## Add total responses
+Acceptance <- cbind(Acceptance,100/Acceptance[,3]*Acceptance[,1],100/Acceptance[,3]*Acceptance[,2],c(1,2,3,4),deparse.level = 2) ## Add percentage accepting and rejecting A and number the questions.
+colnames(Acceptance) <- c("A","B","Total","Acceptance","Rejected","Dataset")
+Acceptance <- data.frame(Acceptance)
+
+
+## AcceptanceRate1 is acceptance of each option in the Full sample
+AcceptanceRate1 <- rbind(t(data.frame("Q9"=c(c(length(Full_Long$ID[(( (Full_Long$Task == 1) & (Full_Long$alt == "A") & (Full_Long$Choice ==TRUE)) )] )),c(length(Full_Long$ID[(( (Full_Long$Task == 1) & (Full_Long$alt == "A") & (Full_Long$Choice ==FALSE)) )] ))))),
+                         t(data.frame("Q10"=c(c(length(Full_Long$ID[(( (Full_Long$Task == 2) & (Full_Long$alt == "A") & (Full_Long$Choice ==TRUE)) )] )),c(length(Full_Long$ID[(( (Full_Long$Task == 2) & (Full_Long$alt == "A") & (Full_Long$Choice ==FALSE)) )] ))))),
+                         t(data.frame("Q11"=c(c(length(Full_Long$ID[(( (Full_Long$Task == 3) & (Full_Long$alt == "A") & (Full_Long$Choice ==TRUE)) )] )),c(length(Full_Long$ID[(( (Full_Long$Task == 3) & (Full_Long$alt == "A") & (Full_Long$Choice ==FALSE)) )] ))))),
+                         t(data.frame("Q12"=c(c(length(Full_Long$ID[(( (Full_Long$Task == 4) & (Full_Long$alt == "A") & (Full_Long$Choice ==TRUE)) )] )),c(length(Full_Long$ID[(( (Full_Long$Task == 4) & (Full_Long$alt == "A") & (Full_Long$Choice ==FALSE)) )] ))))))
+AcceptanceRate1 <- cbind(AcceptanceRate1,c(1,2,3,4),round(AcceptanceRate1[,1:2]/sum(AcceptanceRate1[1,1:2])*100,3))
+colnames(AcceptanceRate1) <- c("A","B","Question","APercent","BPercent")
+AcceptanceRate1 <- data.frame(AcceptanceRate1)
+
+
+## AcceptanceRate2 is acceptance of each option in the sample eliminating those failing the dominance test
+AcceptanceRate2 <- rbind(t(data.frame("Q9"=c(c(length(Full_Dominated$ID[(( (Full_Dominated$Task == 1) & (Full_Dominated$alt == "A") & (Full_Dominated$Choice ==TRUE)) )] )),c(length(Full_Dominated$ID[(( (Full_Dominated$Task == 1) & (Full_Dominated$alt == "A") & (Full_Dominated$Choice ==FALSE)) )] ))))),
+                         t(data.frame("Q10"=c(c(length(Full_Dominated$ID[(( (Full_Dominated$Task == 2) & (Full_Dominated$alt == "A") & (Full_Dominated$Choice ==TRUE)) )] )),c(length(Full_Dominated$ID[(( (Full_Dominated$Task == 2) & (Full_Dominated$alt == "A") & (Full_Dominated$Choice ==FALSE)) )] ))))),
+                         t(data.frame("Q11"=c(c(length(Full_Dominated$ID[(( (Full_Dominated$Task == 3) & (Full_Dominated$alt == "A") & (Full_Dominated$Choice ==TRUE)) )] )),c(length(Full_Dominated$ID[(( (Full_Dominated$Task == 3) & (Full_Dominated$alt == "A") & (Full_Dominated$Choice ==FALSE)) )] ))))),
+                         t(data.frame("Q12"=c(c(length(Full_Dominated$ID[(( (Full_Dominated$Task == 4) & (Full_Dominated$alt == "A") & (Full_Dominated$Choice ==TRUE)) )] )),c(length(Full_Dominated$ID[(( (Full_Dominated$Task == 4) & (Full_Dominated$alt == "A") & (Full_Dominated$Choice ==FALSE)) )] ))))))
+AcceptanceRate2 <- cbind(AcceptanceRate2,c(1,2,3,4),round(AcceptanceRate2[,1:2]/sum(AcceptanceRate2[1,1:2])*100,3))
+colnames(AcceptanceRate2) <- c("A","B","Question","APercent","BPercent")
+AcceptanceRate2 <- data.frame(AcceptanceRate2)
+AcceptanceRate2
+
+
+## AcceptanceRate3 is acceptance of each option in the sample relying on certainty
+AcceptanceRate3 <- rbind(t(data.frame("Q9"=c(c(length(Full_Certain$ID[(( (Full_Certain$Task == 1) & (Full_Certain$alt == "A") & (Full_Certain$Choice ==TRUE)) )] )),c(length(Full_Certain$ID[(( (Full_Certain$Task == 1) & (Full_Certain$alt == "A") & (Full_Certain$Choice ==FALSE)) )] ))))),
+                         t(data.frame("Q10"=c(c(length(Full_Certain$ID[(( (Full_Certain$Task == 2) & (Full_Certain$alt == "A") & (Full_Certain$Choice ==TRUE)) )] )),c(length(Full_Certain$ID[(( (Full_Certain$Task == 2) & (Full_Certain$alt == "A") & (Full_Certain$Choice ==FALSE)) )] ))))),
+                         t(data.frame("Q11"=c(c(length(Full_Certain$ID[(( (Full_Certain$Task == 3) & (Full_Certain$alt == "A") & (Full_Certain$Choice ==TRUE)) )] )),c(length(Full_Certain$ID[(( (Full_Certain$Task == 3) & (Full_Certain$alt == "A") & (Full_Certain$Choice ==FALSE)) )] ))))),
+                         t(data.frame("Q12"=c(c(length(Full_Certain$ID[(( (Full_Certain$Task == 4) & (Full_Certain$alt == "A") & (Full_Certain$Choice ==TRUE)) )] )),c(length(Full_Certain$ID[(( (Full_Certain$Task == 4) & (Full_Certain$alt == "A") & (Full_Certain$Choice ==FALSE)) )] ))))))
+AcceptanceRate3 <- cbind(AcceptanceRate3,c(1,2,3,4),round(AcceptanceRate3[,1:2]/sum(AcceptanceRate3[1,1:2])*100,3))
+colnames(AcceptanceRate3) <- c("A","B","Question","APercent","BPercent")
+AcceptanceRate3 <- data.frame(AcceptanceRate3)
+AcceptanceRate3
+
+
+## AcceptanceRate4 is acceptance of each option in the consequential sample
+AcceptanceRate4 <- rbind(t(data.frame("Q9"=c(c(length(Full_Cons$ID[(( (Full_Cons$Task == 1) & (Full_Cons$alt == "A") & (Full_Cons$Choice ==TRUE)) )] )),c(length(Full_Cons$ID[(( (Full_Cons$Task == 1) & (Full_Cons$alt == "A") & (Full_Cons$Choice ==FALSE)) )] ))))),
+                         t(data.frame("Q10"=c(c(length(Full_Cons$ID[(( (Full_Cons$Task == 2) & (Full_Cons$alt == "A") & (Full_Cons$Choice ==TRUE)) )] )),c(length(Full_Cons$ID[(( (Full_Cons$Task == 2) & (Full_Cons$alt == "A") & (Full_Cons$Choice ==FALSE)) )] ))))),
+                         t(data.frame("Q11"=c(c(length(Full_Cons$ID[(( (Full_Cons$Task == 3) & (Full_Cons$alt == "A") & (Full_Cons$Choice ==TRUE)) )] )),c(length(Full_Cons$ID[(( (Full_Cons$Task == 3) & (Full_Cons$alt == "A") & (Full_Cons$Choice ==FALSE)) )] ))))),
+                         t(data.frame("Q12"=c(c(length(Full_Cons$ID[(( (Full_Cons$Task == 4) & (Full_Cons$alt == "A") & (Full_Cons$Choice ==TRUE)) )] )),c(length(Full_Cons$ID[(( (Full_Cons$Task == 4) & (Full_Cons$alt == "A") & (Full_Cons$Choice ==FALSE)) )] ))))))
+AcceptanceRate4 <- cbind(AcceptanceRate4,c(1,2,3,4),round(AcceptanceRate4[,1:2]/sum(AcceptanceRate4[1,1:2])*100,3))
+colnames(AcceptanceRate4) <- c("A","B","Question","APercent","BPercent")
+AcceptanceRate4 <- data.frame(AcceptanceRate4)
+AcceptanceRate4
+
+
+## Combining line plots of acceptance rates over questions by dataset
+### Note no major differences by question or data. 
+ggplot()+
+  geom_line(aes(x=Question,y=APercent,color="red"),data=AcceptanceRate1)+
+  geom_line(aes(x=Question,y=APercent,color="blue"),data=AcceptanceRate2)+
+  geom_line(aes(x=Question,y=APercent,color="green"),data=AcceptanceRate3)+
+  geom_line(aes(x=Question,y=APercent,color="orange"),data=AcceptanceRate4)+
+  scale_x_continuous(name="Question",breaks = 1:4, 
+                     labels=c(rownames(AcceptanceRate1)))+
+  scale_y_continuous(name="Percent choosing Option A",
+                     breaks=waiver(),limits = c(25,75),
+                     n.breaks = 10, labels = function(x) paste0(x, "%"))+
+  scale_color_discrete(name = "Lines", 
+                       labels = c("Full sample", "Dominated","Certainty","Consequentiality"))+
+  ggtitle("Percentage choosing the status quo by question and truncation strategy.")
+
+
+# PART TWO: Attitudes
+Full_Cons <- data.frame(Full_Cons) ## Change into dataframe format 
+Full_Long <- data.frame(Full_Long) ## Same here - ggplot2 throws a fit without it.
+
+## Here the Blue-Planet question is manipulated to be either of two values
+Full_Cons$Q16BP[Full_Cons$Q16BP == 0] <- "Not watched" 
+Full_Cons$Q16BP[Full_Cons$Q16BP == 1] <- "Watched"
+Full_Cons$Q16BP[Full_Cons$Q16BP == 2] <- "Watched"
+
+## Categorising charity involvement.
+Full_Cons$Q18Charity[Full_Cons$Q18Charity == 0] <- "No involvement"
+Full_Cons$Q18Charity[Full_Cons$Q18Charity == 1] <- "Donated or joined"
+
+## Rephrasing consequentiality into strings for use in graphics. 
+### The strings used here and above are changed back later for econometric analysis. 
+Full_Long$Q20Consequentiality[Full_Long$Q20Consequentiality == 0] <- "Inconsequential"
+Full_Long$Q20Consequentiality[Full_Long$Q20Consequentiality == 1] <- "Consequential"
+
+
+## Using these two packages for graphics.
+library(scales)
+library(ggplot2) 
+
+## Plot 1 (of 2):
+P1 <- ggplot(Full_Long, aes(Q3Distance,Q4Trips)) + 
+  geom_point(shape = 1) +
+  facet_grid(~Q18Charity) + 
+  geom_smooth(method="lm",se=F) +
+  ggtitle("Relationship between distance and trips by charity involvement.") +
+  theme(plot.title = element_text(hjust = 0.5),
+        plot.margin=unit(c(1,1,-0.5,1),"cm"),
+        axis.title.y = element_text(size = 12)) +
+  labs(x = "Distance",y="Trips")+
+  scale_y_continuous(limits = c(0,1))
+
+## Plot 2 (of 2):
+P2 <- ggplot(Full_Long, aes(Q3Distance,Q4Trips)) + 
+  geom_point(shape = 1) +
+  facet_grid(~Q16BP) + 
+  geom_smooth(method="lm",se=F) +
+  ggtitle("Relationship between distance and trips by Blue-Planet II") +
+  theme(plot.title = element_text(hjust = 0.5),
+        plot.margin=unit(c(1,1,-0.5,1),"cm"),
+        axis.title.y = element_text(size = 12)) +
+  labs(x = "Distance",y="Trips")+
+  scale_y_continuous(limits = c(0,1))
+
+## Plots both Plot1 and Plot2 together in the same view.
+library(gridExtra)
+grid.arrange(P1, P2 )
+
+
+# PART THREE: Demand Curves
+
+
+## Demand Curve: Plotting choice versus price levels 
+PriceCurve <- ggplot(Fulls, aes(Choice,Price_B)) + 
+  geom_point(shape = 1) +
+  geom_smooth(method="lm",se=T) +
+  ggtitle("Demand curve") +
+  theme(plot.title = element_text(hjust = 0.5),
+        plot.margin=unit(c(1,1,-0.5,1),"cm"),
+        axis.title.y = element_text(size = 10)) +
+  labs(x = "Likelihood of accepting option B",y="Attribute levels")+
+  scale_x_continuous(breaks = 0:1, labels=c(0,1))+
+  scale_y_continuous(breaks = 0:3, labels=c(0.5,1.0,2.5,5.0))
+
+
+## Emission Curve: Plotting choice versus emission levels 
+EmissionsCurve <- ggplot(Fulls, aes(Choice,Emission_B)) + 
+  geom_point(shape = 1) +
+  geom_smooth(method="lm",se=T) +
+  ggtitle("Emission curve") +
+  theme(plot.title = element_text(hjust = 0.5),
+        plot.margin=unit(c(1,1,-0.5,1),"cm"),
+        axis.title.y = element_text(size = 10)) +
+  labs(x = "Likelihood of accepting option B",y="Attribute levels")+
+  scale_x_continuous(breaks = 0:1, labels=c(0,1))
+
+## Performance Curve: Plotting choice versus performance levels 
+PerformanceCurve <- ggplot(Fulls, aes(Choice,Performance_B)) + 
+  geom_point(shape = 1) +
+  geom_smooth(method="lm",se=T) +
+  ggtitle("Performance curve") +
+  theme(plot.title = element_text(hjust = 0.5),
+        plot.margin=unit(c(1,1,-0.5,1),"cm"),
+        axis.title.y = element_text(size = 10)) +
+  labs(x = "Likelihood of accepting option B",y="Attribute levels")+
+  scale_x_continuous(breaks = 0:1,labels=c(0,1))
+
+grid.arrange(PriceCurve, EmissionsCurve, PerformanceCurve)
 
 
 ####################################################################################
@@ -4507,14 +4509,8 @@ apollo_control = list(
 
 
 ### Vector of parameters, including any that are kept fixed in estimation
-apollo_beta = c(b_Emission_Low     = 0, 
-                b_Emission_Medium  = 0, 
-                b_Emission_High    = 0, 
-                b_Emission_OA      = 0, 
-                b_Performance_Low       = 0, 
-                b_Performance_Middle       = 0, 
-                b_Performance_High      = 0, 
-                b_Performance_OA      = 0, 
+apollo_beta = c(b_Emission     = 0, 
+                b_Performance       = 0, 
                 b_Price            = 0,  
                 lambda             = 1, 
                 gamma_Education   = 0, 
@@ -4536,7 +4532,7 @@ apollo_beta = c(b_Emission_Low     = 0,
                 tau_Q15_4  = 2)
 
 ## Vector with names (in quotes) of parameters to be kept fixed at their starting value in apollo_beta, use apollo_beta_fixed = c() if none
-apollo_fixed = c("b_Emission_Low", "b_Performance_High")
+apollo_fixed = c()
 
 ## DEFINE RANDOM COMPONENTS                                    
 
@@ -4600,12 +4596,8 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
   ### Likelihood of choices
   ### List of utilities: these must use the same names as in mnl_settings, order is irrelevant
   V = list()
-  V[['A']] = ( b_Emission_OA*(Emission_A==0) + b_Performance_OA*(Performance_A==0)  +
-                 b_Price*Price_A )
-  V[['B']] = ( b_Emission_Low*(Emission_B==0.1) + b_Emission_Medium*(Emission_B==0.4) + b_Emission_High*(Emission_B==0.9) 
-               + b_Performance_Low*(Performance_B==0.05) + b_Performance_Middle*(Performance_B==0.10) + b_Performance_High*(Performance_B==0.50) 
-               + b_Price*Price_B 
-               + lambda*LV )
+  V[['A']] = ( b_Emission*(Emission_A==0) + b_Performance*(Performance_A==0)+ b_Price*Price_A )
+  V[['B']] = ( b_Emission*(Emission_B)+ b_Performance*(Performance_B)+ b_Price*Price_B + lambda*LV )
   
   ### Define settings for MNL model component
   mnl_settings = list(
@@ -4642,6 +4634,9 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
 CEmodel = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
 
 apollo_modelOutput(CEmodel,modelOutput_settings = list(printPVal=TRUE))
+
+apollo_deltaMethod(CEmodel, list(operation="ratio", parName1="b_Performance", parName2="b_Price"))
+apollo_deltaMethod(CEmodel, list(operation="ratio", parName1="b_Emission", parName2="b_Price"))
 
 
 
