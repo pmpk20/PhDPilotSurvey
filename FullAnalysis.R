@@ -4479,16 +4479,6 @@ library(rngWELL)
 install.packages("randtoolbox")
 library(randtoolbox)
 install.packages("apollo")
-library(apollo)
-
-Test_Apollo$Education[Test_Apollo$Education<3] <- 0
-Test_Apollo$Education[Test_Apollo$Education>=3] <- 1
-
-Test_Apollo$Age[Test_Apollo$Age < median(Test_Apollo$Age)] <- 0
-Test_Apollo$Age[Test_Apollo$Age >= median(Test_Apollo$Age)] <- 1
-
-database = Test_Apollo
-
 
 ### Load Apollo library
 library(apollo)
@@ -4498,7 +4488,7 @@ apollo_initialise()
 
 ### Set core controls
 apollo_control = list(
-  modelName  = "Apollo_example_24",
+  modelName  = "ICLV model: CE",
   modelDescr = "ICLV model: CE",
   indivID    = "ID",
   mixing     = TRUE,
@@ -4515,6 +4505,14 @@ apollo_beta = c(b_Emission     = 0,
                 lambda             = 1, 
                 gamma_Education   = 0, 
                 gamma_Age       = 0, 
+                gamma_Gender    = 0,
+                gamma_Distance  = 0, 
+                gamma_Income =0,
+                gamma_Employment =0,
+                gamma_Experts =0,
+                gamma_Cons =0,
+                gamma_BP =0,
+                gamma_Charity =0,
                 zeta_Q13   = 1, 
                 zeta_Q14   = 1, 
                 zeta_Q15   = 1, 
@@ -4539,7 +4537,7 @@ apollo_fixed = c()
 ### Set parameters for generating draws
 apollo_draws = list(
   interDrawsType="halton", 
-  interNDraws=100,          
+  interNDraws=1000,          
   interUnifDraws=c(),      
   interNormDraws=c("eta"), 
   intraDrawsType='',
@@ -4552,7 +4550,7 @@ apollo_draws = list(
 apollo_randCoeff=function(apollo_beta, apollo_inputs){
   randcoeff = list()
   
-  randcoeff[["LV"]] = gamma_Education*Education + gamma_Age*Age + eta
+  randcoeff[["LV"]] = gamma_Education*Education + gamma_Age*Age +gamma_Gender*Q1Gender + gamma_Distance*Distance + gamma_Income*Income + gamma_Employment*Employment + gamma_Experts*Experts + gamma_Cons*Consequentiality + gamma_BP*BP + gamma_Charity*Charity + eta
   
   return(randcoeff)
 }
@@ -4628,7 +4626,7 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
 ### MODEL ESTIMATION
 
 ## Optional: calculate LL before model estimation
-# apollo_llCalc(apollo_beta, apollo_probabilities, apollo_inputs)
+apollo_llCalc(apollo_beta, apollo_probabilities, apollo_inputs)
 
 ### Estimate model
 CEmodel = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
@@ -4638,6 +4636,7 @@ apollo_modelOutput(CEmodel,modelOutput_settings = list(printPVal=TRUE))
 apollo_deltaMethod(CEmodel, list(operation="ratio", parName1="b_Performance", parName2="b_Price"))
 apollo_deltaMethod(CEmodel, list(operation="ratio", parName1="b_Emission", parName2="b_Price"))
 
+forecast <- apollo_prediction(CEmodel,apollo_probabilities, apollo_inputs,modelComponent = "indic_Q13")
 
 
 
