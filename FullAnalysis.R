@@ -5,12 +5,9 @@
 
 
 ####################################################################################
-############### 03/07 To Do: - fix GMNL LCM
-############### - fix GMNL LCM   
+############### 15/07 To Do:
 ############### - Estimate APOLLO MXL PMC, MLHS, Sobol
-############### - Estimate APOLLO MXL Piecewise
-############### - RRM2 with fully truncated sample
-############### - ICLV change gammas#
+
 
 
 ####################################################################################
@@ -19,6 +16,7 @@
 ############### Notes: May have to reinstall rTools package.
 
 
+Sys.setenv(PATH=paste("C:/Rtools/bin"))
 pkgbuild::has_build_tools()
 pkgbuild::find_rtools(debug = TRUE)
 install.packages("Rcpp") ## Necessary dependency for rngWELL
@@ -422,8 +420,8 @@ Full_Cons <- Full_Long[Full_Long$Q20Consequentiality >= 1,]
 AllCriteria <- data.frame("IDs" = unique(Full_Long$ID[ (Full_Long$Q25Understanding >=7) &
                                   (Full_Long$Timing >= (median(Full_Long$Timing)/60)/100*48) &
                                   (Full_Long$Q8DominatedTest == 0) &
-                                  (Full_Long$Q12CECertainty > 1) &
-                                  (Full_Long$Q20Consequentiality == 1) ])) 
+                                  (Full_Long$Q12CECertainty >= 1) &
+                                  (Full_Long$Q20Consequentiality >= 1) ])) 
 
 ## Here checking if any of the remaining respondents were on the protest list: 
 AllCriteria <- AllCriteria[ !(AllCriteria$IDs %in% c(24,33,44,61,121,127,182,200,211,219,239,251,275,306,320,326,341,360,363,371,399,464,467,479,480,506,579,591,649,654,931,932,935,953,989,1002,1011,1024,14,35,39,54,79,106,130,146,149,155,163,203,214,215,217,244,246,249,252,267,268,282,290,327,343,362,364,374,380,393,398,407,414,425,426,433,477,519,524,536,543,545,547,557,567,575,589,590,595,614,617,629,637,638,639,651,665,674,680,915,933,940,950,959,960,975,978,996,1026,1027,1028)),]
@@ -3138,7 +3136,7 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
   return(P)
 }
 
-model = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+model = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs,estimate_settings = list(bootstrapSE=1,bootstrapSeed = 24))
 
 apollo_modelOutput(model,modelOutput_settings = list(printPVal=TRUE))
 
@@ -3208,16 +3206,27 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
   return(P)
 }
 
-model = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+Quadratic = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs,estimate_settings = list(bootstrapSE=10))
 
-apollo_modelOutput(model,modelOutput_settings = list(printPVal=TRUE))
+apollo_modelOutput(Quadratic,modelOutput_settings = list(printPVal=TRUE))
+
+## Model prediction accuracy
+Quadratic_Predictions <- data.frame(Quadratic$avgCP) ## Getting probabilities of choosing each option from the model
+Quadratic_Predictions[Quadratic_Predictions$Quadratic.avgCP < 0.5,] <- 0
+Quadratic_Predictions[Quadratic_Predictions$Quadratic.avgCP >= 0.5,] <- 1
+Quadratic_Predictions <- cbind("Actual"=Fulls$Choice,"Predicted"=slice(data.frame(Quadratic_Predictions$Quadratic.avgCP),rep(1:n(), each = 4)))
+Quadratic_Predictions$Match <- Quadratic_Predictions$Actual==Quadratic_Predictions$Quadratic_Predictions.Quadratic.avgCP
+Quadratic_Predictions$Match[Quadratic_Predictions$Match==TRUE] <- 1
+Quadratic_Predictions$Match[Quadratic_Predictions$Match==FALSE] <- 0
+round(100/length(Quadratic_Predictions$Match)*length(Quadratic_Predictions$Match[Quadratic_Predictions$Match==0]),3)
+# 23.507
+round(100/length(Quadratic_Predictions$Match)*length(Quadratic_Predictions$Match[Quadratic_Predictions$Match==1]),3)
+# 76.493
+
 
 ## WTP calculations: 
-deltaMethod_settings=list(operation="ratio", parName1="b_Performance", parName2="b_Price")
-apollo_deltaMethod(model, deltaMethod_settings)
-
-deltaMethod_settings=list(operation="ratio", parName1="b_Emission", parName2="b_Price")
-apollo_deltaMethod(model, deltaMethod_settings)
+apollo_deltaMethod(Quadratic, deltaMethod_settings=list(operation="ratio", parName1="b_Performance", parName2="b_Price"))
+apollo_deltaMethod(Quadratic, deltaMethod_settings=list(operation="ratio", parName1="b_Emission", parName2="b_Price"))
 
 
 # ################################################################# #
@@ -3244,7 +3253,7 @@ apollo_beta=c(asc_A      = 0,
               b_Performance_High      = 0)
 
 ## Set one of the ASCs as zero using the utility-difference approach: 
-apollo_fixed = c("asc_A","b_Emission_Low","b_Performance_Low")
+apollo_fixed = c("asc_A","b_Emission_Medium","b_Performance_Middle")
 
 ## Check model is good so far 
 apollo_inputs = apollo_validateInputs()
@@ -3287,36 +3296,57 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
   return(P)
 }
 
-model = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+Piecewise_model = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs,estimate_settings = list(bootstrapSE=1,bootstrapSeed = 24))
 
-apollo_modelOutput(model,modelOutput_settings = list(printPVal=TRUE))
+apollo_modelOutput(Piecewise_model,modelOutput_settings = list(printPVal=TRUE))
+
+## Model prediction accuracy
+Piecewise_Predictions <- data.frame(Piecewise_model$avgCP) ## Getting probabilities of choosing each option from the model
+Piecewise_Predictions[Piecewise_Predictions$Piecewise_model.avgCP < 0.5,] <- 0
+Piecewise_Predictions[Piecewise_Predictions$Piecewise_model.avgCP >= 0.5,] <- 1
+Piecewise_Predictions <- cbind("Actual"=Fulls$Choice,"Predicted"=slice(data.frame(Piecewise_Predictions$Piecewise_model.avgCP),rep(1:n(), each = 4)))
+Piecewise_Predictions$Match <- Piecewise_Predictions$Actual==Piecewise_Predictions$Piecewise_Predictions.Piecewise_model.avgCP
+Piecewise_Predictions$Match[Piecewise_Predictions$Match==TRUE] <- 1
+Piecewise_Predictions$Match[Piecewise_Predictions$Match==FALSE] <- 0
+round(100/length(Piecewise_Predictions$Match)*length(Piecewise_Predictions$Match[Piecewise_Predictions$Match==0]),3)
+# 23.51
+round(100/length(Piecewise_Predictions$Match)*length(Piecewise_Predictions$Match[Piecewise_Predictions$Match==1]),3)
+# 76.49
+
+
+
 
 
 ## WTP calculations: 
-deltaMethod_settings=list(operation="ratio", parName1="b_Performance_Middle", parName2="b_Price")
-apollo_deltaMethod(model, deltaMethod_settings)
-WTP_Performance_Middle <- 0.0459
-deltaMethod_settings=list(operation="ratio", parName1="b_Performance_High", parName2="b_Price")
-apollo_deltaMethod(model, deltaMethod_settings)
-WTP_Performance_High <- 1.7312
+apollo_deltaMethod(Piecewise_model, deltaMethod_settings=list(operation="ratio", parName1="b_Performance_Low", parName2="b_Price"))
+WTP_Performance_Low <- -0.0459
 
-deltaMethod_settings=list(operation="ratio", parName1="b_Emission_Medium", parName2="b_Price")
-apollo_deltaMethod(model, deltaMethod_settings)
-WTP_Emissions_Medium <- -1.8243
+apollo_deltaMethod(Piecewise_model, deltaMethod_settings=list(operation="ratio", parName1="b_Performance_High", parName2="b_Price"))
+WTP_Performance_High <- -1.6853
 
-deltaMethod_settings=list(operation="ratio", parName1="b_Emission_High", parName2="b_Price")
-apollo_deltaMethod(model, deltaMethod_settings)
-WTP_Emissions_High <- -3.0662
+apollo_deltaMethod(Piecewise_model, deltaMethod_settings=list(operation="ratio", parName1="b_Emission_Low", parName2="b_Price"))
+WTP_Emissions_Low <- 1.8243
+
+apollo_deltaMethod(Piecewise_model, deltaMethod_settings=list(operation="ratio", parName1="b_Emission_High", parName2="b_Price"))
+WTP_Emissions_High <- 1.2419
 
 ## Scope for Emissions:
-(WTP_Emissions_High - WTP_Emissions_Medium)/((WTP_Emissions_High + WTP_Emissions_Medium)/2) / ((0.9-0.4)/((0.9+0.4)/2))
+round((WTP_Emissions_High - WTP_Emissions_Low)/((WTP_Emissions_High + WTP_Emissions_Low)/2) / ((0.1-0.9)/((0.9+0.1)/2)),2)
 
 ## Scope for Performance:
-((WTP_Performance_High - WTP_Performance_Middle)/((WTP_Performance_High + WTP_Performance_Middle)/2)) / ((0.50-0.10)/((0.50+0.10)/2))
+round(((WTP_Performance_High - WTP_Performance_Low)/((WTP_Performance_High + WTP_Performance_Low)/2)) / ((0.50-0.05)/((0.50+0.05)/2)),2)
 
 
+forecast <- apollo_prediction(Piecewise_model,apollo_probabilities, apollo_inputs)
 
 
+fitsTest_settings = list()
+fitsTest_settings[["subsamples"]] = list()
+fitsTest_settings$subsamples[["0"]] = database$Consequentiality==0
+fitsTest_settings$subsamples[["1"]] = database$Consequentiality==1
+fitsTest_settings$subsamples[["2"]] = database$Consequentiality==2
+
+apollo_fitsTest(Piecewise_model, apollo_probabilities,apollo_inputs,fitsTest_settings)
 
 # ################################################################# #
 #### Apollo MXL  [Halton draws - currently does not replicate MLOGIT]                       
@@ -3426,7 +3456,7 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
 
 MXLmodel = apollo_estimate(apollo_beta, apollo_fixed,
                            apollo_probabilities, apollo_inputs, 
-                           estimate_settings=list(hessianRoutine="numDeriv"))
+                           estimate_settings=list(hessianRoutine="numDeriv",bootstrapSE=1,bootstrapSeed = 24))
 
 apollo_modelOutput(MXLmodel,modelOutput_settings = list(printPVal=TRUE))
 
@@ -3542,7 +3572,7 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
 
 MXLmodel_PMC = apollo_estimate(apollo_beta, apollo_fixed,
                            apollo_probabilities, apollo_inputs, 
-                           estimate_settings=list(hessianRoutine="numDeriv"))
+                           estimate_settings=list(hessianRoutine="numDeriv",bootstrapSE=1,bootstrapSeed = 24))
 
 apollo_modelOutput(MXLmodel_PMC,modelOutput_settings = list(printPVal=TRUE))
 
@@ -3656,7 +3686,7 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
 
 MXLmodel_MLHS = apollo_estimate(apollo_beta, apollo_fixed,
                                apollo_probabilities, apollo_inputs, 
-                               estimate_settings=list(hessianRoutine="numDeriv"))
+                               estimate_settings=list(hessianRoutine="numDeriv",bootstrapSE=1,bootstrapSeed = 24))
 
 apollo_modelOutput(MXLmodel_MLHS,modelOutput_settings = list(printPVal=TRUE))
 
@@ -3769,7 +3799,7 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
 
 MXLmodel_Sobol = apollo_estimate(apollo_beta, apollo_fixed,
                                 apollo_probabilities, apollo_inputs, 
-                                estimate_settings=list(hessianRoutine="numDeriv"))
+                                estimate_settings=list(hessianRoutine="numDeriv",bootstrapSE=1,bootstrapSeed = 24))
 
 apollo_modelOutput(MXLmodel_Sobol,modelOutput_settings = list(printPVal=TRUE))
 
@@ -3889,7 +3919,7 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
 
 MXLmodel_Piecewise = apollo_estimate(apollo_beta, apollo_fixed,
                                  apollo_probabilities, apollo_inputs, 
-                                 estimate_settings=list(hessianRoutine="numDeriv"))
+                                 estimate_settings=list(hessianRoutine="numDeriv",bootstrapSE=1,bootstrapSeed = 24))
 
 apollo_modelOutput(MXLmodel_Piecewise,modelOutput_settings = list(printPVal=TRUE))
 
@@ -4006,7 +4036,7 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
 ### Estimate model
 LCmodel = apollo_estimate(apollo_beta, apollo_fixed, 
                           apollo_probabilities, apollo_inputs,
-                          estimate_settings=list(writeIter=FALSE))
+                          estimate_settings=list(writeIter=FALSE,bootstrapSE=10))
 
 ### Show output in screen
 apollo_modelOutput(LCmodel,modelOutput_settings = list(printPVal=TRUE))
@@ -4017,6 +4047,18 @@ apollo_deltaMethod(LCmodel, list(operation="ratio", parName1="beta_Performance_b
 apollo_deltaMethod(LCmodel, list(operation="ratio", parName1="beta_Emission_a", parName2="beta_Price_a"))
 apollo_deltaMethod(LCmodel, list(operation="ratio", parName1="beta_Emission_b", parName2="beta_Price_b"))
 
+## Model prediction accuracy
+LC2_Predictions <- data.frame(LCmodel$avgCP) ## Getting probabilities of choosing each option from the model
+LC2_Predictions[LC2_Predictions$LCmodel.avgCP < 0.5,] <- 0
+LC2_Predictions[LC2_Predictions$LCmodel.avgCP >= 0.5,] <- 1
+LC2_Predictions <- cbind("Actual"=Fulls$Choice,"Predicted"=slice(data.frame(LC2_Predictions$LCmodel.avgCP),rep(1:n(), each = 4)))
+LC2_Predictions$Match <- LC2_Predictions$Actual==LC2_Predictions$LC2_Predictions.LCmodel.avgCP
+LC2_Predictions$Match[LC2_Predictions$Match==TRUE] <- 1
+LC2_Predictions$Match[LC2_Predictions$Match==FALSE] <- 0
+round(100/length(LC2_Predictions$Match)*length(LC2_Predictions$Match[LC2_Predictions$Match==0]),3)
+# 44.524
+round(100/length(LC2_Predictions$Match)*length(LC2_Predictions$Match[LC2_Predictions$Match==1]),3)
+# 55.746
 
 #############################################################################
 ## APOLLO: LCM 3-class [Note does not currently replicate GMNL]
@@ -4133,12 +4175,26 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
 ### Estimate model
 LCmodel_3 = apollo_estimate(apollo_beta, apollo_fixed, 
                             apollo_probabilities, apollo_inputs,
-                            estimate_settings=list(writeIter=FALSE))
+                            estimate_settings=list(writeIter=FALSE,bootstrapSE=10))
 
-### Show output in screen
 apollo_modelOutput(LCmodel_3,modelOutput_settings = list(printPVal=TRUE))
 
 
+## Model prediction accuracy
+LC3_Predictions <- data.frame(LCmodel_3$avgCP) ## Getting probabilities of choosing each option from the model
+LC3_Predictions[LC3_Predictions$LCmodel_3.avgCP < 0.5,] <- 0
+LC3_Predictions[LC3_Predictions$LCmodel_3.avgCP >= 0.5,] <- 1
+LC3_Predictions <- cbind("Actual"=Fulls$Choice,"Predicted"=slice(data.frame(LC3_Predictions$LCmodel_3.avgCP),rep(1:n(), each = 4)))
+LC3_Predictions$Match <- LC3_Predictions$Actual==LC3_Predictions$LC3_Predictions.LCmodel_3.avgCP
+LC3_Predictions$Match[LC3_Predictions$Match==TRUE] <- 1
+LC3_Predictions$Match[LC3_Predictions$Match==FALSE] <- 0
+round(100/length(LC3_Predictions$Match)*length(LC3_Predictions$Match[LC3_Predictions$Match==0]),3)
+# 41.791
+round(100/length(LC3_Predictions$Match)*length(LC3_Predictions$Match[LC3_Predictions$Match==1]),3)
+# 58.209
+
+
+### WTP:
 apollo_deltaMethod(LCmodel_3, list(operation="ratio", parName1="beta_Performance_a", parName2="beta_Price_a"))
 apollo_deltaMethod(LCmodel_3, list(operation="ratio", parName1="beta_Performance_b", parName2="beta_Price_b"))
 apollo_deltaMethod(LCmodel_3, list(operation="ratio", parName1="beta_Performance_c", parName2="beta_Price_c"))
@@ -4270,7 +4326,7 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
 ### Estimate model
 LCmodel_4 = apollo_estimate(apollo_beta, apollo_fixed, 
                             apollo_probabilities, apollo_inputs,
-                            estimate_settings=list(writeIter=FALSE))
+                            estimate_settings=list(writeIter=FALSE,bootstrapSE=1,bootstrapSeed = 24))
 
 ### Show output in screen
 apollo_modelOutput(LCmodel_4,modelOutput_settings = list(printPVal=TRUE))
@@ -4434,7 +4490,7 @@ apollo_beta = apollo_searchStart(apollo_beta,
                                  apollo_inputs,
                                  searchStart_settings=list(nCandidates=20))
 
-RRmodel = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs, estimate_settings=list(hessianRoutine="numDeriv")) 
+RRmodel = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs, estimate_settings=list(hessianRoutine="numDeriv",bootstrapSE=1,bootstrapSeed = 24))
 apollo_modelOutput(RRmodel,modelOutput_settings = list(printPVal=TRUE))
 
 ## RUM Performance MWTP
@@ -4495,8 +4551,8 @@ apollo_control = list(
   nCores     = 1
 )
 
-# database = read.csv("apollo_drugChoiceData.csv",header=TRUE)
-
+Test_Apollo_Truncated <- Test_Apollo[ (Test_Apollo$ID) %in% c(AllCriteria),]
+database <- Test_Apollo_Truncated
 
 ### Vector of parameters, including any that are kept fixed in estimation
 apollo_beta = c(b_Emission     = 0, 
@@ -4629,15 +4685,26 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
 apollo_llCalc(apollo_beta, apollo_probabilities, apollo_inputs)
 
 ### Estimate model
-CEmodel = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
-
+CEmodel = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs,estimate_settings = list(bootstrapSE=10))
 apollo_modelOutput(CEmodel,modelOutput_settings = list(printPVal=TRUE))
 
+
+## Model prediction accuracy
+ICLV_Predictions <- data.frame(CEmodel$avgCP) ## Getting probabilities of choosing each option from the model
+ICLV_Predictions[ICLV_Predictions$CEmodel.avgCP < 0.5,] <- 0
+ICLV_Predictions[ICLV_Predictions$CEmodel.avgCP >= 0.5,] <- 1
+ICLV_Predictions <- cbind("Actual"=Fulls$Choice,"Predicted"=slice(data.frame(ICLV_Predictions$CEmodel.avgCP),rep(1:n(), each = 4)))
+ICLV_Predictions$Match <- ICLV_Predictions$Actual==ICLV_Predictions$ICLV_Predictions.CEmodel.avgCP
+ICLV_Predictions$Match[ICLV_Predictions$Match==TRUE] <- 1
+ICLV_Predictions$Match[ICLV_Predictions$Match==FALSE] <- 0
+round(100/length(ICLV_Predictions$Match)*length(ICLV_Predictions$Match[ICLV_Predictions$Match==0]),3)
+# 44.524
+round(100/length(ICLV_Predictions$Match)*length(ICLV_Predictions$Match[ICLV_Predictions$Match==1]),3)
+# 55.746
+
+## WTP:
 apollo_deltaMethod(CEmodel, list(operation="ratio", parName1="b_Performance", parName2="b_Price"))
 apollo_deltaMethod(CEmodel, list(operation="ratio", parName1="b_Emission", parName2="b_Price"))
-
-forecast <- apollo_prediction(CEmodel,apollo_probabilities, apollo_inputs,modelComponent = "indic_Q13")
-
 
 
 #############################################################################
@@ -4683,7 +4750,15 @@ apollo_beta = c(b_bid     = 0,
                 b_bid_Alt = 0,
                 lambda            = 1, 
                 gamma_Education   = 0, 
-                gamma_Age         = 0, 
+                gamma_Age       = 0, 
+                gamma_Gender    = 0,
+                gamma_Distance  = 0, 
+                gamma_Income =0,
+                gamma_Employment =0,
+                gamma_Experts =0,
+                gamma_Cons =0,
+                gamma_BP =0,
+                gamma_Charity =0,
                 zeta_Q13   = 1, 
                 zeta_Q14   = 1, 
                 zeta_Q15   = 1, 
@@ -4721,7 +4796,8 @@ apollo_draws = list(
 apollo_randCoeff=function(apollo_beta, apollo_inputs){
   randcoeff = list()
   
-  randcoeff[["LV"]] = gamma_Education*Education + gamma_Age*Age + eta
+  randcoeff[["LV"]] = gamma_Education*Education + gamma_Age*Age +gamma_Gender*Q1Gender + gamma_Distance*Distance + gamma_Income*Income + gamma_Employment*Employment + gamma_Experts*Experts + gamma_Cons*Consequentiality + gamma_BP*BP + gamma_Charity*Charity + eta
+  
   
   return(randcoeff)
 }
@@ -4801,9 +4877,26 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
 # apollo_llCalc(apollo_beta, apollo_probabilities, apollo_inputs)
 
 ### Estimate model
-CVmodel = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+CVmodel = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs,estimate_settings = list(bootstrapSE=10))
 
 apollo_modelOutput(CVmodel,modelOutput_settings = list(printPVal=TRUE))
+
+## Model prediction accuracy
+ICLV_CVQ6_Predictions <- data.frame(CVModel$avgCP) ## Getting probabilities of choosing each option from the model
+ICLV_CVQ6_Predictions[ICLV_CVQ6_Predictions$CVModel.avgCP < 0.5,] <- 0
+ICLV_CVQ6_Predictions[ICLV_CVQ6_Predictions$CVModel.avgCP >= 0.5,] <- 1
+ICLV_CVQ6_Predictions <- cbind("Actual"=Fulls$Choice,"Predicted"=slice(data.frame(ICLV_CVQ6_Predictions$CVModel.avgCP),rep(1:n(), each = 4)))
+ICLV_CVQ6_Predictions$Match <- ICLV_CVQ6_Predictions$Actual==ICLV_CVQ6_Predictions$ICLV_CVQ6_Predictions.CVModel.avgCP
+ICLV_CVQ6_Predictions$Match[ICLV_CVQ6_Predictions$Match==TRUE] <- 1
+ICLV_CVQ6_Predictions$Match[ICLV_CVQ6_Predictions$Match==FALSE] <- 0
+round(100/length(ICLV_CVQ6_Predictions$Match)*length(ICLV_CVQ6_Predictions$Match[ICLV_CVQ6_Predictions$Match==0]),3)
+# 44.524
+round(100/length(ICLV_CVQ6_Predictions$Match)*length(ICLV_CVQ6_Predictions$Match[ICLV_CVQ6_Predictions$Match==1]),3)
+# 55.746
+
+## WTP:
+apollo_deltaMethod(CVModel, list(operation="ratio", parName1="b_Performance", parName2="b_Price"))
+apollo_deltaMethod(CVModel, list(operation="ratio", parName1="b_Emission", parName2="b_Price"))
 
 
 
@@ -4843,15 +4936,20 @@ apollo_control = list(
   nCores     = 1
 )
 
-# database = read.csv("apollo_drugChoiceData.csv",header=TRUE)
-
-
 ### Vector of parameters, including any that are kept fixed in estimation
 apollo_beta = c(b_bid     = 0, 
                 b_bid_Alt = 0,
                 lambda            = 1, 
                 gamma_Education   = 0, 
-                gamma_Age         = 0, 
+                gamma_Age       = 0, 
+                gamma_Gender    = 0,
+                gamma_Distance  = 0, 
+                gamma_Income =0,
+                gamma_Employment =0,
+                gamma_Experts =0,
+                gamma_Cons =0,
+                gamma_BP =0,
+                gamma_Charity =0,
                 zeta_Q13   = 1, 
                 zeta_Q14   = 1, 
                 zeta_Q15   = 1, 
@@ -4889,7 +4987,7 @@ apollo_draws = list(
 apollo_randCoeff=function(apollo_beta, apollo_inputs){
   randcoeff = list()
   
-  randcoeff[["LV"]] = gamma_Education*Education + gamma_Age*Age + eta
+  randcoeff[["LV"]] = gamma_Education*Education + gamma_Age*Age +gamma_Gender*Q1Gender + gamma_Distance*Distance + gamma_Income*Income + gamma_Employment*Employment + gamma_Experts*Experts + gamma_Cons*Consequentiality + gamma_BP*BP + gamma_Charity*Charity + eta
   
   return(randcoeff)
 }
@@ -4968,10 +5066,27 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
 # apollo_llCalc(apollo_beta, apollo_probabilities, apollo_inputs)
 
 ### Estimate model
-CVmodel7 = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+CVmodel7 = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs,estimate_settings = list(bootstrapSE=10))
 
 apollo_modelOutput(CVmodel7,modelOutput_settings = list(printPVal=TRUE))
 
+
+## Model prediction accuracy
+ICLV_CVQ7_Predictions <- data.frame(CVModel7$avgCP) ## Getting probabilities of choosing each option from the model
+ICLV_CVQ7_Predictions[ICLV_CVQ7_Predictions$CVModel7.avgCP < 0.5,] <- 0
+ICLV_CVQ7_Predictions[ICLV_CVQ7_Predictions$CVModel7.avgCP >= 0.5,] <- 1
+ICLV_CVQ7_Predictions <- cbind("Actual"=Fulls$Choice,"Predicted"=slice(data.frame(ICLV_CVQ7_Predictions$CVModel7.avgCP),rep(1:n(), each = 4)))
+ICLV_CVQ7_Predictions$Match <- ICLV_CVQ7_Predictions$Actual==ICLV_CVQ7_Predictions$ICLV_CVQ7_Predictions.CVModel7.avgCP
+ICLV_CVQ7_Predictions$Match[ICLV_CVQ7_Predictions$Match==TRUE] <- 1
+ICLV_CVQ7_Predictions$Match[ICLV_CVQ7_Predictions$Match==FALSE] <- 0
+round(100/length(ICLV_CVQ7_Predictions$Match)*length(ICLV_CVQ7_Predictions$Match[ICLV_CVQ7_Predictions$Match==0]),3)
+# 44.524
+round(100/length(ICLV_CVQ7_Predictions$Match)*length(ICLV_CVQ7_Predictions$Match[ICLV_CVQ7_Predictions$Match==1]),3)
+# 55.746
+
+## WTP:
+apollo_deltaMethod(CVModel7, list(operation="ratio", parName1="b_Performance", parName2="b_Price"))
+apollo_deltaMethod(CVModel7, list(operation="ratio", parName1="b_Emission", parName2="b_Price"))
 
 
 ###############################################################
