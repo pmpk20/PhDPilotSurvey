@@ -16,8 +16,8 @@
 ############### Notes: May have to reinstall rTools package.
 
 
-Sys.setenv(PATH=paste("C:/Rtools/bin"))
 pkgbuild::has_build_tools()
+Sys.setenv(PATH = paste(Sys.getenv("PATH"), "C:\\Rtools\\bin", sep = ";"))
 pkgbuild::find_rtools(debug = TRUE)
 install.packages("Rcpp") ## Necessary dependency for rngWELL
 install.packages("rngWELL") ## Can sometimes fix APOLLO issues
@@ -31,7 +31,7 @@ install.packages("Hmisc") ## For random imputation
 library(Hmisc)
 library(dplyr)
 library(ggplot2)
-options(scipen=10)
+options(scipen=50)
 setwd("H:/PhDPilotSurvey") ## Sets working directory. This is where my Github repo is cloned to.
 
 
@@ -1271,9 +1271,13 @@ plot(ResearchKMT)
 
 
 ## Reporting the KMT for Q7.
-TreatmentKMT <- turnbull.db(formula = Q7TreatmentResponse + Q7Response2 ~  Q7Bid + Q7Bid2,data = Full_Order2)
+TreatmentKMT <- turnbull.db(formula = Q7TreatmentResponse + Q7Response2 ~  Q7Bid + Q7Bid2,data = FullSurvey2)
 summary(TreatmentKMT)
 plot(TreatmentKMT)
+
+TreatmentKMTSB <- turnbull.sb(formula = Q7TreatmentResponse  ~  Q7Bid ,data = FullSurvey2)
+summary(TreatmentKMT)
+plot(TreatmentKMTSB,main="Q7 Single-Bound KMT survival function")
 
 
 ## Plot both KMT functions together in one plot. 
@@ -1289,11 +1293,15 @@ plot(TreatmentKMT, main="Q7 Kaplan-Meier-Turnbull survival function.")
 
 #################### Q6 WTP elicitation:
 
-## The Q6 model basic:
+## The Q6 model with constant and bid only:
+Research_BidOnly <- sbchoice(Q6ResearchResponse ~ 1 | Q6Bid, data = Full_Long,dist="logistic")
+summary(Research_BidOnly) ## Reports the SBDC analysis for Q6 with mean, median and coefficients.
+
+## The Q6 model with all covariates:
 Research_SB <- sbchoice(Q6ResearchResponse ~ Order + Q1Gender + Q2Age + Q3Distance
-                        + Q4Trips + Q16BP + Q18Charity
+                        + Q4Trips + Q16BP + Q18Charity + Q20Consequentiality
                         + Q21Experts + Q22Education + Q23Employment
-                        +  Q24AIncome + Timing | Q6Bid, data = Full_Long,dist="logistic")
+                        +  Q24AIncome + Q25Understanding + Timing | Q6Bid, data = Full_Long,dist="logistic")
 summary(Research_SB) ## Reports the SBDC analysis for Q6 with mean, median and coefficients.
 krCI(Research_SB)
 bootCI(Research_SB)
@@ -1343,11 +1351,17 @@ krCI(Research_Inconsequential)
 #################### Q7 WTP elicitation:
 
 
+Treatment_BidOnly <- sbchoice(Q7TreatmentResponse ~ 1 | Q7Bid, data = Full_Long,dist="logistic")
+summary(Treatment_BidOnly) ## Reports the SBDC analysis for Q6 with mean, median and coefficients.
+Treatment_BidOnly2 <- dbchoice(Q7TreatmentResponse + Q7Response2 ~ 1 |Q7Bid + Q7Bid2, data = Full_Long,dist="logistic")
+summary(Treatment_BidOnly2) ## Reports the SBDC analysis for Q6 with mean, median and coefficients.
+
+
 ## Repeating the same as above but for Q7 the DBDC question:
-Treatment_DB <- dbchoice(Q7TreatmentResponse + Q7Response2 ~ Order + Q1Gender + Q2Age + Q3Distance
-                         + Q4Trips + Q16BP + Q18Charity
+Treatment_DB <- dbchoice(Q7TreatmentResponse + Q7Response2 ~  Order + Q1Gender + Q2Age + Q3Distance
+                         + Q4Trips + Q16BP + Q18Charity + Q20Consequentiality
                          + Q21Experts + Q22Education + Q23Employment
-                         +  Q24AIncome + Timing | Q7Bid + Q7Bid2,data = Full_Long,dist="logistic")
+                         +  Q24AIncome + Q25Understanding + Timing  | Q7Bid + Q7Bid2,data = Full_Long,dist="logistic")
 summary(Treatment_DB)
 krCI(Treatment_DB)
 bootCI(Treatment_DB)
@@ -1364,12 +1378,12 @@ bootCI(Treatment_Truncated)
 
 
 ## Analysing only the firt bound if anchoring is an issue
-Treatment1_SB <- sbchoice(Q7TreatmentResponse ~ Order  + Q1Gender + Q2Age + Q3Distance
-                          + Q4Trips + Q16BP + Q18Charity
+Treatment1_SB <- sbchoice(Q7TreatmentResponse ~  Order + Q1Gender + Q2Age + Q3Distance
+                          + Q4Trips + Q16BP + Q18Charity + Q20Consequentiality
                           + Q21Experts + Q22Education + Q23Employment
-                          +  Q24AIncome  + Timing | Q7Bid ,data = Full_Long,dist="logistic")
+                          +  Q24AIncome + Q25Understanding + Timing  | Q7Bid ,data = Full_Long,dist="logistic")
 summary(Treatment1_SB)
-krCI(Treatment1_SB)
+bootCI(Treatment1_SB)
 
 
 ## Estimating Q7 by both orders using DBDC:
@@ -1561,9 +1575,9 @@ library(mfx)
 
 ## Model for Q6:
 CVMProbit <-glm(Q6ResearchResponse ~ Order + Q1Gender + Q2Age + Q3Distance
-                                        + Q4Trips + Q16BP + Q18Charity
-                                        + Q21Experts + Q22Education + Q23Employment
-                                        +  Q24AIncome + Timing + Q6Bid, family = binomial(link = "probit"),data = FullSurvey2)
+                + Q4Trips + Q16BP + Q18Charity + Q20Consequentiality
+                + Q21Experts + Q22Education + Q23Employment
+                +  Q24AIncome + Q25Understanding + Timing + Q6Bid, family = binomial(link = "probit"),data = FullSurvey2)
 summary(CVMProbit) ## Report the model
 confint(CVMProbit) ## Estimate confidence interval -default 95%
 # wald.test(b = coef(CVMProbit), Sigma = vcov(CVMProbit), Terms=2) ## Attempt a Wald-test
@@ -1579,15 +1593,15 @@ CVMME ## Report Marginal Effects
 
 ## Model for Q7:
 QOVProbit <-glm(Q7TreatmentResponse ~ Order + Q1Gender + Q2Age + Q3Distance
-                + Q4Trips + Q16BP + Q18Charity
+                + Q4Trips + Q16BP + Q18Charity + Q20Consequentiality
                 + Q21Experts + Q22Education + Q23Employment
-                +  Q24AIncome + Timing + Q7Bid, 
+                +  Q24AIncome + Q25Understanding + Timing  + Q7Bid, 
                 family = binomial(link = "probit"),data = FullSurvey2)
 summary(QOVProbit)
 QOVME <- probitmfx(formula = Q7TreatmentResponse ~ Order + Q1Gender + Q2Age + Q3Distance
-                   + Q4Trips + Q16BP + Q18Charity
+                   + Q4Trips + Q16BP + Q18Charity +Q20Consequentiality
                    + Q21Experts + Q22Education + Q23Employment
-                   +  Q24AIncome + Timing + Q7Bid,data = FullSurvey2,robust = TRUE)
+                   +  Q24AIncome + Timing + Q25Understanding + Q7Bid,data = FullSurvey2,robust = TRUE)
 confint(QOVProbit)
 wald.test(b = coef(QOVProbit), Sigma = vcov(QOVProbit), Terms=2)
 ## All the same commands as the Q6 models
@@ -4877,7 +4891,7 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
 # apollo_llCalc(apollo_beta, apollo_probabilities, apollo_inputs)
 
 ### Estimate model
-CVmodel = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs,estimate_settings = list(bootstrapSE=10))
+CVmodel = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
 
 apollo_modelOutput(CVmodel,modelOutput_settings = list(printPVal=TRUE))
 
