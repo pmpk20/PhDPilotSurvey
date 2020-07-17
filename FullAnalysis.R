@@ -503,11 +503,11 @@ MNL_2_WTP <- c(-1*coef(MNL_2)["I(Emission^2)"]/coef(MNL_2)["Price"],-1*coef(MNL_
 ## Model 3: MNL with all sociodemographics:
 MNL_3 <- mlogit(Choice ~ Price + Performance + Emission | 
                       Order + Task + Q1Gender + Q2Age + Q3Distance
-                    + Q4Trips + Q16BP + Q18Charity 
+                    + Q4Trips + Q12CECertainty + Q16BP + Q18Charity 
                     + Q20Consequentiality
                     + Q21Experts +Q22Education+ Q23Employment
-                    +  Q24AIncome + Timing + Responsibility,  
-                    Full_Long, alt.subset = c("A", "B"), 
+                    +  Q24AIncome + Timing + Q25Understanding,  
+                    Full_Full, alt.subset = c("A", "B"), 
                     reflevel = "A",method="bfgs") 
 summary(MNL_3) ## Summarises the MNL output
 MNL_3_WTP <- c(-1*coef(MNL_3)["Emission"]/coef(MNL_3)["Price"],-1*coef(MNL_3)["Performance"]/coef(MNL_3)["Price"])
@@ -561,16 +561,20 @@ MXL_3_WTP <- c(-1*coef(MXL_3)["Emission"]/coef(MXL_3)["Price"],-1*coef(MXL_3)["P
 MXL_4 <- mlogit(
   Choice ~ Price + Performance + Emission | 
     Order + Task + Q1Gender + Q2Age + Q3Distance
-  + Q4Trips + Q16BP + Q18Charity 
+  + Q4Trips + Q12CECertainty + Q16BP + Q18Charity 
   + Q20Consequentiality
   + Q21Experts +Q22Education+ Q23Employment
-  +  Q24AIncome + Timing,
-  Full_Long, rpar=c(Price="n"),
+  +  Q24AIncome + Timing + Q25Understanding,
+  Full_Full, rpar=c(Price="n"),
   R=1000,correlation = FALSE,
   reflevel="A",halton=NA,method="bfgs",panel=TRUE,seed=13)
 summary(MXL_4)
 MXL_4_WTP <- c(-1*coef(MXL_4)["Emission"]/coef(MXL_4)["Price"],-1*coef(MXL_4)["Performance"]/coef(MXL_4)["Price"])
 
+data.frame(round(coef(MXL_4),3))
+data.frame(round(stdEr(MXL_4),3))
+data.frame(round(summary(MXL_4)$CoefTable[,3],3))
+data.frame(round(summary(MXL_4)$CoefTable[,4],3))
 
 ## Model 7B: MXL all sociodemographics, WTP-space, attributes in levels
 # MXL_4B <- mlogit(
@@ -596,7 +600,7 @@ MXL_4_WTP <- c(-1*coef(MXL_4)["Emission"]/coef(MXL_4)["Price"],-1*coef(MXL_4)["P
 MXL_5 <- mlogit(
   Choice ~ Price + Performance + Emission | 
     Order + Task + Q1Gender + Q2Age + Q3Distance
-  + Q4Trips + Q16BP + Q18Charity 
+  + Q4Trips + Q12CECertainty + Q16BP + Q18Charity 
   + Q20Consequentiality
   + Q21Experts +Q22Education+ Q23Employment
   +  Q24AIncome + Timing,
@@ -1299,7 +1303,7 @@ summary(Research_BidOnly) ## Reports the SBDC analysis for Q6 with mean, median 
 
 ## The Q6 model with all covariates:
 Research_SB <- sbchoice(Q6ResearchResponse ~ Order + Q1Gender + Q2Age + Q3Distance
-                        + Q4Trips + Q16BP + Q18Charity + Q20Consequentiality
+                        + Q4Trips +Q6ResearchCertainty + Q16BP + Q18Charity + Q20Consequentiality
                         + Q21Experts + Q22Education + Q23Employment
                         +  Q24AIncome + Q25Understanding + Timing | Q6Bid, data = Full_Long,dist="logistic")
 summary(Research_SB) ## Reports the SBDC analysis for Q6 with mean, median and coefficients.
@@ -1359,7 +1363,7 @@ summary(Treatment_BidOnly2) ## Reports the SBDC analysis for Q6 with mean, media
 
 ## Repeating the same as above but for Q7 the DBDC question:
 Treatment_DB <- dbchoice(Q7TreatmentResponse + Q7Response2 ~  Order + Q1Gender + Q2Age + Q3Distance
-                         + Q4Trips + Q16BP + Q18Charity + Q20Consequentiality
+                         + Q4Trips + Q7TreatmentCertainty +Q16BP + Q18Charity + Q20Consequentiality
                          + Q21Experts + Q22Education + Q23Employment
                          +  Q24AIncome + Q25Understanding + Timing  | Q7Bid + Q7Bid2,data = Full_Long,dist="logistic")
 summary(Treatment_DB)
@@ -1379,7 +1383,7 @@ bootCI(Treatment_Truncated)
 
 ## Analysing only the firt bound if anchoring is an issue
 Treatment1_SB <- sbchoice(Q7TreatmentResponse ~  Order + Q1Gender + Q2Age + Q3Distance
-                          + Q4Trips + Q16BP + Q18Charity + Q20Consequentiality
+                          + Q4Trips + Q7TreatmentCertainty + Q16BP + Q18Charity + Q20Consequentiality
                           + Q21Experts + Q22Education + Q23Employment
                           +  Q24AIncome + Q25Understanding + Timing  | Q7Bid ,data = Full_Long,dist="logistic")
 summary(Treatment1_SB)
@@ -1575,7 +1579,7 @@ library(mfx)
 
 ## Model for Q6:
 CVMProbit <-glm(Q6ResearchResponse ~ Order + Q1Gender + Q2Age + Q3Distance
-                + Q4Trips + Q16BP + Q18Charity + Q20Consequentiality
+                + Q4Trips + Q6ResearchCertainty + Q16BP + Q18Charity + Q20Consequentiality
                 + Q21Experts + Q22Education + Q23Employment
                 +  Q24AIncome + Q25Understanding + Timing + Q6Bid, family = binomial(link = "probit"),data = FullSurvey2)
 summary(CVMProbit) ## Report the model
@@ -1585,7 +1589,7 @@ stargazer(CVMProbit, title = "CVMProbit", align = TRUE,report="p*") ## Export re
 
 
 CVMME <- probitmfx(formula = Q6ResearchResponse ~ Order + Q1Gender + Q2Age + Q3Distance
-                   + Q4Trips + Q16BP + Q18Charity
+                   + Q4Trips + Q6ResearchCertainty + Q16BP + Q18Charity
                    + Q21Experts + Q22Education + Q23Employment
                    +  Q24AIncome + Timing + Q6Bid,data = FullSurvey2,robust = TRUE)
 CVMME ## Report Marginal Effects
@@ -1598,13 +1602,17 @@ QOVProbit <-glm(Q7TreatmentResponse ~ Order + Q1Gender + Q2Age + Q3Distance
                 +  Q24AIncome + Q25Understanding + Timing  + Q7Bid, 
                 family = binomial(link = "probit"),data = FullSurvey2)
 summary(QOVProbit)
-QOVME <- probitmfx(formula = Q7TreatmentResponse ~ Order + Q1Gender + Q2Age + Q3Distance
-                   + Q4Trips + Q16BP + Q18Charity +Q20Consequentiality
+QOVME <- probitmfx(formula = Q7Response2 ~ Order + Q1Gender + Q2Age + Q3Distance
+                   + Q4Trips + Q7TreatmentCertainty +Q16BP + Q18Charity + Q20Consequentiality
                    + Q21Experts + Q22Education + Q23Employment
-                   +  Q24AIncome + Timing + Q25Understanding + Q7Bid,data = FullSurvey2,robust = TRUE)
+                   +  Q24AIncome + Q25Understanding + Timing+ Q7Bid2,data = FullSurvey2,robust = TRUE)
 confint(QOVProbit)
 wald.test(b = coef(QOVProbit), Sigma = vcov(QOVProbit), Terms=2)
 ## All the same commands as the Q6 models
+
+data.frame(round(QOVME$mfxest[,1],3))
+data.frame(round(coef(Treatment1_SB),3))
+data.frame(round(stdEr(Treatment1_SB),3))
 
 
 ####################################################################################
@@ -3037,7 +3045,8 @@ Test_Apollo <- data.frame(Fulls$ID,Fulls$Task, Fulls$Q1Gender,
                           Fulls$Q21Experts,
                           Fulls$Q6ResearchResponse,Fulls$Q6Bid,
                           Fulls$Q7Bid,Fulls$Q7Bid2,
-                          Fulls$Q7TreatmentResponse,Fulls$Q7Response2,Fulls$Timing)
+                          Fulls$Q7TreatmentResponse,Fulls$Q7Response2,Fulls$Timing,
+                          Fulls$Q12CECertainty,Fulls$Q6ResearchCertainty,Fulls$Q7TreatmentCertainty)
 colnames(Test_Apollo) <- c("ID","Task","Q1Gender","Age","Distance",
                            "Trips","Q13CurrentThreatToSelf","Q14FutureThreatToSelf",
                            "Q15ThreatToEnvironment","BP","Charity",
@@ -3049,7 +3058,8 @@ colnames(Test_Apollo) <- c("ID","Task","Q1Gender","Age","Distance",
                            "Consequentiality","Experts",
                            "Q6ResearchResponse","Q6Bid",
                            "Q7Bid","Q7Bid2",
-                           "Q7TreatmentResponse","Q7Response2","Timing")
+                           "Q7TreatmentResponse","Q7Response2","Timing",
+                           "Q12CECertainty","Q6ResearchCertainty","Q7TreatmentCertainty")
 
 # Tests_Dominated <- Test_Apollo[!Test_Apollo$ID %in% c(Test_Apollo$ID[ ((Test_Apollo$Task == 1) & (Test_Apollo$Choice ==1) & (grepl("SQ",rownames(Test_Apollo),fixed = TRUE) == FALSE)) ]),]
 # Tests_Understanding <- Tests_Dominated[!Tests_Dominated$ID %in% c( unique(Tests_Dominated$ID[Tests_Dominated$Survey <= 5])),]
@@ -4583,6 +4593,7 @@ apollo_beta = c(b_Emission     = 0,
                 gamma_Cons =0,
                 gamma_BP =0,
                 gamma_Charity =0,
+                gamma_Certainty=0,
                 zeta_Q13   = 1, 
                 zeta_Q14   = 1, 
                 zeta_Q15   = 1, 
@@ -4620,7 +4631,7 @@ apollo_draws = list(
 apollo_randCoeff=function(apollo_beta, apollo_inputs){
   randcoeff = list()
   
-  randcoeff[["LV"]] = gamma_Education*Education + gamma_Age*Age +gamma_Gender*Q1Gender + gamma_Distance*Distance + gamma_Income*Income + gamma_Employment*Employment + gamma_Experts*Experts + gamma_Cons*Consequentiality + gamma_BP*BP + gamma_Charity*Charity + eta
+  randcoeff[["LV"]] = gamma_Education*Education + gamma_Age*Age +gamma_Gender*Q1Gender + gamma_Distance*Distance + gamma_Income*Income + gamma_Employment*Employment + gamma_Experts*Experts + gamma_Cons*Consequentiality + gamma_BP*BP + gamma_Charity*Charity + gamma_Certainty*Q12CECertainty + eta
   
   return(randcoeff)
 }
@@ -5050,7 +5061,7 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
   
   ### Define settings for MNL model component
   mnl_settings = list(
-    alternatives = c(A=1.0, B=2.0),
+    alternatives = c(A=2, B=3),
     avail        = list(A=1, B=1),
     choiceVar    = Q7TreatmentResponse,
     V            = V,
@@ -5080,7 +5091,7 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
 # apollo_llCalc(apollo_beta, apollo_probabilities, apollo_inputs)
 
 ### Estimate model
-CVmodel7 = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs,estimate_settings = list(bootstrapSE=10))
+CVmodel7 = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
 
 apollo_modelOutput(CVmodel7,modelOutput_settings = list(printPVal=TRUE))
 
