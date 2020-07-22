@@ -5,8 +5,10 @@
 
 
 ####################################################################################
-############### 15/07 To Do:
+############### 22/07 To Do:
 ############### - Estimate APOLLO MXL PMC, MLHS, Sobol
+############### - Estimate CE MFX
+############### - Income elasticity
 
 
 
@@ -546,7 +548,7 @@ MXL_2_WTP <- c(-1*coef(MXL_2)["I(Emission^2)"]/coef(MXL_2)["Price"],-1*coef(MXL_
 MXL_3 <- mlogit(
   Choice ~ Price + Performance + Emission | 
     Order + Task + Q1Gender + Q2Age + Q3Distance
-  + Q4Trips + Q16BP + Q18Charity 
+  + Q4Trips + Q16BP + Q12CECertainty + Q18Charity 
   + Q20Consequentiality
   + Q21Experts +Q22Education+ Q23Employment
   +  Q24AIncome + Timing,
@@ -565,11 +567,13 @@ MXL_4 <- mlogit(
   + Q20Consequentiality
   + Q21Experts +Q22Education+ Q23Employment
   +  Q24AIncome + Timing + Q25Understanding,
-  Full_Full, rpar=c(Price="n"),
+  Full_Long, rpar=c(Price="n"),
   R=1000,correlation = FALSE,
   reflevel="A",halton=NA,method="bfgs",panel=TRUE,seed=13)
 summary(MXL_4)
+round(summary(MXL_4)$CoefTable,3)
 MXL_4_WTP <- c(-1*coef(MXL_4)["Emission"]/coef(MXL_4)["Price"],-1*coef(MXL_4)["Performance"]/coef(MXL_4)["Price"])
+MXL_4_WTP
 
 data.frame(round(coef(MXL_4),3))
 data.frame(round(stdEr(MXL_4),3))
@@ -603,8 +607,8 @@ MXL_5 <- mlogit(
   + Q4Trips + Q12CECertainty + Q16BP + Q18Charity 
   + Q20Consequentiality
   + Q21Experts +Q22Education+ Q23Employment
-  +  Q24AIncome + Timing,
-  Full_Cons, rpar=c(Price="n"),
+  +  Q24AIncome + Timing + Q25Understanding,
+  Full_Full, rpar=c(Price="n"),
   R=1000,correlation = FALSE,
   reflevel="A",halton=NA,method="bfgs",panel=FALSE,seed=123)
 summary(MXL_5)
@@ -1614,6 +1618,35 @@ data.frame(round(QOVME$mfxest[,1],3))
 data.frame(round(coef(Treatment1_SB),3))
 data.frame(round(stdEr(Treatment1_SB),3))
 
+
+####################################################################################
+############ Section 5C: Determinants:
+
+summary(lm(Q6WTP~Order + Q1Gender + Q2Age + Q3Distance
++ Q4Trips + Q5Knowledge + Q6ResearchCertainty +
+  Q13CurrentThreatToSelf + Q14FutureThreatToSelf + Q15ThreatToEnvironment+Q16BP + Q17_Firms + Q17_Cons + Q17_Gov + Full_Final$Q17_LA+ Q18Charity + Q19Knowledge + Q20Consequentiality
++ Q21Experts + Q22Education + Q23Employment + Q24RonaImpact
++  Q24AIncome + Q25Understanding + Timing,Full_Final))
+
+summary(lm(Q7WTP~Order + Q1Gender + Q2Age + Q3Distance
+           + Q4Trips + Q5Knowledge + Q7TreatmentCertainty +
+             Q13CurrentThreatToSelf + Q14FutureThreatToSelf + Q15ThreatToEnvironment+Q16BP + Q17_Firms + Q17_Cons + Q17_Gov + Full_Final$Q17_LA+ Q18Charity + Q19Knowledge + Q20Consequentiality
+           + Q21Experts + Q22Education + Q23Employment + Q24RonaImpact
+           +  Q24AIncome + Q25Understanding + Timing,Full_Final))
+
+summary(lm(PerformanceCoef~Order + Q1Gender + Q2Age + Q3Distance
+           + Q4Trips + Q5Knowledge + Q12CECertainty + Q12Block+
+             Q13CurrentThreatToSelf + Q14FutureThreatToSelf + Q15ThreatToEnvironment+Q16BP + Q17_Firms + Q17_Cons + Q17_Gov + Full_Final$Q17_LA+ Q18Charity + Q19Knowledge + Q20Consequentiality
+           + Q21Experts + Q22Education + Q23Employment + Q24RonaImpact
+           +  Q24AIncome + Q25Understanding + Timing+ Price + Performance +Emission
+           ,Full_Final))
+
+summary(lm(EmissionCoef~Order + Q1Gender + Q2Age + Q3Distance
+           + Q4Trips + Q5Knowledge + Q12CECertainty + Q12Block+
+             Q13CurrentThreatToSelf + Q14FutureThreatToSelf + Q15ThreatToEnvironment+Q16BP + Q17_Firms + Q17_Cons + Q17_Gov + Full_Final$Q17_LA+ Q18Charity + Q19Knowledge + Q20Consequentiality
+           + Q21Experts + Q22Education + Q23Employment + Q24RonaImpact
+           +  Q24AIncome + Q25Understanding + Timing+ Price + Performance +Emission
+           ,Full_Final))
 
 ####################################################################################
 ############ Section 3: Descriptive Statistics and calculations
@@ -4784,6 +4817,8 @@ apollo_beta = c(b_bid     = 0,
                 gamma_Cons =0,
                 gamma_BP =0,
                 gamma_Charity =0,
+                gamma_Certainty =0,
+                gamma_Understanding=0,
                 zeta_Q13   = 1, 
                 zeta_Q14   = 1, 
                 zeta_Q15   = 1, 
@@ -4808,7 +4843,7 @@ apollo_fixed = c()
 ### Set parameters for generating draws
 apollo_draws = list(
   interDrawsType="halton", 
-  interNDraws=100,          
+  interNDraws=1000,          
   interUnifDraws=c(),      
   interNormDraws=c("eta"), 
   intraDrawsType='',
@@ -4821,7 +4856,7 @@ apollo_draws = list(
 apollo_randCoeff=function(apollo_beta, apollo_inputs){
   randcoeff = list()
   
-  randcoeff[["LV"]] = gamma_Education*Education + gamma_Age*Age +gamma_Gender*Q1Gender + gamma_Distance*Distance + gamma_Income*Income + gamma_Employment*Employment + gamma_Experts*Experts + gamma_Cons*Consequentiality + gamma_BP*BP + gamma_Charity*Charity + eta
+  randcoeff[["LV"]] = gamma_Education*Education + gamma_Age*Age +gamma_Gender*Q1Gender + gamma_Distance*Distance + gamma_Income*Income + gamma_Employment*Employment + gamma_Experts*Experts + gamma_Cons*Consequentiality + gamma_BP*BP + gamma_Charity*Charity + gamma_Certainty*Q12CECertainty + gamma_Understanding*Survey + eta
   
   
   return(randcoeff)
@@ -4905,7 +4940,7 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
 CVmodel = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
 
 apollo_modelOutput(CVmodel,modelOutput_settings = list(printPVal=TRUE))
-
+CVModel <- CVmodel
 ## Model prediction accuracy
 ICLV_CVQ6_Predictions <- data.frame(CVModel$avgCP) ## Getting probabilities of choosing each option from the model
 ICLV_CVQ6_Predictions[ICLV_CVQ6_Predictions$CVModel.avgCP < 0.5,] <- 0
@@ -4915,9 +4950,9 @@ ICLV_CVQ6_Predictions$Match <- ICLV_CVQ6_Predictions$Actual==ICLV_CVQ6_Predictio
 ICLV_CVQ6_Predictions$Match[ICLV_CVQ6_Predictions$Match==TRUE] <- 1
 ICLV_CVQ6_Predictions$Match[ICLV_CVQ6_Predictions$Match==FALSE] <- 0
 round(100/length(ICLV_CVQ6_Predictions$Match)*length(ICLV_CVQ6_Predictions$Match[ICLV_CVQ6_Predictions$Match==0]),3)
-# 44.524
+# 56.567
 round(100/length(ICLV_CVQ6_Predictions$Match)*length(ICLV_CVQ6_Predictions$Match[ICLV_CVQ6_Predictions$Match==1]),3)
-# 55.746
+# 43.433
 
 ## WTP:
 apollo_deltaMethod(CVModel, list(operation="ratio", parName1="b_Performance", parName2="b_Price"))
