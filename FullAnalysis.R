@@ -525,8 +525,7 @@ MNL_4_WTP <- c(-1*coef(MNL_4)["Emission"]/coef(MNL_4)["Price"],-1*coef(MNL_4)["P
 
 
 ## Model 4: Now MIXED LOGIT - Attributes Only
-MXL_1 <- mlogit(
-  Choice ~ Price + Performance + Emission ,
+MXL_1 <- mlogit(Choice ~ Price + Performance + Emission ,
   Full_Long, rpar=c(Price="n"),
   R=1000,correlation = FALSE,
   reflevel="A",halton=NA,method="bfgs",panel=TRUE,seed=13)
@@ -825,7 +824,7 @@ AIC(MXLFullTruncated)
 
 ## Bootstrapped clustered individual standard errors: 
 library(clusterSEs)
-CBSM <- cluster.bs.mlogit(MXL_5, Full_Cons, ~ ID, boot.reps=100,seed = 123)
+CBSM <- cluster.bs.mlogit(MXL_4, Full_Long, ~ ID, boot.reps=100,seed = 123)
 
 WTPbs <- data.frame("Emission" = c(CBSM$ci[4,1]/CBSM$ci[2,1],CBSM$ci[4,2]/CBSM$ci[2,2]),
                     "Performance"=c(CBSM$ci[3,1]/CBSM$ci[2,1],CBSM$ci[3,2]/CBSM$ci[2,2]))
@@ -1526,8 +1525,47 @@ summary(FullSurvey2$Precaution)
 
 
 
+R1O1 <- sbchoice(Q6ResearchResponse ~ 1 | Q6Bid, data = Full_Order1,dist="logistic")
+summary(R1O1) ## Reports the SBDC analysis for Q6 with mean, median and coefficients.
+R1O1WTP <- krCI(R1O1)
+
+R1O2 <- sbchoice(Q6ResearchResponse ~ 1 | Q6Bid, data = Full_Order2,dist="logistic")
+summary(R1O2) ## Reports the SBDC analysis for Q6 with mean, median and coefficients.
+R1O2WTP <- krCI(R1O2)
+
+R1O3 <- sbchoice(Q6ResearchResponse ~ 1 | Q6Bid, data = FullSurvey2,dist="logistic")
+summary(R1O2) ## Reports the SBDC analysis for Q6 with mean, median and coefficients.
+R1O3WTP <- krCI(R1O3)
 
 
+T1O1 <- sbchoice(Q7TreatmentResponse ~ 1 | Q7Bid, data = Full_Order1,dist="logistic")
+summary(T1O1) ## Reports the SBDC analysis for Q6 with mean, median and coefficients.
+T1O1WTP <- krCI(T1O1)
+
+T1O2 <- sbchoice(Q7TreatmentResponse ~ 1 | Q7Bid, data = Full_Order2,dist="logistic")
+summary(T1O2) ## Reports the SBDC analysis for Q6 with mean, median and coefficients.
+T1O2WTP <- krCI(T1O2)
+
+T1O3 <- sbchoice(Q7TreatmentResponse ~ 1 | Q7Bid, data = FullSurvey2,dist="logistic")
+summary(T1O2) ## Reports the SBDC analysis for Q6 with mean, median and coefficients.
+T1O3WTP <- krCI(T1O3)
+
+a <- mean(Full_Final$Precaution)
+s <- sd(Full_Final$Precaution)
+n <- 670
+error <- qnorm(0.975)*s/sqrt(n)
+left <- a-error
+right <- a+error
+
+PrecautionaryPremium <- round(rbind("Q6Order1"=(R1O1WTP$out[4,]),
+      "Q6Order2"=(R1O2WTP$out[4,]),
+      "Q6FullSample"=(R1O3WTP$out[4,]),
+      "Q7Order1"=(T1O1WTP$out[4,]),
+      "Q7Order2"=(T1O2WTP$out[4,]),
+      "Q7FullSample"=(T1O3WTP$out[4,]),
+      "PrecautionaryPremium"=data.frame(cbind("Mean"=mean(Full_Final$Precaution), "LB"=left,  "UB"=right))),2)
+PrecautionaryPremium
+stargazer(PrecautionaryPremium, title = "PrecautionaryPremium", align = TRUE) ## Export results to LaTeX code
 
 
 Treatment_SBWTP <- sbchoice(Q7TreatmentResponse ~ Order +  Q1Gender + Q2Age + Q3Distance
@@ -2221,6 +2259,9 @@ Precaution <- ggplot(Full_Final) +
 Precaution
 
 
+
+
+
 ## Plotting a histogram for the precautionary premia
 PPHist <- ggplot(FullSurvey2, aes(x=Precaution)) + 
   geom_histogram(color="black", fill="white",binwidth = 1)+
@@ -2712,6 +2753,21 @@ Q22GraphB <- ggplot(Full_Final, aes(x=as.numeric(Q22Education))) +
   labs(x = "Education",y="WTP")
 
 
+### Relationship between education levels and CE WTP
+Q22GraphBB <- ggplot(Full_Final, aes(x=as.numeric(Q22Education))) + 
+  geom_smooth(aes(y=PerformanceCoef*-1,color="blue"),method="lm",se=F) +
+  geom_smooth(aes(y=EmissionCoef,color="red"),method="lm",se=F) +
+  ggtitle("Relationship between education and CE WTP.") +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("|Performance MWTP|", "Emission MWTP"))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Education",breaks = waiver(),limits = c(0,4),
+                     n.breaks = 5,labels=c("Prefer not to say\n(N = 15)","GCSE\n(N = 147)","A level\n(N = 178)","Bachelor\n(N = 212)","Postgraduate\n(N = 118)"))+
+  scale_y_continuous(name="WTP",breaks = waiver(), n.breaks=21,
+                     limits=c(0,0.2),labels = function(x) paste0("£",x))+
+  labs(x = "Education",y="WTP")
+
 ### Alternative to plotting education/wtp
 Q22GraphC <- ggplot(Full_Final, aes(x=Q22Education)) + 
   geom_smooth(aes(y=as.numeric(Q24AIncome)),method="lm",se=F)+
@@ -2748,6 +2804,63 @@ Q23Graph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) +
                      limits=c(0,75),labels = function(x) paste0("£",x))+
   labs(x = "Income",y="WTP")
 
+
+ggplot(Full_Final, aes(x=as.numeric(Q23Employment))) + 
+  geom_smooth(aes(y=Q6WTP,color="blue"),method="lm",se=F) +
+  geom_smooth(aes(y=Q7WTP,color="red"),method="lm",se=F) +
+  ggtitle("Relationship between employment and WTP.") +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("WTP for research", "WTP for treatment"))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Employment",breaks = waiver(),limits = c(0,6),
+                     n.breaks = 6,labels=c("Prefer not to say\n (N = 18)","NEET\n (N = 76)",
+                                               "Retired\n (N = 52)",
+                                               "Student\n (N = 30)",
+                                               "Part-time\n (N = 100)",
+                                               "Self-employed\n (N = 46)",
+                                               "Full-time\n (N = 348)"))+
+  scale_y_continuous(name="WTP",breaks = waiver(), n.breaks=20,
+                     limits=c(0,75),labels = function(x) paste0("£",x))+
+  labs(x = "Employment",y="WTP")
+
+
+### Relationship between employment levels and CE WTP
+Q23GraphB <- ggplot(Full_Final, aes(x=as.numeric(Q23Employment))) + 
+  geom_smooth(aes(y=PerformanceCoef*-1,color="blue"),method="lm",se=F) +
+  geom_smooth(aes(y=EmissionCoef,color="red"),method="lm",se=F) +
+  ggtitle("Relationship between employment and CE WTP.") +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("|Performance MWTP|", "Emission MWTP"))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Employment",breaks = waiver(),limits = c(0,6),
+                     n.breaks = 6,labels=c("Prefer not to say\n (N = 18)","NEET\n (N = 76)",
+                                           "Retired\n (N = 52)",
+                                           "Student\n (N = 30)",
+                                           "Part-time\n (N = 100)",
+                                           "Self-employed\n (N = 46)",
+                                           "Full-time\n (N = 348)"))+
+  scale_y_continuous(name="WTP",breaks = waiver(), n.breaks=10,
+                     limits=c(0,0.1),labels = function(x) paste0("£",x))+
+  labs(x = "Employment",y="WTP")
+
+
+Q23GraphC <- ggplot(Full_Final, aes(x=Q23Employment)) + 
+  geom_smooth(aes(y=as.numeric(Q24AIncome)),method="lm",se=F)+
+  ggtitle("Relationship between employment and income") +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Employment",breaks = waiver(),limits = c(0,6),
+                     n.breaks = 6,labels=c("Prefer not to say\n (N = 18)","NEET\n (N = 76)",
+                                           "Retired\n (N = 52)",
+                                           "Student\n (N = 30)",
+                                           "Part-time\n (N = 100)",
+                                           "Self-employed\n (N = 46)",
+                                           "Full-time\n (N = 348)"))+
+  scale_y_continuous(name="Income",breaks = waiver(), n.breaks=5,
+                     limits=c(0,5000),labels = function(x) paste0("£",x))+
+  labs(x = "Employment",y="Income")
 
 ###### Went a bit crazy here plotting points for Q16:
 
@@ -3392,7 +3505,6 @@ round((WTP_Emissions_High - WTP_Emissions_Low)/((WTP_Emissions_High + WTP_Emissi
 
 ## Scope for Performance:
 round(((WTP_Performance_High - WTP_Performance_Low)/((WTP_Performance_High + WTP_Performance_Low)/2)) / ((0.50-0.05)/((0.50+0.05)/2)),2)
-
 
 forecast <- apollo_prediction(Piecewise_model,apollo_probabilities, apollo_inputs)
 
