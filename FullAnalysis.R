@@ -1,21 +1,16 @@
 #Peter King
-####################################################################################
-############### Introduction: Full survey data analysis script  ##########################
-####################################################################################
+#### Introduction: Full survey data analysis script  ###############
 
 
-####################################################################################
-############### 22/07 To Do:
-############### - Estimate APOLLO MXL PMC, MLHS, Sobol
-############### - Estimate CE MFX
-############### - Income elasticity
+#### 31/07 To Do: ####
+#### - Estimate APOLLO MXL PMC, MLHS, Sobol
+#### - Estimate CE MFX
+#### - Income elasticity
 
 
-
-####################################################################################
-############### Section 0: Package installation
-############### Lines: 15:28
-############### Notes: May have to reinstall rTools package.
+#### Section 0: Package installation ####
+#### Lines: 15:28
+#### Notes: May have to reinstall rTools package.
 
 
 pkgbuild::has_build_tools()
@@ -35,17 +30,12 @@ library(dplyr)
 library(ggplot2)
 options(scipen=50)
 setwd("H:/PhDPilotSurvey") ## Sets working directory. This is where my Github repo is cloned to.
+Full_Final <- data.frame(read.csv("FinalData.csv")) 
 
 
-####################################################################################
-############ First-time: Run in full
-############ Any other time use this: Full_Final <- data.frame(read.csv("FinalData.csv")) 
-
-
-####################################################################################
-############### Section 1: Data importing and manipulating
-############### Lines: 38:384
-############### To skip to estimation: import FinalData
+#### Section 1: Data importing and manipulating ####
+#### Lines: 38:384
+#### To skip to estimation: import FinalData
 
 
 FullSurvey <- data.frame(read.csv("FullSurvey.csv")) ## Imports from the excel file straight from the survey companies website.
@@ -392,10 +382,8 @@ Full_Long <- mlogit.data(Full, shape = "wide", choice = "Choice",
                           varying = 16:21, sep = "_", id.var = "ID")
 
 
-####################################################################################
-############ Section 2: Sample truncation
-############ Lines: 390:422
-############### Notes: Protest IDs determined from eyeballing Excel responses.
+#### Section 2: Sample truncation ####
+#### Notes: Protest IDs determined from eyeballing Excel responses.
 
 
 # Reporting a high understanding of the survey
@@ -432,17 +420,10 @@ AllCriteria <- AllCriteria[ !(AllCriteria$IDs %in% c(24,33,44,61,121,127,182,200
 Full_Full <- Full_Final[ (Full_Final$ID) %in% c(AllCriteria),]
 
 
-####################################################################################
-############ Section 4: Choice Experiment
-############ Lines: 745:1169
+#### Section 3: Choice Experiment ####
 ############ Notes: Long and estimates a lot of models, initially in MLOGIT but later in GMNL.
 
 
-####################################################################################
-############ Section 4: Setup
-
-# Full <- cbind(Full,Classes)
-## Have to do the manipulation section again to ignore the changes made in the graphics section
 library(mlogit) #Already have package installed
 Full_Long <- mlogit.data(Full, shape = "wide", choice = "Choice",
                           varying = 16:21, sep = "_", id.var = "ID")
@@ -457,32 +438,12 @@ Full_Long$Emission[Full_Long$Emission == 0.9] <- 90
 Full_Long$Emission[Full_Long$Emission == 0.4] <- 40 
 
 
-## Effects coding attribute levels:
-# Full_Long$Price.Level = factor(Full_Long$Price, labels=c("Normal", "Some", "More", "Most"))
-# contrasts(Full_Long$Price.Level) = contr.sum(length(unique(Full_Long$Price)))
-# Full_Long$Emission.Level = factor(Full_Long$Emission, labels=c("No", "Low", "Medium", "High"))
-# contrasts(Full_Long$Emission.Level) = contr.sum(length(unique(Full_Long$Emission)))
-# Full_Long$Performance.Level = factor(Full_Long$Performance, labels=c("0", "1", "2", "3"))
-# contrasts(Full_Long$Performance.Level) = contr.sum(length(unique(Full_Long$Performance)))
-## Alternative approach
-# Performance.f <- factor(Full$Performance_B)
-# dummies <- data.frame(model.matrix(~Performance.f))
-# dummies <- dummies[ -c(1)]
-# colnames(dummies) <- c("PerformanceMedium","PerformanceHigh")
-# Full <- cbind(Full,dummies)
-# names(Full_Long)[46] <- "PerformanceLow"
-# names(Full_Long)[47] <- "PerformanceMedium"
-# names(Full_Long)[48] <- "PerformanceHigh"
-
 ## Sample truncation: 
 Full_Dominated <- Full_Long[Full_Long$Q8DominatedTest == 0,]
 # Full_Understanding <- Full_Dominated[Full_Dominated$Q25Understanding >= 5]
 Full_Certain <- Full_Dominated[Full_Dominated$Q12CECertainty >= 2,]
 Full_Cons <- Full_Certain[Full_Certain$Q20Consequentiality >= 1,]
 
-
-####################################################################################
-############ Section 4: Estimation with MLOGIT
 
 ###### Aim is here to estimate a range of possible specifications 
 
@@ -614,8 +575,7 @@ summary(MXL_5)
 MXL_5_WTP <- c(-1*coef(MXL_5)["Emission"]/coef(MXL_5)["Price"],-1*coef(MXL_5)["Performance"]/coef(MXL_5)["Price"])
 
 
-####################################################################################
-############ Section 4: Post-estimation analysis
+#### Section 3B: Post-estimation analysis ####
 ############ Notes: LRtests, AIC, LLik, prediction accuracy, sensitivity analysis
 
 
@@ -626,7 +586,7 @@ lrtest(MXL_4,MXL_5)
 
 
 
-######################## Model goodness-of-fit:
+############# Model goodness-of-fit:
 
 
 
@@ -654,7 +614,7 @@ Models_Evaluation <- cbind(AllWTPs,Models_AIC,Models_LogLik)
 xtable::xtable(Models_Evaluation,digits=3)
 
 
-######################## Model prediction accuracy:
+############# Model prediction accuracy:
 
 
 ## MN_1 prediction accuracy
@@ -771,11 +731,11 @@ Models_Predictions <- rbind("Model 1: MNL - Attributes only" = c(MNL_1_Accuracy)
                             "Model 8: MXL - SDs, WTP-space, truncated sample"=c(MXL_5_Accuracy))
 
 
-######################## Model WTP:
+############# Model WTP:
 
 
 
-######################## Model-specific WTP:
+############# Model-specific WTP:
 
 AllWTPs <- round(t(data.frame("Model 1: MNL - Attributes only" = c(MNL_1_WTP),
                               "Model 2: MNL - Quadratic attributes:"=c(MNL_2_WTP),
@@ -794,7 +754,7 @@ rownames(AllWTPs) <- AllWTP
 ## The aim above is to create a data.frame which stores all the MWTP and total WTP by model specification
 
 
-######################## Sample-specific WTP:
+############# Sample-specific WTP:
 
 FullWTPs <- data.frame("Full sample" = 
                      c(-1*coef(MXL_4)["Emission"]/coef(MXL_4)["Price"],
@@ -811,7 +771,7 @@ FullWTPs <- data.frame("Full sample" =
 FullWTPs
 
 
-######################## Plotted WTP:
+############# Plotted WTP:
 
 ## Plot conditional distribution of MWTP. 
 layout(matrix(c(1,1,2,2), 2, 2, byrow = TRUE), widths=c(1,1), heights=c(4,4))
@@ -820,7 +780,7 @@ plot(rpar(MXL_5,"Price"), main="MXL: Truncation")
 AIC(MXLFullTruncated)
 
 
-######################## Bootstrapped WTP:
+############# Bootstrapped WTP:
 
 ## Bootstrapped clustered individual standard errors: 
 library(clusterSEs)
@@ -835,7 +795,7 @@ colnames(WTPbs) <- c("Lower","Mean","Upper")
 round(WTPbs,3)
 
 
-######################## Fitting respondent-specific MWTP:
+############# Fitting respondent-specific MWTP:
 
 
 Fulls <- cbind(Fulls,
@@ -860,13 +820,9 @@ ChoiceData <- data.frame("cs" = slice(.data = Choices,rep(1:n(), each = 2)))
 colnames(ChoiceData) <- c("cs")
 Full_Final <- cbind(Full_Final, "cs"=ChoiceData)
 
-# NewFull <- mlogit.data(Full, shape = "wide", choice = "Choice",
-#                          varying = 16:21, sep = "_", id.var = "ID")
-# Plotted in a latter section of code
 
+#### Section 3C: Sensitivity Analysis ####
 
-####################################################################################
-############ Section 4: Sensitivity Analysis
 
 ############## Testing random distribution: 
 
@@ -986,13 +942,10 @@ MXL_5_Draws5_WTP <- c(-1*coef(MXL_5_Draws5)["Emission"]/coef(MXL_5_Draws5)["Pric
 round(cbind("Draws: 100"=MXL_5_Draws1_WTP,"Draws: 500"=MXL_5_Draws2_WTP,"Draws: 1,000"=MXL_4_WTP,"Draws: 5,000"=MXL_5_Draws3_WTP,"Draws: 10,000"=MXL_5_Draws4_WTP,"Draws: 100,000"=MXL_5_Draws5_WTP),5)
 
 
-####################################################################################
-############ Section 4B: Choice Experiment with GMNL
-############ Lines: 1173:1353
+#### Section 3D: Choice Experiment with GMNL, an alternative to MLOGIT ####
 ############ NOTES: LCM currently not working with latest GMNL version.
 
 
-##############  GMNL is an alternative to MLOGIT
 library(gmnl)
 
 
@@ -1049,8 +1002,8 @@ coef(GMNL_MXL4)["Emission"]/coef(GMNL_MXL4)["Price"]
 plot(GMNL_MXLDefault, par = "Price",type = "density", col = "grey",wrt="Price")
 
 
-####################################################################################
-############ Section 4B: Latent-Class Models:
+
+#### Section 3Da: Latent-Class Models: ####
 
 
 install.packages("versions")
@@ -1190,16 +1143,11 @@ wtp_bar
 wtp_bar*100
 
 
-####################################################################################
-############ Section 5: Contingent Valuation
-############ Lines: 1367:1749
+#### Section 4: Contingent Valuation ####
 ############ NOTES: Split into estimation (1367:1705) and Marginal Effects (1705:1745) sections
 
 
-####################################################################################
-############ Section 5: Setup of packages and data
-
-
+#### Section 4A: Setup packages, data manipulation and graphing ####
 ## Have to do some R magic here to install a package not on CRAN
 if (!requireNamespace("BiocManager", quietly = TRUE))
   install.packages("BiocManager")
@@ -1245,10 +1193,6 @@ colnames(CVM) <- c("Reject","Accept","Percentage","Order","Question")
 CVM <- data.frame(CVM)
 
 
-####################################################################################
-############ Section 5: Graphing
-
-
 ## Plotting order effects on bid acceptance by question. 
 ggplot(aes(x=Order,y=Percentage),data=CVM)+ 
   geom_point(shape = 1) +
@@ -1267,8 +1211,7 @@ Ordering <- data.frame(rbind("Normal order"=data.frame("Accepting higher bid"=c(
                                                    "Rejecting higher bid" = c(length(unique(Full_Long$ID[ (Full_Long$Q7Response2 == 1) & (Full_Long$Q7Bid > Full_Long$Q7Bid2) & (Full_Long$Order == 1) ]))))))
 
 
-####################################################################################
-############ Section 5: WTP Distributions with KMT survival function
+#### Section 4B: CV WTP Distributions with KMT survival function ####
 
 
 ## This section deals with Q6 and Q7 respectively but uses a non-parametric Kaplan-Meier-Turnbull survival function:
@@ -1293,12 +1236,12 @@ plot(ResearchKMT, main="Q6 Kaplan-Meier-Turnbull survival function.")
 plot(TreatmentKMT, main="Q7 Kaplan-Meier-Turnbull survival function.")
 
 
-####################################################################################
-############ Section 5: Estimation:
+#### Section 4C: CV Estimation: ####
 ############ NOTES: Q6 then Q7 and exploring ordering and consequentiality
 
 
-#################### Q6 WTP elicitation:
+## Q6 WTP:
+
 
 ## The Q6 model with constant and bid only:
 Research_BidOnly <- sbchoice(Q6ResearchResponse ~ 1 | Q6Bid, data = Full_Long,dist="logistic")
@@ -1355,7 +1298,7 @@ krCI(Research_Consequential)
 krCI(Research_Inconsequential)
 
 
-#################### Q7 WTP elicitation:
+## Q7 WTP:
 
 
 Treatment_BidOnly <- sbchoice(Q7TreatmentResponse ~ 1 | Q7Bid, data = Full_Long,dist="logistic")
@@ -1374,7 +1317,7 @@ krCI(Treatment_DB)
 bootCI(Treatment_DB)
 
 
-## Q7 on truncated sample:
+## Q7 on truncated sample: 
 Treatment_Truncated <- dbchoice(Q7TreatmentResponse + Q7Response2 ~ Order + Q1Gender + Q2Age + Q3Distance
                          + Q4Trips + Q16BP + Q18Charity
                          + Q21Experts + Q22Education + Q23Employment
@@ -1449,11 +1392,10 @@ plot(Treatment_ConsequentialKMT)
 plot(Treatment_InconsequentialKMT)
 
 
-#################### Estimating precautionary premia:
+#### Section 4D: Precautionary premia ####
 
 
 ## In this section I directly compare the Full-bound Full-round Q6 and Q7 WTP valuations
-### My suggestion is that this difference in treatment - research is akin to QOV.
 Research <- sbchoice(Q6ResearchResponse ~ Q1Gender + Q2Age + Q3Distance
                      + Q4Trips + Q16BP + Q18Charity
                      + Q21Experts + Q22Education + Q23Employment
@@ -1476,7 +1418,7 @@ Full_Order2 <- cbind(Full_Order2,
 colnames(Full_Order2)[56] <- "Q7WTP"
 
 
-#################### Fitting respondent precautionary-premia:
+######### Fitting respondent precautionary-premia:
 ### This differs from above which elicits sample QOV by taking best-case sample WTP
 
 
@@ -1520,9 +1462,8 @@ Full_Final <- (cbind(Full_Final,slice(.data = Responsibility,rep(1:n(), each = 2
 write.csv(Full_Final,file = "FinalData.csv")
 # FullSurvey2 <- FullSurvey2[ (FullSurvey2$Q1Gender == 0) | (FullSurvey2$Q1Gender == 1),]
 
-## Individual QOV within the sample:
-summary(FullSurvey2$Precaution)
 
+summary(FullSurvey2$Precaution) ## Individual QOV within the sample:
 
 
 R1O1 <- sbchoice(Q6ResearchResponse ~ 1 | Q6Bid, data = Full_Order1,dist="logistic")
@@ -1550,13 +1491,17 @@ T1O3 <- sbchoice(Q7TreatmentResponse ~ 1 | Q7Bid, data = FullSurvey2,dist="logis
 summary(T1O2) ## Reports the SBDC analysis for Q6 with mean, median and coefficients.
 T1O3WTP <- krCI(T1O3)
 
+
+## Calculating 95% confidence intervals
 a <- mean(Full_Final$Precaution)
 s <- sd(Full_Final$Precaution)
 n <- 670
 error <- qnorm(0.975)*s/sqrt(n)
-left <- a-error
+left <- a-error 
 right <- a+error
 
+
+## Making all possible WTP calculations into a dataframe
 PrecautionaryPremium <- round(rbind("Q6Order1"=(R1O1WTP$out[4,]),
       "Q6Order2"=(R1O2WTP$out[4,]),
       "Q6FullSample"=(R1O3WTP$out[4,]),
@@ -1564,10 +1509,14 @@ PrecautionaryPremium <- round(rbind("Q6Order1"=(R1O1WTP$out[4,]),
       "Q7Order2"=(T1O2WTP$out[4,]),
       "Q7FullSample"=(T1O3WTP$out[4,]),
       "PrecautionaryPremium"=data.frame(cbind("Mean"=mean(Full_Final$Precaution), "LB"=left,  "UB"=right))),2)
+PrecautionaryPremium <- cbind(PrecautionaryPremium$Mean,"%Income"=round(data.frame("%Income"=100/(mean(Full_Final$Q24AIncome*12))*PrecautionaryPremium[,1]),2),PrecautionaryPremium$LB,PrecautionaryPremium$UB)
+colnames(PrecautionaryPremium) <- c("Mean","Percent of annual income","Lower bound", "Upper bound")
+rownames(PrecautionaryPremium) <- c("Q6Order1","Q6Order2","Q6FulLSample","Q7Order1","Q7Order2","Q7FullSample","PrecautionaryPremium")
 PrecautionaryPremium
-stargazer(PrecautionaryPremium, title = "PrecautionaryPremium", align = TRUE) ## Export results to LaTeX code
+Full_Final$PrecautionProportion <- 100/(Full_Final$Q24AIncome*12)*Full_Final$Precaution
 
 
+## Fitting Q7 WTP using the individual level SB format
 Treatment_SBWTP <- sbchoice(Q7TreatmentResponse ~ Order +  Q1Gender + Q2Age + Q3Distance
                             + Q4Trips + Q16BP + Q18Charity
                             + Q21Experts + Q22Education + Q23Employment
@@ -1579,9 +1528,7 @@ FullSurvey2 <- cbind(FullSurvey2,
 colnames(FullSurvey2)[61] <- "Q7WTPSB"
 
 
-
-
-#################### Replicating Cameron (2005):
+######### Replicating Cameron (2005):
 
 
 ## Here I make dataset which has the same variables as they mention in text: 
@@ -1606,10 +1553,8 @@ summary(CameronME$fit)
 #             function(i) c(krCI(Cameron,individual = data.frame(ET=FL$ET[i]))$out[4,1])))
 
 
-####################################################################################
-############ Section 5B: Marginal Effects
+#### Section 4F: CV Marginal Effects ####
 ############ Lines: 1705:1749
-
 
 
 ## Install required packages to estimate Probit and reqport the marginal effects 
@@ -1657,8 +1602,8 @@ data.frame(round(coef(Treatment1_SB),3))
 data.frame(round(stdEr(Treatment1_SB),3))
 
 
-####################################################################################
-############ Section 5C: Determinants:
+#### Section 4G: WTP Determinants ####
+
 
 summary(lm(Q6WTP~Order + Q1Gender + Q2Age + Q3Distance
 + Q4Trips + Q5Knowledge + Q6ResearchCertainty +
@@ -1686,9 +1631,19 @@ summary(lm(EmissionCoef~Order + Q1Gender + Q2Age + Q3Distance
            +  Q24AIncome + Q25Understanding + Timing+ Price + Performance +Emission
            ,Full_Final))
 
-####################################################################################
-############ Section 3: Descriptive Statistics and calculations
-############ Lines: 430:734
+PrecautionModel <- (lm(Precaution~Order + Q1Gender + Q2Age + Q3Distance
+           + Q4Trips + Q519 + Q6ResearchCertainty +Q7TreatmentCertainty+
+             Q13CurrentThreatToSelf + Q14FutureThreatToSelf + Q15ThreatToEnvironment+
+             Q16BP + Q17_Firms + Q17_Cons + Q17_Gov + Full_Final$Q17_LA+ Q18Charity +
+             Q20Consequentiality+
+            Q21Experts + Q22Education + Q23Employment + Q24RonaImpact+
+           Q24AIncome + Q25Understanding + Timing
+           ,Full_Final))
+round(summary(PrecautionModel)$coefficients,3)
+summary(PrecautionModel)
+
+
+#### Section 5: Descriptive Statistics and calculations ####
 ############ Notes: Very long and verbose. Skip if uninterested.
 
 
@@ -1847,6 +1802,26 @@ Full_Final$Q17_Cons[Full_Final$Q17_Cons == 2] <- 1
 Full_Final$Q17_Other[ (Full_Final$Q17_Cons == 0) & (Full_Final$Q17_Gov == 0) & (Full_Final$Q17_LA == 0) & (Full_Final$Q17_Firms == 0) ] <- 2
 
 
+
+ggplot(Full_Final, aes(x=as.numeric(Q13CurrentThreatToSelf))) + 
+  facet_grid( ~ Order, labeller = as_labeller(c(
+    `0` = paste("Order 1 (N =",nrow(Full_Final[Full_Final$Order==0,])/8,")"),
+    `1` = paste("Order 2 (N =",nrow(Full_Final[Full_Final$Order==1,])/8,")"))))+
+  geom_smooth(aes(y=Q6WTP,color="blue"),method="lm",se=F) +
+  geom_smooth(aes(y=Q7WTP,color="red"),method="lm",se=F) +
+  ggtitle("Relationship between WTP and precaution given ordering") +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("WTP for research", "WTP for treatment"))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Likert scale levels",breaks = 1:5, 
+                     labels=c(1,2,3,4,5))+
+  scale_y_continuous(name="WTP",
+                     breaks=waiver(),limits = c(10,60),
+                     n.breaks = 15, labels = function(x) paste0("£",x))+
+  labs(x = "Environmental Attitudes",y="WTP")
+
+
 ## Correlation heatmap:
 Full_Final <- data.frame(read.csv("FinalData.csv")) ## Imports from the excel file straight from the survey companies website.
 Full_Final <- Full_Final[ -c(2,grep("av_A", colnames(Full_Final)),grep("av_B", colnames(Full_Final)))] ## Drop columns of no importance to the quantitative analysis, namely text responses.
@@ -1898,8 +1873,7 @@ ggheatmap <- ggplot(melted_cormat, aes(Variable2, Variable1, fill = Correlation)
   coord_fixed()
 
 
-####################################################################################
-############ Section 3B: Test of means for the truncation strategies
+#### Section 5B: Test of means for the truncation strategies ####
 
 
 ## Rule 1) Timing testing: Shows there is a significant difference
@@ -1944,9 +1918,8 @@ wilcox.test(x=Full_Final$PerformanceCoef[Full_Final$Q12CECertainty==0],y=Full_Fi
 wilcox.test(x=Full_Final$EmissionCoef[Full_Final$Q12CECertainty==1],y=Full_Final$EmissionCoef[Full_Final$Q12CECertainty==2]) ## Outcome: NULL 
 
 
-####################################################################################
-############ Section 3C: Descriptive Graphics
-############ Notes: Long and also tackled in Section 7 after the CVM
+#### Section 5C: Descriptive Graphics ####
+############ Notes: Long 
 
 
 # PART ONE: Acceptance Rates
@@ -2117,22 +2090,15 @@ PerformanceCurve <- ggplot(Fulls, aes(Choice,Performance_B)) +
 grid.arrange(PriceCurve, EmissionsCurve, PerformanceCurve)
 
 
-####################################################################################
-############ Section 6: Plotting covariates
-############ Lines: 1757:2626
+#### Section 5D: Plotting covariates ####
 ############ NOTES: Very long and possibly repetitive. Will update with Figure numbers.
-
-
-##########################################################  
-## Package installs:
 
 
 library(ggplot2)
 library(gridExtra)
 
 
-##########################################################  
-## CE Section:
+#### Section 5Da: CE Section: ####
 
 
 ## Plotting a histogram of individual attribute-specific WTP 
@@ -2213,8 +2179,18 @@ ggplot(data=Fulls, aes(x=as.numeric(Q24AIncome))) +
   labs(x = "Income",y="MWTP")
 
 
-##########################################################  
-## CV Section:
+#### Section 5Db: CV Section: ####
+
+
+Full_Final <- cbind(Full_Final, 
+      data.frame("e0.5"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^0.5),
+      data.frame("e0.75"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^0.75),
+      data.frame("e1"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^1),
+      data.frame("e1.25"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^1.25),
+      data.frame("e1.5"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^1.5),
+      data.frame("Q6Pro"=(100/(Full_Final$Q24AIncome*12)*Full_Final$Q6WTP)),
+      data.frame("Q7Pro"=(100/(Full_Final$Q24AIncome*12)*Full_Final$Q7WTP)))
+
 
 ## Here I make a dataframe which has Q6, Q7 WTP and the precautionary premium and is truncated according to all criteria 
 FS <- Full_Final[ (Full_Final$ID) %in% c(Full_Full$ID),  ]
@@ -3153,16 +3129,11 @@ grid.arrange(PerformanceWTP, EmissionWTP )
 grid.arrange(PerformanceDistribution, EmissionDistribution )
 
 
-##########################################################  
-## The following code is experimental:
-##########################################################  
+#### Section 6: Experimental Code: ####
 
 
+#### Section 6A: MNL Linear ####
 
-
-#############################################################################
-## APOLLO: MNL
-#############################################################################
 
 rm(list = ls())
 install.packages("Rcpp")
@@ -3316,9 +3287,7 @@ apollo_deltaMethod(model, list(operation="ratio", parName1="b_Performance", parN
 apollo_deltaMethod(model, list(operation="ratio", parName1="b_Emission", parName2="b_Price"))
 
 
-# ################################################################# #
-#### Apollo MNL: Quadratic                      
-# ################################################################# #
+#### Section 6A: MNL Quadratic ####
 
 apollo_control = list(
   modelName  ="Replicating Full_MNL",
@@ -3399,9 +3368,7 @@ apollo_deltaMethod(Quadratic, deltaMethod_settings=list(operation="ratio", parNa
 apollo_deltaMethod(Quadratic, deltaMethod_settings=list(operation="ratio", parName1="b_Emission", parName2="b_Price"))
 
 
-# ################################################################# #
-#### Apollo MNL: Piecewise                      
-# ################################################################# #
+#### Section 6A: MNL Piecewise ####
 
 
 ### Load Apollo library
@@ -3517,9 +3484,9 @@ fitsTest_settings$subsamples[["2"]] = database$Consequentiality==2
 
 apollo_fitsTest(Piecewise_model, apollo_probabilities,apollo_inputs,fitsTest_settings)
 
-# ################################################################# #
-#### Apollo MXL  [Halton draws - currently does not replicate MLOGIT]                       
-# ################################################################# #
+
+#### Section 6B: MXL  [Halton draws - currently does not replicate MLOGIT] ####
+
 
 rm(list = ls())
 install.packages("Rcpp")
@@ -3633,9 +3600,8 @@ deltaMethod_settings=list(operation="ratio", parName1="b_Emission", parName2="mu
 apollo_deltaMethod(MXLmodel, deltaMethod_settings)
 
 
-# ################################################################# #
-#### Apollo MXL [Pseudo-Monte-Carlo Draws for the appendix]          
-# ################################################################# #
+#### Section 6B: MXL [Pseudo-Monte-Carlo Draws for the appendix] ####
+
 
 rm(list = ls())
 install.packages("Rcpp")
@@ -3746,10 +3712,8 @@ MXLmodel_PMC = apollo_estimate(apollo_beta, apollo_fixed,
 apollo_modelOutput(MXLmodel_PMC,modelOutput_settings = list(printPVal=TRUE))
 
 
+#### Section 6B: MXL [MLHS Draws for the appendix] ####
 
-# ################################################################# #
-#### Apollo MXL [MLHS Draws for the appendix]          
-# ################################################################# #
 
 rm(list = ls())
 install.packages("Rcpp")
@@ -3860,9 +3824,8 @@ MXLmodel_MLHS = apollo_estimate(apollo_beta, apollo_fixed,
 apollo_modelOutput(MXLmodel_MLHS,modelOutput_settings = list(printPVal=TRUE))
 
 
-# ################################################################# #
-#### Apollo MXL [Sobol Draws for the appendix]          
-# ################################################################# #
+#### Section 6B: MXL [Sobol Draws for the appendix] ####
+
 
 rm(list = ls())
 install.packages("Rcpp")
@@ -3973,10 +3936,8 @@ MXLmodel_Sobol = apollo_estimate(apollo_beta, apollo_fixed,
 apollo_modelOutput(MXLmodel_Sobol,modelOutput_settings = list(printPVal=TRUE))
 
 
+#### Section 6B: MXL [Piecewise indirect utility for the appendix] ####
 
-# ################################################################# #
-#### Apollo MXL [Piecewise indirect utility for the appendix]          
-# ################################################################# #
 
 rm(list = ls())
 install.packages("Rcpp")
@@ -4093,10 +4054,7 @@ MXLmodel_Piecewise = apollo_estimate(apollo_beta, apollo_fixed,
 apollo_modelOutput(MXLmodel_Piecewise,modelOutput_settings = list(printPVal=TRUE))
 
 
-
-#############################################################################
-## APOLLO: LCM 2-class [Note does not currently replicate GMNL]
-#############################################################################
+## Section 6C: LCM 2-class [Note does not currently replicate GMNL] ####
 
 
 apollo_initialise()
@@ -4229,9 +4187,8 @@ round(100/length(LC2_Predictions$Match)*length(LC2_Predictions$Match[LC2_Predict
 round(100/length(LC2_Predictions$Match)*length(LC2_Predictions$Match[LC2_Predictions$Match==1]),3)
 # 55.746
 
-#############################################################################
-## APOLLO: LCM 3-class [Note does not currently replicate GMNL]
-#############################################################################
+
+#### Section 6C: LCM 3-class [Note does not currently replicate GMNL] ####
 
 
 apollo_initialise()
@@ -4373,9 +4330,7 @@ apollo_deltaMethod(LCmodel_3, list(operation="ratio", parName1="beta_Emission_b"
 apollo_deltaMethod(LCmodel_3, list(operation="ratio", parName1="beta_Emission_c", parName2="beta_Price_c"))
 
 
-#############################################################################
-## APOLLO: LCM 4-class [Note does not currently replicate GMNL]
-#############################################################################
+#### Section 6C: LCM 4-class [Note does not currently replicate GMNL] ####
 
 
 apollo_initialise()
@@ -4511,10 +4466,9 @@ apollo_deltaMethod(LCmodel, list(operation="ratio", parName1="beta_Emission_c", 
 apollo_deltaMethod(LCmodel, list(operation="ratio", parName1="beta_Emission_d", parName2="beta_Price_d"))
 
 
-#############################################################################
-## LCM with RRM and RUM classes
+#### Section 6Ci: LCM with RRM and RUM classes ####
 ## https://www.advancedrrmmodels.com/latent-class-models
-#############################################################################
+
 
 rm(list = ls())
 install.packages("Rcpp")
@@ -4690,10 +4644,8 @@ hist(Full_Final$RRmodel.avgCP[ (Full_Final$ID) %in% c(AllCriteria) ])
 hist(Full_Final$RRmodel.avgCP)
 
 
-#############################################################################
-## ICLV model: CE version
+#### Section 6D: ICLV model: CE ####
 ## http://www.apollochoicemodelling.com/files/Apollo_example_24.r
-#############################################################################
 
 
 rm(list = ls())
@@ -4877,12 +4829,8 @@ apollo_deltaMethod(CEmodel, list(operation="ratio", parName1="b_Performance", pa
 apollo_deltaMethod(CEmodel, list(operation="ratio", parName1="b_Emission", parName2="b_Price"))
 
 
-#############################################################################
-## ICLV model: Q6 CVM edition based on Abate et al (2020)
+#### Section 6D: ICLV Q6 ####
 ## http://www.apollochoicemodelling.com/files/Apollo_example_24.r
-#############################################################################
-
-
 
 
 rm(list = ls())
@@ -4919,18 +4867,15 @@ apollo_control = list(
 apollo_beta = c(b_bid     = 0, 
                 b_bid_Alt = 0,
                 lambda            = 1, 
-                gamma_Education   = 0, 
                 gamma_Age       = 0, 
                 gamma_Gender    = 0,
                 gamma_Distance  = 0, 
                 gamma_Income =0,
-                gamma_Employment =0,
                 gamma_Experts =0,
                 gamma_Cons =0,
                 gamma_BP =0,
                 gamma_Charity =0,
                 gamma_Certainty =0,
-                gamma_Understanding=0,
                 zeta_Q13   = 1, 
                 zeta_Q14   = 1, 
                 zeta_Q15   = 1, 
@@ -4968,7 +4913,7 @@ apollo_draws = list(
 apollo_randCoeff=function(apollo_beta, apollo_inputs){
   randcoeff = list()
   
-  randcoeff[["LV"]] = gamma_Education*Education + gamma_Age*Age +gamma_Gender*Q1Gender + gamma_Distance*Distance + gamma_Income*Income + gamma_Employment*Employment + gamma_Experts*Experts + gamma_Cons*Consequentiality + gamma_BP*BP + gamma_Charity*Charity + gamma_Certainty*Q12CECertainty + gamma_Understanding*Survey + eta
+  randcoeff[["LV"]] = gamma_Age*Age +gamma_Gender*Q1Gender + gamma_Distance*Distance + gamma_Income*Income + gamma_Experts*Experts + gamma_Cons*Consequentiality + gamma_BP*BP + gamma_Charity*Charity + gamma_Certainty*Q6ResearchCertainty + eta
   
   
   return(randcoeff)
@@ -5071,13 +5016,8 @@ apollo_deltaMethod(CVModel, list(operation="ratio", parName1="b_Performance", pa
 apollo_deltaMethod(CVModel, list(operation="ratio", parName1="b_Emission", parName2="b_Price"))
 
 
-
-#############################################################################
-## ICLV model: Q7 CVM edition based on Abate et al (2020)
+#### Section 6D: ICLV Q7 ####
 ## http://www.apollochoicemodelling.com/files/Apollo_example_24.r
-#############################################################################
-
-
 
 
 rm(list = ls())
@@ -5261,6 +5201,4 @@ apollo_deltaMethod(CVModel7, list(operation="ratio", parName1="b_Performance", p
 apollo_deltaMethod(CVModel7, list(operation="ratio", parName1="b_Emission", parName2="b_Price"))
 
 
-###############################################################
-##  END OF SCRIPT
-############################################################### 
+####  END OF SCRIPT ####
