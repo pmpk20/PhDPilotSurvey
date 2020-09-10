@@ -5,7 +5,7 @@
 #### 31/07 To Do: ####
 #### - Estimate APOLLO MXL PMC, MLHS, Sobol
 #### - Estimate CE MFX
-#### - Income elasticity
+#### - Fix CV ICLV
 
 
 #### Section 0: Package installation ####
@@ -2330,8 +2330,8 @@ Q12Graph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) +
     `0` = "Unsure\n (N = 40)",
     `1` = "Quite Sure\n (N = 328)",
     `2` = "Very Sure\n (N = 302)")))+
-  geom_smooth(aes(y=Q6WTP,color="blue"),method="lm",se=F) +
-  geom_smooth(aes(y=Q7WTP,color="red"),method="lm",se=F) +
+  geom_smooth(aes(y=PerformanceCoef,color="blue"),method="lm",se=F) +
+  geom_smooth(aes(y=EmissionCoef,color="red"),method="lm",se=F) +
   ggtitle("Relationship between income and WTP by certainty") +
   scale_color_discrete(name = "Lines", 
                        labels = c("WTP for research", "WTP for treatment"))+
@@ -2342,6 +2342,90 @@ Q12Graph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) +
   scale_y_continuous(name="Precautionary WTP",breaks = waiver(), n.breaks=10,
                      limits=c(20,50),labels = function(x) paste0("£",x))+
   labs(x = "Income",y="Precaution")
+
+Q12GraphB <- ggplot(Full_Final, aes(x=Q12CECertainty)) + 
+  geom_smooth(aes(y=abs(PerformanceCoef),color="blue"),method="lm",se=F) +
+  geom_smooth(aes(y=abs(EmissionCoef),color="red"),method="lm",se=F) +
+    ggtitle("Relationship between CE MWTP and certainty.") +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("|Performance MWTP|","Emission MWTP"))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Self-reported certainty",breaks = waiver(),limits = c(0,2),
+                     n.breaks = 3, labels = c("Unsure","Quite Sure","Very Sure"))+
+  scale_y_continuous(name="MWTP",breaks = waiver(), n.breaks=10,
+                     limits=c(0,0.1),labels = function(x) paste0("£",x))+
+  labs(x = "Income",y="WTP")
+
+CertaintyGraph <- ggplot(Full_Final, aes(x=Q6ResearchCertainty)) + 
+  geom_smooth(aes(y=Q6WTP,color="blue"),method="lm",se=F) +
+  geom_smooth(inherit.aes = FALSE,aes(y=Q7WTP,x=Q7TreatmentCertainty,color="red"),method="lm",se=F) +
+  ggtitle("Relationship between CVM WTP by certainty") +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("WTP For Research","WTP For Treatment"))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Self-reported certainty",breaks = waiver(),limits = c(0,2),
+                     n.breaks = 3, labels = c("Unsure","Quite Sure","Very Sure"))+
+  scale_y_continuous(name="WTP",breaks = waiver(), n.breaks=10,
+                     limits=c(0,75),labels = function(x) paste0("£",x))+
+  labs(x = "Income",y="WTP")
+
+AgeGraphCV <- ggplot(Full_Final, aes(x=Q2Age)) + 
+  geom_smooth(aes(y=Q6WTP,color="blue"),method="lm",se=F) +
+  geom_smooth(aes(y=Q7WTP,color="red"),method="lm",se=F) +
+  ggtitle("Relationship between CVM WTP by age") +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("WTP For Research","WTP For Treatment"))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Age",breaks = waiver(),
+                     n.breaks = 10,limits=c(15,80))+
+  scale_y_continuous(name="WTP",breaks = waiver(), n.breaks=10,
+                     limits=c(0,75),labels = function(x) paste0("£",x))+
+  labs(x = "Income",y="WTP")
+
+AgeGraphCE <- ggplot(Full_Final, aes(x=Q2Age)) + 
+  geom_smooth(aes(y=abs(PerformanceCoef),color="blue"),method="lm",se=F) +
+  geom_smooth(aes(y=abs(EmissionCoef),color="red"),method="lm",se=F) +
+  ggtitle("Relationship between CE MWTP and age") +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("|Performance MWTP|","Emission MWTP"))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Age",breaks = waiver(),
+                     n.breaks = 10,limits=c(15,80))+
+  scale_y_continuous(name="MWTP",breaks = waiver(), n.breaks=10,
+                     limits=c(0,0.1),labels = function(x) paste0("£",x))+
+  labs(x = "Income",y="WTP")
+
+GenderGraphCV <- ggplot(Full_Final, aes(x=Q1Gender)) + 
+  geom_smooth(aes(y=Q6WTP,color="blue"),method="lm",se=F) +
+  geom_smooth(aes(y=Q7WTP,color="red"),method="lm",se=F) +
+  ggtitle("Relationship between CVM WTP by gender") +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("WTP For Research","WTP For Treatment"))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Gender",breaks = waiver(),
+                     n.breaks = 2, labels = c("Female","Male"))+
+  scale_y_continuous(name="WTP",breaks = waiver(), n.breaks=10,
+                     limits=c(0,75),labels = function(x) paste0("£",x))+
+  labs(x = "Income",y="WTP")
+
+GenderGraphCE <- ggplot(Full_Final, aes(x=Q1Gender)) + 
+  geom_smooth(aes(y=abs(PerformanceCoef),color="blue"),method="lm",se=F) +
+  geom_smooth(aes(y=abs(EmissionCoef),color="red"),method="lm",se=F) +
+  ggtitle("Relationship between CE MWTP and gender") +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("|Performance MWTP|","Emission MWTP"))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Gender",breaks = waiver(),
+                     n.breaks = 2, labels = c("Female","Male"))+
+  scale_y_continuous(name="MWTP",breaks = waiver(), n.breaks=10,
+                     limits=c(0,0.1),labels = function(x) paste0("£",x))+
+  labs(x = "Income",y="WTP")
 
 
 ## Plotting the effect of distance from the coast on WTP
@@ -2905,7 +2989,7 @@ Q16Graph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) +
   labs(x = "Income",y="WTP")
 
 
-## Plotting Q16 simply versus WTP:
+## Plotting Q16 simply versus CV WTP:
 Q16GraphB <- ggplot(Full_Final, aes(x=Q16BP)) + 
   geom_smooth(aes(y=as.numeric(Q6WTP),color="blue"),method="lm",se=F)+
   geom_smooth(aes(y=as.numeric(Q7WTP),color="red"),method="lm",se=F)+
@@ -2920,6 +3004,20 @@ Q16GraphB <- ggplot(Full_Final, aes(x=Q16BP)) +
                      limits=c(0,75),labels = function(x) paste0("£",x))+
   labs(x = "Income",y="WTP")
 
+## Plotting Q16 simply versus CE WTP:
+Q16GraphC <- ggplot(Full_Final, aes(x=Q16BP)) + 
+  geom_smooth(aes(y=as.numeric(abs(PerformanceCoef)),color="blue"),method="lm",se=F)+
+  geom_smooth(aes(y=as.numeric(EmissionCoef),color="red"),method="lm",se=F)+
+  scale_color_discrete(name = "Lines", 
+                       labels = c("|Performance|", "Emission"))+
+  ggtitle("Relationship between BP viewing and CE WTP") +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Amount of BPII viewed.",breaks = waiver(),limits = c(0,2),
+                     n.breaks = 3, labels = c("None","Some","All"))+
+  scale_y_continuous(name="MWTP",breaks = waiver(), n.breaks=10,
+                     limits=c(0,0.1),labels = function(x) paste0("£",x))+
+  labs(x = "Income",y="WTP")
 
 ## Plotting Q5 knowledge vs concern about microplastics
 KnowledgeGraphA <- ggplot(Full_Final, aes(x=Q5Knowledge)) + 
@@ -2992,6 +3090,7 @@ KnowledgeGraphD <- ggplot(Full_Final, aes(x=Q2Age)) +
   scale_y_continuous(name="Likert scale of knowledge",breaks = waiver(), n.breaks=5,
                      limits=c(1,5))+
   labs(x = "Age",y="Concern")
+
 
 
 ## Reporting distance-decay WTP:
