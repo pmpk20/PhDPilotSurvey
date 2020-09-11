@@ -28,6 +28,7 @@ install.packages("Hmisc") ## For random imputation
 library(Hmisc)
 library(dplyr)
 library(ggplot2)
+library(gridExtra)
 options(scipen=50)
 setwd("H:/PhDPilotSurvey") ## Sets working directory. This is where my Github repo is cloned to.
 Full_Final <- data.frame(read.csv("FinalData.csv")) 
@@ -574,6 +575,8 @@ MXL_5 <- mlogit(
 summary(MXL_5)
 MXL_5_WTP <- c(-1*coef(MXL_5)["Emission"]/coef(MXL_5)["Price"],-1*coef(MXL_5)["Performance"]/coef(MXL_5)["Price"])
 
+# Full_Long$Choice[Full_Long$Q12CECertainty == 0] <- 0
+# Full_Full <- Full_Long[ (Full_Long$ID) %in% c(AllCriteria),]
 
 #### Section 3B: Post-estimation analysis ####
 ############ Notes: LRtests, AIC, LLik, prediction accuracy, sensitivity analysis
@@ -1241,7 +1244,8 @@ plot(TreatmentKMT, main="Q7 Kaplan-Meier-Turnbull survival function.")
 
 
 ## Q6 WTP:
-
+# Full_Long$Q6ResearchResponse[Full_Long$Q6ResearchCertainty==0] <- 0
+## Use the above if testing for certainty-recoding. 
 
 ## The Q6 model with constant and bid only:
 Research_BidOnly <- sbchoice(Q6ResearchResponse ~ 1 | Q6Bid, data = Full_Long,dist="logistic")
@@ -1299,7 +1303,7 @@ krCI(Research_Inconsequential)
 
 
 ## Q7 WTP:
-
+# Full_Long$Q7TreatmentResponse[Full_Long$Q7TreatmentCertainty != 2] <- 0
 
 Treatment_BidOnly <- sbchoice(Q7TreatmentResponse ~ 1 | Q7Bid, data = Full_Long,dist="logistic")
 summary(Treatment_BidOnly) ## Reports the SBDC analysis for Q6 with mean, median and coefficients.
@@ -2371,6 +2375,7 @@ CertaintyGraph <- ggplot(Full_Final, aes(x=Q6ResearchCertainty)) +
                      limits=c(0,75),labels = function(x) paste0("£",x))+
   labs(x = "Income",y="WTP")
 
+
 AgeGraphCV <- ggplot(Full_Final, aes(x=Q2Age)) + 
   geom_smooth(aes(y=Q6WTP,color="blue"),method="lm",se=F) +
   geom_smooth(aes(y=Q7WTP,color="red"),method="lm",se=F) +
@@ -2426,6 +2431,52 @@ GenderGraphCE <- ggplot(Full_Final, aes(x=Q1Gender)) +
   scale_y_continuous(name="MWTP",breaks = waiver(), n.breaks=10,
                      limits=c(0,0.1),labels = function(x) paste0("£",x))+
   labs(x = "Income",y="WTP")
+
+grid.arrange(GenderGraphCE,GenderGraphCV,AgeGraphCE,AgeGraphCV)
+
+
+rbind("Q6"=data.frame(cbind(data.frame(cbind(data.frame("Female"=round(median(Full_Final$Q6WTP[Full_Final$Q1Gender== 0]),3)),
+                                             data.frame("Male"=round(median(Full_Final$Q6WTP[Full_Final$Q1Gender== 1]),3)),
+                                             data.frame("18-25"=round(median(Full_Final$Q6WTP[Full_Final$Q2Age== unique(Full_Final$Q2Age)[1]]),3)),
+                                             data.frame("26-39"=round(median(Full_Final$Q6WTP[Full_Final$Q2Age== unique(Full_Final$Q2Age)[2]]),3)),
+                                             data.frame("40-55"=round(median(Full_Final$Q6WTP[Full_Final$Q2Age== unique(Full_Final$Q2Age)[3]]),3)),
+                                             data.frame("56-70"=round(median(Full_Final$Q6WTP[Full_Final$Q2Age== unique(Full_Final$Q2Age)[4]]),3)),
+                                             data.frame("71+"=round(median(Full_Final$Q6WTP[Full_Final$Q2Age== unique(Full_Final$Q2Age)[5]]),3)))))),
+      "Q7"=data.frame(cbind(data.frame(cbind(data.frame("Female"=round(median(Full_Final$Q7WTP[Full_Final$Q1Gender== 0]),3)),
+                                             data.frame("Male"=round(median(Full_Final$Q7WTP[Full_Final$Q1Gender== 1]),3)),
+                                             data.frame("18-25"=round(median(Full_Final$Q7WTP[Full_Final$Q2Age== unique(Full_Final$Q2Age)[1]]),3)),
+                                             data.frame("26-39"=round(median(Full_Final$Q7WTP[Full_Final$Q2Age== unique(Full_Final$Q2Age)[2]]),3)),
+                                             data.frame("40-55"=round(median(Full_Final$Q7WTP[Full_Final$Q2Age== unique(Full_Final$Q2Age)[3]]),3)),
+                                             data.frame("56-70"=round(median(Full_Final$Q7WTP[Full_Final$Q2Age== unique(Full_Final$Q2Age)[4]]),3)),
+                                             data.frame("71+"=round(median(Full_Final$Q7WTP[Full_Final$Q2Age== unique(Full_Final$Q2Age)[5]]),3)))))),
+      "Performance"=data.frame(cbind(data.frame(cbind(data.frame("Female"=round(median(Full_Final$PerformanceCoef[Full_Final$Q1Gender== 0]),3)),
+                                                      data.frame("Male"=round(median(Full_Final$PerformanceCoef[Full_Final$Q1Gender== 1]),3)),
+                                                      data.frame("18-25"=round(median(Full_Final$PerformanceCoef[Full_Final$Q2Age== unique(Full_Final$Q2Age)[1]]),3)),
+                                                      data.frame("26-39"=round(median(Full_Final$PerformanceCoef[Full_Final$Q2Age== unique(Full_Final$Q2Age)[2]]),3)),
+                                                      data.frame("40-55"=round(median(Full_Final$PerformanceCoef[Full_Final$Q2Age== unique(Full_Final$Q2Age)[3]]),3)),
+                                                      data.frame("56-70"=round(median(Full_Final$PerformanceCoef[Full_Final$Q2Age== unique(Full_Final$Q2Age)[4]]),3)),
+                                                      data.frame("71+"=round(median(Full_Final$PerformanceCoef[Full_Final$Q2Age== unique(Full_Final$Q2Age)[5]]),3)))))),
+  "Emission"=data.frame(cbind(data.frame(cbind(data.frame("Female"=round(median(Full_Final$EmissionCoef[Full_Final$Q1Gender== 0]),3)),
+                                                   data.frame("Male"=round(median(Full_Final$EmissionCoef[Full_Final$Q1Gender== 1]),3)),
+                                                   data.frame("18-25"=round(median(Full_Final$EmissionCoef[Full_Final$Q2Age== unique(Full_Final$Q2Age)[1]]),3)),
+                                                   data.frame("26-39"=round(median(Full_Final$EmissionCoef[Full_Final$Q2Age== unique(Full_Final$Q2Age)[2]]),3)),
+                                                   data.frame("40-55"=round(median(Full_Final$EmissionCoef[Full_Final$Q2Age== unique(Full_Final$Q2Age)[3]]),3)),
+                                                   data.frame("56-70"=round(median(Full_Final$EmissionCoef[Full_Final$Q2Age== unique(Full_Final$Q2Age)[4]]),3)),
+                                                   data.frame("71+"=round(median(Full_Final$EmissionCoef[Full_Final$Q2Age== unique(Full_Final$Q2Age)[5]]),3)))))),
+  "Income"=data.frame(cbind(data.frame(cbind(data.frame("Female"=round(mean(Full_Final$Q24AIncome[Full_Final$Q1Gender== 0]),3)),
+                                                 data.frame("Male"=round(mean(Full_Final$Q24AIncome[Full_Final$Q1Gender== 1]),3)),
+                                                 data.frame("18-25"=round(mean(Full_Final$Q24AIncome[Full_Final$Q2Age== unique(Full_Final$Q2Age)[1]]),3)),
+                                                 data.frame("26-39"=round(mean(Full_Final$Q24AIncome[Full_Final$Q2Age== unique(Full_Final$Q2Age)[2]]),3)),
+                                                 data.frame("40-55"=round(mean(Full_Final$Q24AIncome[Full_Final$Q2Age== unique(Full_Final$Q2Age)[3]]),3)),
+                                                 data.frame("56-70"=round(mean(Full_Final$Q24AIncome[Full_Final$Q2Age== unique(Full_Final$Q2Age)[4]]),3)),
+                                                 data.frame("71+"=round(mean(Full_Final$Q24AIncome[Full_Final$Q2Age== unique(Full_Final$Q2Age)[5]]),3)))))),
+      "Concern"=data.frame(cbind(data.frame(cbind(data.frame("Female"=round(mean(Full_Final$Q13CurrentThreatToSelf[Full_Final$Q1Gender== 0]),3)),
+                                                  data.frame("Male"=round(mean(Full_Final$Q13CurrentThreatToSelf[Full_Final$Q1Gender== 1]),3)),
+                                                  data.frame("18-25"=round(mean(Full_Final$Q13CurrentThreatToSelf[Full_Final$Q2Age== unique(Full_Final$Q2Age)[1]]),3)),
+                                                  data.frame("26-39"=round(mean(Full_Final$Q13CurrentThreatToSelf[Full_Final$Q2Age== unique(Full_Final$Q2Age)[2]]),3)),
+                                                  data.frame("40-55"=round(mean(Full_Final$Q13CurrentThreatToSelf[Full_Final$Q2Age== unique(Full_Final$Q2Age)[3]]),3)),
+                                                  data.frame("56-70"=round(mean(Full_Final$Q13CurrentThreatToSelf[Full_Final$Q2Age== unique(Full_Final$Q2Age)[4]]),3)),
+                                                  data.frame("71+"=round(mean(Full_Final$Q13CurrentThreatToSelf[Full_Final$Q2Age== unique(Full_Final$Q2Age)[5]]),3)))))))
 
 
 ## Plotting the effect of distance from the coast on WTP
