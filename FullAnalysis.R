@@ -2,9 +2,8 @@
 #### Introduction: Full survey data analysis script  ###############
 
 
-#### 14/09 To Do: ####
+#### 15/09 To Do: ####
 #### - Fix CV ICLV
-#### - Spatial WTP map
 
 
 #### Section 0: Package installation ####
@@ -92,12 +91,12 @@ FullSurvey2$Q3Distance[FullSurvey2$Q3Distance == 1] <- 2
 FullSurvey2$Q3Distance[FullSurvey2$Q3Distance == 7] <- 3
 FullSurvey2$Q3Distance[FullSurvey2$Q3Distance == 6] <- 1
 FullSurvey2$Q3Distance <- FullSurvey2$Q3Distance + 1
-FullSurvey2$Q3Distance[FullSurvey2$Q3Distance == 0] <- 1
-FullSurvey2$Q3Distance[FullSurvey2$Q3Distance == 1] <- 6.5
-FullSurvey2$Q3Distance[FullSurvey2$Q3Distance == 2] <- 15.5
-FullSurvey2$Q3Distance[FullSurvey2$Q3Distance == 3] <- 35
-FullSurvey2$Q3Distance[FullSurvey2$Q3Distance == 4] <- 50
-FullSurvey2$Q3Distance[FullSurvey2$Q3Distance == 5] <- NA
+FullSurvey2$Q3Distance[FullSurvey2$Q3Distance == 1] <- 1
+FullSurvey2$Q3Distance[FullSurvey2$Q3Distance == 2] <- 6.5
+FullSurvey2$Q3Distance[FullSurvey2$Q3Distance == 3] <- 15.5
+FullSurvey2$Q3Distance[FullSurvey2$Q3Distance == 4] <- 35
+FullSurvey2$Q3Distance[FullSurvey2$Q3Distance == 5] <- 50
+FullSurvey2$Q3Distance[FullSurvey2$Q3Distance == 6] <- NA
 FullSurvey2$Q3Distance <- with(FullSurvey2, impute(FullSurvey2$Q3Distance, 'random')) ## I replace the missing with a random imputed value
 FullSurvey2$Q3Distance <- as.numeric(FullSurvey2$Q3Distance)
 
@@ -3142,45 +3141,82 @@ KnowledgeGraphD <- ggplot(Full_Final, aes(x=Q2Age)) +
   labs(x = "Age",y="Concern")
 
 
+#### Section 5Dc: Spatial CV WTP: #### 
+library(rnaturalearth)
+library(sf)
+library(raster)
+library(tidyverse)
+library(RColorBrewer)
+
+## Importing and transforming a UK outline
+UK <- ne_countries(scale = 50, country = "united kingdom", returnclass = "sf")
+UK <- st_transform(UK, 27700)
+grid <- st_make_grid(UK, cellsize = 1000, what = "centers")
+grid <- st_intersection(grid, UK)  
+UK <- st_cast(UK, "MULTILINESTRING")
+dist <- st_distance(UK, grid)
+df <- data.frame(dist = as.vector(dist),st_coordinates(grid))
+
+## The approach below is to classify the distances from the coast according to the survey categories
+ClassifiedQ6 <- data.frame(ifelse(as.vector(dist) < sort(unique(as.vector(Dist)))[1], 0,
+       ifelse(as.vector(dist) < sort(unique(as.vector(Dist)))[2], 1,
+              ifelse(as.vector(dist) < sort(unique(as.vector(Dist)))[3], 2,
+                     ifelse(as.vector(dist) < sort(unique(as.vector(Dist)))[4], 3,
+                            ifelse(as.vector(dist) < sort(unique(as.vector(Dist)))[5], 4,4))))))
+
+ClassifiedQ7 <- ClassifiedQ6
+Q6D1 <- round(mean(Full_Final$Q6WTP[Full_Final$Q3Distance == sort(unique(Full_Final$Q3Distance))[1]]),3)
+Q6D2 <- round(mean(Full_Final$Q6WTP[Full_Final$Q3Distance == sort(unique(Full_Final$Q3Distance))[2]]),3)
+Q6D3 <- round(mean(Full_Final$Q6WTP[Full_Final$Q3Distance == sort(unique(Full_Final$Q3Distance))[3]]),3)
+Q6D4 <- round(mean(Full_Final$Q6WTP[Full_Final$Q3Distance == sort(unique(Full_Final$Q3Distance))[4]]),3)
+Q6D5 <- round(mean(Full_Final$Q6WTP[Full_Final$Q3Distance == sort(unique(Full_Final$Q3Distance))[5]]),3)
+
+ClassifiedQ6 <- ifelse(ClassifiedQ6==0, Q6D1,
+       ifelse(ClassifiedQ6==1, Q6D2,
+              ifelse(ClassifiedQ6==2, Q6D3,
+                     ifelse(ClassifiedQ6==3, Q6D4,
+                            ifelse(ClassifiedQ6==4, Q6D5,Q6D5)))))
+colnames(ClassifiedQ6) <- "ClassifiedQ6"
+
+Q7D1 <- round(mean(Full_Final$Q7WTP[Full_Final$Q3Distance == sort(unique(Full_Final$Q3Distance))[1]]),3)
+Q7D2 <- round(mean(Full_Final$Q7WTP[Full_Final$Q3Distance == sort(unique(Full_Final$Q3Distance))[2]]),3)
+Q7D3 <- round(mean(Full_Final$Q7WTP[Full_Final$Q3Distance == sort(unique(Full_Final$Q3Distance))[3]]),3)
+Q7D4 <- round(mean(Full_Final$Q7WTP[Full_Final$Q3Distance == sort(unique(Full_Final$Q3Distance))[4]]),3)
+Q7D5 <- round(mean(Full_Final$Q7WTP[Full_Final$Q3Distance == sort(unique(Full_Final$Q3Distance))[5]]),3)
+
+ClassifiedQ7 <- ifelse(ClassifiedQ7==0, Q7D1,
+                       ifelse(ClassifiedQ7==1, Q7D2,
+                              ifelse(ClassifiedQ7==2, Q7D3,
+                                     ifelse(ClassifiedQ7==3, Q7D4,
+                                            ifelse(ClassifiedQ7==4, Q7D5,Q7D5)))))
+colnames(ClassifiedQ7) <- "ClassifiedQ7"
+df2 <- (data.frame(dist = as.vector(dist),st_coordinates(grid),ClassifiedQ6=ClassifiedQ6,ClassifiedQ7=ClassifiedQ7))
 
 
-library(maps)
-library(mapdata)
-library(maptools)
-library(rgdal)
-library(ggmap)
-library(ggplot2)
-library(rgeos)
-library(broom)
-library(plyr)
+## Plotting the two CV WTP maps:
+CQ6 <- ggplot(df2, aes(X, Y, fill = ClassifiedQ6))+ #variables
+  geom_tile()+ #geometry
+  scale_fill_gradientn(colours = rev(brewer.pal(5, "RdGy")))+ #colors for plotting the distance
+  labs(fill = "WTP (Q6 in per person per year)")+ #legend name
+  theme_minimal()+
+  theme(legend.position = "bottom",
+        legend.text = element_text(size=8,face="bold"),
+        legend.background = element_rect(fill="lightblue",size=0.5, linetype="solid"),
+        legend.key.size = grid::unit(2, "lines"))+ 
+  coord_fixed(1) +
+  ggtitle("Spatial distribution of Q6 WTP")
 
-#Load the shapefile - make sure you change the filepath to where you saved the shapefiles
-shapefile <- readOGR("NUTS_Level_2__January_2018__Boundaries.shp")
-
-#Reshape for ggplot2 using the Broom package
-mapdata <- tidy(shapefile) #This might take a few minutes
-
-#Check the shapefile has loaded correctly by plotting an outline map of the UK
-gg <- ggplot() + geom_polygon(data = mapdata, aes(x = long, y = lat, group = group), color = "#FFFFFF", size = 0.25)
-gg <- gg + coord_fixed(1) #This gives the map a 1:1 aspect ratio to prevent the map from appearing squashed
-print(gg)
-
-#Create some data to use in the heatmap - here we are creating a random "value" for each county (by id)
-mydata <- data.frame(id=unique(mapdata$id), value=sample(c(0:100), length(unique(mapdata$id)), replace = TRUE))
-
-#Join mydata with mapdata
-df <- join(mapdata, mydata, by="id")
-
-#Create the heatmap using the ggplot2 package
-gg <- ggplot() + geom_polygon(data = df, aes(x = long, y = lat, group = group, fill = value), color = "#FFFFFF", size = 0.25)
-gg <- gg + scale_fill_gradient2(low = "blue", mid = "red", high = "yellow", na.value = "white")
-gg <- gg + coord_fixed(1)
-gg <- gg + theme_minimal()
-gg <- gg + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = 'none')
-gg <- gg + theme(axis.title.x=element_blank(), axis.text.x = element_blank(), axis.ticks.x = element_blank())
-gg <- gg + theme(axis.title.y=element_blank(), axis.text.y = element_blank(), axis.ticks.y = element_blank())
-print(gg)
-
+CQ7 <- ggplot(df2, aes(X, Y, fill = ClassifiedQ7))+ #variables
+  geom_tile()+ #geometry
+  scale_fill_gradientn(colours = rev(brewer.pal(10, "BrBG")))+ #colors for plotting the distance
+  labs(fill = "WTP (Q7 in per person per year)")+ #legend name
+  theme_minimal()+
+  theme(legend.position = "bottom",
+        legend.text = element_text(size=8,face="bold"),
+        legend.background = element_rect(fill="lightblue",size=0.25, linetype="solid"),
+        legend.key.size = grid::unit(1, "lines"))+ 
+  coord_fixed(1) +
+  ggtitle("Spatial distribution of Q7 WTP")
 
 
 
