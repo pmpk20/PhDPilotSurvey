@@ -437,12 +437,27 @@ BPProbit = Model2
 #
 # Read this first: https://transp-or.epfl.ch/documents/talks/IVT10.pdf
 
+##########################################################################
+###############                                             ##############
+###############     Discounting and NPV                     ############## 
+###############                                             ##############
+##########################################################################
+
+
+import pandas as pd
+import numpy as np
+!pip install numpy_financial
+import numpy_financial as npf 
+    
+def NPV(X):
+    Base = pd.DataFrame([X])
+    Total = pd.concat([Base],axis=1)
+    Total.columns = ["Base"]
+    Total.index = ["Totals"]
+    BaseCosts = pd.DataFrame([Total["Base"],Total["Base"],Total["Base"],Total["Base"],Total["Base"],Total["Base"],Total["Base"],Total["Base"],Total["Base"],Total["Base"]])
+    BaseCosts = BaseCosts.transpose()
+    BaseCosts.columns = range(10)
+    print(round(npf.npv(0.05,BaseCosts.iloc[0,:]),2))
     
     
-    
-    
-    
-    
-    
-    
-    
+        
