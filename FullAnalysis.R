@@ -38,7 +38,7 @@ Full_Final <- data.frame(read.csv("FinalData.csv"))
 
 
 FullSurvey <- data.frame(read.csv("FullSurvey.csv")) ## Imports from the excel file straight from the survey companies website.
-# Full_Long <- data.frame(read.csv("Full_Long.csv")) 
+# Full_Long <- data.frame(read.csv("Full_Long.csv"))
 # Full_Final <- data.frame(read.csv("FinalData.csv")) ## Imports from the excel file straight from the survey companies website.
 # FullSurvey <- FullSurvey[ !(FullSurvey$ï..Respondent %in% c(24,33,44,61,121,127,182,200,211,219,239,251,275,306,320,326,341,360,363,371,399,464,467,479,480,506,579,591,649,654,931,932,935,953,989,1002,1011,1024,14,35,39,54,79,106,130,146,149,155,163,203,214,215,217,244,246,249,252,267,268,282,290,327,343,362,364,374,380,393,398,407,414,425,426,433,477,519,524,536,543,545,547,557,567,575,589,590,595,614,617,629,637,638,639,651,665,674,680,915,933,940,950,959,960,975,978,996,1026,1027,1028)), ] ## Drop protest rows
 
@@ -66,12 +66,17 @@ colnames(FullSurvey) <- c("ID","Timing","Order","Q1Gender","Q2Age","Q3Distance",
 
 FullSurvey2 <- FullSurvey ## Create a backup of the FullSurvey data
 
-for (i in colnames(FullSurvey)){
-  if (is.factor(FullSurvey[[i]]) == TRUE){
-    FullSurvey2[[i]] <- as.numeric(FullSurvey[[i]])-1
-  }
-}  ## Here convert all questions into numeric format for ease of analysis
+# for (i in colnames(FullSurvey)){
+#   if (is.factor(FullSurvey[[i]]) == TRUE){
+#     FullSurvey2[[i]] <- as.numeric(FullSurvey[[i]])-1
+#   }
+# } ## Here convert all questions into numeric format for ease of analysis
 
+for (i in colnames(FullSurvey)){
+  if (is.factor(FullSurvey[[i]]) != TRUE){
+    FullSurvey2[[i]] <- as.numeric(as.factor(as.character(FullSurvey[[i]])))
+  }
+} ## Use this if the previous one didn't work.
 
 FullSurvey2$Order[FullSurvey2$Order == 2] <-0 ## The order dummy should be 0 for Q6 > Q7 and 1 for Q7 > Q6
 
@@ -144,52 +149,53 @@ FullSurvey2 <- mutate(Q7Response2 = coalesce(FullSurvey2$Q7TreatmentUpperRespons
 
 
 ## The following section codes all the attributes as their actual values.
-FullSurvey2$Q9Performance[FullSurvey2$Q9Performance == 1] <- 0.05
-FullSurvey2$Q9Performance[FullSurvey2$Q9Performance == 2] <- 0.5
-FullSurvey2$Q9Performance[FullSurvey2$Q9Performance == 0] <- 0.1
-FullSurvey2$Q9Emission[FullSurvey2$Q9Emission == 1] <- 0.4
-FullSurvey2$Q9Emission[FullSurvey2$Q9Emission == 2] <- 0.9
-FullSurvey2$Q9Emission[FullSurvey2$Q9Emission == 0] <- 0.1
+FullSurvey2$Q9Performance[FullSurvey2$Q9Performance == 2] <- 0.05
+FullSurvey2$Q9Performance[FullSurvey2$Q9Performance == 3] <- 0.5
+FullSurvey2$Q9Performance[FullSurvey2$Q9Performance == 1] <- 0.1
+FullSurvey2$Q9Emission[FullSurvey2$Q9Emission == 2] <- 0.4
+FullSurvey2$Q9Emission[FullSurvey2$Q9Emission == 3] <- 0.9
+FullSurvey2$Q9Emission[FullSurvey2$Q9Emission == 1] <- 0.1
 FullSurvey2$Q9Price[FullSurvey2$Q9Price == 1] <- 2.5
-FullSurvey2$Q9Price[FullSurvey2$Q9Price == 2] <- 5
-FullSurvey2$Q9Price[FullSurvey2$Q9Price == 0] <- 1
+FullSurvey2$Q9Price[FullSurvey2$Q9Price == 3] <- 5
+FullSurvey2$Q9Price[FullSurvey2$Q9Price == 2] <- 1
 
 
 ## Converting automatic assignment into exact levels
-FullSurvey2$Q10Performance[FullSurvey2$Q10Performance == 1] <- 0.05
-FullSurvey2$Q10Performance[FullSurvey2$Q10Performance == 0] <- 0.1
-FullSurvey2$Q10Emission[FullSurvey2$Q10Emission == 1] <- 0.4
+FullSurvey2$Q10Performance[FullSurvey2$Q10Performance == 2] <- 0.05
+FullSurvey2$Q10Performance[FullSurvey2$Q10Performance == 1] <- 0.1
 FullSurvey2$Q10Emission[FullSurvey2$Q10Emission == 2] <- 0.4
-FullSurvey2$Q10Emission[FullSurvey2$Q10Emission == 0] <- 0.1
-FullSurvey2$Q10Price[FullSurvey2$Q10Price == 1] <- 1
-FullSurvey2$Q10Price[FullSurvey2$Q10Price == 2] <- 2.5
-FullSurvey2$Q10Price[FullSurvey2$Q10Price == 0] <- 0.5
+FullSurvey2$Q10Emission[FullSurvey2$Q10Emission == 3] <- 0.4
+FullSurvey2$Q10Emission[FullSurvey2$Q10Emission == 1] <- 0.1
+FullSurvey2$Q10Price[FullSurvey2$Q10Price == 2] <- 1
+FullSurvey2$Q10Price[FullSurvey2$Q10Price == 3] <- 2.5
+FullSurvey2$Q10Price[FullSurvey2$Q10Price == 1] <- 0.5
 
 
 ## Converting automatic assignment into exact levels
-FullSurvey2$Q11Performance[FullSurvey2$Q11Performance == 1] <- 0.05
-FullSurvey2$Q11Performance[FullSurvey2$Q11Performance == 0] <- 0.1
-FullSurvey2$Q11Emission[FullSurvey2$Q11Emission == 1] <- 0.9
-FullSurvey2$Q11Emission[FullSurvey2$Q11Emission == 0] <- 0.1
-FullSurvey2$Q11Price[FullSurvey2$Q11Price == 0] <- 0.5
-FullSurvey2$Q11Price[FullSurvey2$Q11Price == 1] <- 1
-FullSurvey2$Q11Price[FullSurvey2$Q11Price == 2] <- 2.5
-FullSurvey2$Q11Price[FullSurvey2$Q11Price == 3] <- 5
+FullSurvey2$Q11Performance[FullSurvey2$Q11Performance == 2] <- 0.05
+FullSurvey2$Q11Performance[FullSurvey2$Q11Performance == 1] <- 0.1
+FullSurvey2$Q11Emission[FullSurvey2$Q11Emission == 2] <- 0.9
+FullSurvey2$Q11Emission[FullSurvey2$Q11Emission == 1] <- 0.1
+FullSurvey2$Q11Price[FullSurvey2$Q11Price == 1] <- 0.5
+FullSurvey2$Q11Price[FullSurvey2$Q11Price == 2] <- 1
+FullSurvey2$Q11Price[FullSurvey2$Q11Price == 3] <- 2.5
+FullSurvey2$Q11Price[FullSurvey2$Q11Price == 4] <- 5
 
 
 ## Converting automatic assignment into exact levels
-FullSurvey2$Q12Performance[FullSurvey2$Q12Performance == 1] <- 0.05
-FullSurvey2$Q12Performance[FullSurvey2$Q12Performance == 2] <- 0.5
-FullSurvey2$Q12Performance[FullSurvey2$Q12Performance == 0] <- 0.1
-FullSurvey2$Q12Emission[FullSurvey2$Q12Emission == 1] <- 0.4
-FullSurvey2$Q12Emission[FullSurvey2$Q12Emission == 0] <- 0.1
-FullSurvey2$Q12Price[FullSurvey2$Q12Price == 1] <- 1
-FullSurvey2$Q12Price[FullSurvey2$Q12Price == 2] <- 2.5
-FullSurvey2$Q12Price[FullSurvey2$Q12Price == 0] <- 0.5
-FullSurvey2$Q12Price[FullSurvey2$Q12Price == 3] <- 5
+FullSurvey2$Q12Performance[FullSurvey2$Q12Performance == 2] <- 0.05
+FullSurvey2$Q12Performance[FullSurvey2$Q12Performance == 3] <- 0.5
+FullSurvey2$Q12Performance[FullSurvey2$Q12Performance == 1] <- 0.1
+FullSurvey2$Q12Emission[FullSurvey2$Q12Emission == 2] <- 0.4
+FullSurvey2$Q12Emission[FullSurvey2$Q12Emission == 1] <- 0.1
+FullSurvey2$Q12Price[FullSurvey2$Q12Price == 2] <- 1
+FullSurvey2$Q12Price[FullSurvey2$Q12Price == 3] <- 2.5
+FullSurvey2$Q12Price[FullSurvey2$Q12Price == 1] <- 0.5
+FullSurvey2$Q12Price[FullSurvey2$Q12Price == 4] <- 5
 
 
 ## Again certainty was confused so reordering here for higher number = more certain.
+FullSurvey2$Q12CECertainty <- FullSurvey2$Q12CECertainty - 1
 FullSurvey2$Q12CECertainty[FullSurvey2$Q12CECertainty == 1] <- 3
 FullSurvey2$Q12CECertainty[FullSurvey2$Q12CECertainty == 0] <- 1
 FullSurvey2$Q12CECertainty[FullSurvey2$Q12CECertainty == 3] <- 0
@@ -284,9 +290,12 @@ FullSurvey2$Q24RonaImpact <- as.numeric(FullSurvey2$Q24RonaImpact)
 
 
 ## Updating the final survey question
-FullSurvey2$Q25Understanding[FullSurvey2$Q25Understanding == 1] <- 9
-FullSurvey2$Q25Understanding <- FullSurvey2$Q25Understanding +1
+FullSurvey2$Q25Understanding <- FullSurvey2$Q25Understanding -1
+FullSurvey2$Q25Understanding[FullSurvey2$Q25Understanding == 1] <- 10
+FullSurvey2$Q25Understanding[FullSurvey2$Q25Understanding == 0] <- 1
 
+# Correcting any other errors:
+FullSurvey2$Q8DominatedTest <- FullSurvey2$Q8DominatedTest - 1
 
 ## Adding an ID column which replaces the respondent category in the original dataset.
 FullSurvey2$ID <- seq.int(nrow(FullSurvey2))
@@ -370,6 +379,7 @@ Full <- cbind(Full,"Responsibility" =rowSums(Responsibility))
 Fulls <- Full
 Full$av_A <- rep(1,nrow(Full)) # Add a vector of ones to show that the alternative choice is always available to respondents.
 Full$av_B <- rep(1,nrow(Full)) # Add a vector of ones to show that the status quo is always available to respondents as consistent with theory.
+Full$Choice <- Full$Choice -1
 Full$Choice[Full$Choice == 0] <- "A"  ## Necessary here to change numeric to string
 Full$Choice[Full$Choice == 1] <- "B" ## The MFORMULA looks for _B or _A so choice must be SQ or ALT
 
@@ -417,7 +427,7 @@ AllCriteria <- AllCriteria[ !(AllCriteria$IDs %in% c(24,33,44,61,121,127,182,200
 
 ## Fully truncated:
 Full_Full <- Full_Final[ (Full_Final$ID) %in% c(AllCriteria),]
-
+# Full_Full <- Full_Long[ (Full_Long$ID) %in% c(AllCriteria),]
 
 #### Section 3: Choice Experiment ####
 ############ Notes: Long and estimates a lot of models, initially in MLOGIT but later in GMNL.
@@ -469,7 +479,7 @@ MNL_3 <- mlogit(Choice ~ Price + Performance + Emission |
                     + Q20Consequentiality
                     + Q21Experts +Q22Education+ Q23Employment
                     +  Q24AIncome + Timing + Q25Understanding,  
-                    Full_Full, alt.subset = c("A", "B"), 
+                    Full_Long, alt.subset = c("A", "B"), 
                     reflevel = "A",method="bfgs") 
 summary(MNL_3) ## Summarises the MNL output
 MNL_3_WTP <- c(-1*coef(MNL_3)["Emission"]/coef(MNL_3)["Price"],-1*coef(MNL_3)["Performance"]/coef(MNL_3)["Price"])
@@ -1918,6 +1928,9 @@ wilcox.test(x=Full_Final$Q6WTP[Full_Final$Q6ResearchCertainty==0],y=Full_Final$Q
 wilcox.test(x=Full_Final$Q7WTP[Full_Final$Q7TreatmentCertainty==0],y=Full_Final$Q7WTP[Full_Final$Q7TreatmentCertainty==1]) ## Outcome: Alternative of =/= 
 wilcox.test(x=Full_Final$PerformanceCoef[Full_Final$Q12CECertainty==0],y=Full_Final$PerformanceCoef[Full_Final$Q12CECertainty==2]) ## Outcome: NULL
 wilcox.test(x=Full_Final$EmissionCoef[Full_Final$Q12CECertainty==1],y=Full_Final$EmissionCoef[Full_Final$Q12CECertainty==2]) ## Outcome: NULL 
+
+
+
 
 
 #### Section 5C: Descriptive Graphics ####
@@ -3415,8 +3428,8 @@ Test_Apollo$Q6ResearchResponse <- Test_Apollo$Q6ResearchResponse +1
 Test_Apollo$Q7TreatmentResponse <- Test_Apollo$Q7TreatmentResponse +1
 Test_Apollo$Bid_Alt <- rep(0,nrow(Test_Apollo))
 
-Test_Apollo$Choice[Test_Apollo$Choice == 1] <- 2
-Test_Apollo$Choice[Test_Apollo$Choice == 0] <- 1
+# Test_Apollo$Choice[Test_Apollo$Choice == 1] <- 2
+# Test_Apollo$Choice[Test_Apollo$Choice == 0] <- 1
 database = Test_Apollo
 write.csv(Test_Apollo,file = "Test_Apollo.csv")
 
@@ -4391,7 +4404,7 @@ LCmodel = apollo_estimate(apollo_beta, apollo_fixed,
                           apollo_probabilities, apollo_inputs,
                           estimate_settings=list(writeIter=FALSE,bootstrapSE=10))
 
-### Show output in screen
+            ### Show output in screen
 apollo_modelOutput(LCmodel,modelOutput_settings = list(printPVal=TRUE))
 
 ### Reporting WTP:
@@ -4412,6 +4425,14 @@ round(100/length(LC2_Predictions$Match)*length(LC2_Predictions$Match[LC2_Predict
 # 44.524
 round(100/length(LC2_Predictions$Match)*length(LC2_Predictions$Match[LC2_Predictions$Match==1]),3)
 # 55.746
+
+## Model individual level class-allocation
+LC2_Class <- data.frame(apollo_lcConditionals(model = LCmodel,apollo_probabilities,apollo_inputs)) ## Getting probabilities of choosing each option from the model
+colnames(LC2_Class) <- c(1,2) ## Name columns as each option 
+LC2_Class <- data.frame("Class" = as.integer(colnames(LC2_Class)[apply(round(LC2_Class,4),1,which.max)])) ## This picks the class that is most likely for each individual
+colnames(LC2_Class) <- "LCM2Class"
+Full_Final <- cbind(Full_Final,"LCM2Class"=slice(data.frame(LC2_Class$LCM2Class),rep(1:n(), each = 8)))
+colnames(Full_Final)[69] <- "LCM2Class"
 
 
 #### Section 6C: LCM 3-class [Note does not currently replicate GMNL] ####
@@ -4544,6 +4565,14 @@ round(100/length(LC3_Predictions$Match)*length(LC3_Predictions$Match[LC3_Predict
 # 41.791
 round(100/length(LC3_Predictions$Match)*length(LC3_Predictions$Match[LC3_Predictions$Match==1]),3)
 # 58.209
+
+## Model individual level class-allocation
+LC3_Class <- data.frame(apollo_lcConditionals(model = LCmodel,apollo_probabilities,apollo_inputs)) ## Getting probabilities of choosing each option from the model
+colnames(LC3_Class) <- c(1,2,3) ## Name columns as each option 
+LC3_Class <- data.frame("Class" = as.integer(colnames(LC3_Class)[apply(round(LC3_Class,4),1,which.max)])) ## This picks the class that is most likely for each individual
+colnames(LC3_Class) <- "LCM3Class"
+Full_Final <- cbind(Full_Final,"LCM3Class"=slice(data.frame(LC3_Class$LCM3Class),rep(1:n(), each = 8)))
+colnames(Full_Final)[70] <- "LCM3Class"
 
 
 ### WTP:
