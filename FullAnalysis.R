@@ -2,7 +2,7 @@
 #### Introduction: Full survey data analysis script  ###############
 
 
-#### 15/09 To Do: ####
+#### 10/10 To Do: ####
 #### - Fix CV ICLV
 
 
@@ -74,11 +74,11 @@ FullSurvey2 <- FullSurvey ## Create a backup of the FullSurvey data
 
 for (i in colnames(FullSurvey)){
   if (is.factor(FullSurvey[[i]]) != TRUE){
-    FullSurvey2[[i]] <- as.numeric(as.factor(as.character(FullSurvey[[i]])))
+    FullSurvey2[[i]] <- as.numeric(as.factor(as.character(FullSurvey[[i]])))-1
   }
 } ## Use this if the previous one didn't work.
 
-FullSurvey2$Order[FullSurvey2$Order == 2] <-0 ## The order dummy should be 0 for Q6 > Q7 and 1 for Q7 > Q6
+# FullSurvey2$Order[FullSurvey2$Order == 2] <-0 ## The order dummy should be 0 for Q6 > Q7 and 1 for Q7 > Q6
 
 
 ## Here I update the age categories to take the midpoint of the brackets.
@@ -87,6 +87,9 @@ FullSurvey2$Q2Age[FullSurvey2$Q2Age == 1] <- 32.5
 FullSurvey2$Q2Age[FullSurvey2$Q2Age == 2] <- 47.5
 FullSurvey2$Q2Age[FullSurvey2$Q2Age == 3] <- 63
 FullSurvey2$Q2Age[FullSurvey2$Q2Age == 4] <- 71
+FullSurvey2$Q2Age[FullSurvey2$Q2Age == 5.0] <- NA
+FullSurvey2$Q2Age <- with(FullSurvey2, impute(FullSurvey2$Q2Age, 'random')) ## I replace the missing with a random imputed value
+FullSurvey2$Q2Age <- as.numeric(FullSurvey2$Q2Age)
 
 
 ## The loop got the distances ordered incorrectly and also didn't use midpoints.
@@ -149,33 +152,36 @@ FullSurvey2 <- mutate(Q7Response2 = coalesce(FullSurvey2$Q7TreatmentUpperRespons
 
 
 ## The following section codes all the attributes as their actual values.
+FullSurvey2$Q9Performance <- FullSurvey2$Q9Performance +1
 FullSurvey2$Q9Performance[FullSurvey2$Q9Performance == 2] <- 0.05
 FullSurvey2$Q9Performance[FullSurvey2$Q9Performance == 3] <- 0.5
 FullSurvey2$Q9Performance[FullSurvey2$Q9Performance == 1] <- 0.1
+FullSurvey2$Q9Emission <- FullSurvey2$Q9Emission +1
 FullSurvey2$Q9Emission[FullSurvey2$Q9Emission == 2] <- 0.4
 FullSurvey2$Q9Emission[FullSurvey2$Q9Emission == 3] <- 0.9
 FullSurvey2$Q9Emission[FullSurvey2$Q9Emission == 1] <- 0.1
 FullSurvey2$Q9Price[FullSurvey2$Q9Price == 1] <- 2.5
-FullSurvey2$Q9Price[FullSurvey2$Q9Price == 3] <- 5
-FullSurvey2$Q9Price[FullSurvey2$Q9Price == 2] <- 1
+FullSurvey2$Q9Price[FullSurvey2$Q9Price == 2] <- 5
+FullSurvey2$Q9Price[FullSurvey2$Q9Price == 0] <- 1
 
 
 ## Converting automatic assignment into exact levels
-FullSurvey2$Q10Performance[FullSurvey2$Q10Performance == 2] <- 0.05
-FullSurvey2$Q10Performance[FullSurvey2$Q10Performance == 1] <- 0.1
+FullSurvey2$Q10Performance[FullSurvey2$Q10Performance == 1] <- 0.05
+FullSurvey2$Q10Performance[FullSurvey2$Q10Performance == 0] <- 0.1
+FullSurvey2$Q10Emission[FullSurvey2$Q10Emission == 0] <- 0.1
+FullSurvey2$Q10Emission[FullSurvey2$Q10Emission == 1] <- 0.4
 FullSurvey2$Q10Emission[FullSurvey2$Q10Emission == 2] <- 0.4
-FullSurvey2$Q10Emission[FullSurvey2$Q10Emission == 3] <- 0.4
-FullSurvey2$Q10Emission[FullSurvey2$Q10Emission == 1] <- 0.1
 FullSurvey2$Q10Price[FullSurvey2$Q10Price == 2] <- 1
-FullSurvey2$Q10Price[FullSurvey2$Q10Price == 3] <- 2.5
-FullSurvey2$Q10Price[FullSurvey2$Q10Price == 1] <- 0.5
+FullSurvey2$Q10Price[FullSurvey2$Q10Price == 1] <- 2.5
+FullSurvey2$Q10Price[FullSurvey2$Q10Price == 0] <- 0.5
 
 
 ## Converting automatic assignment into exact levels
-FullSurvey2$Q11Performance[FullSurvey2$Q11Performance == 2] <- 0.05
-FullSurvey2$Q11Performance[FullSurvey2$Q11Performance == 1] <- 0.1
-FullSurvey2$Q11Emission[FullSurvey2$Q11Emission == 2] <- 0.9
-FullSurvey2$Q11Emission[FullSurvey2$Q11Emission == 1] <- 0.1
+FullSurvey2$Q11Performance[FullSurvey2$Q11Performance == 0] <- 0.1
+FullSurvey2$Q11Performance[FullSurvey2$Q11Performance == 1] <- 0.05
+FullSurvey2$Q11Emission[FullSurvey2$Q11Emission == 0] <- 0.1
+FullSurvey2$Q11Emission[FullSurvey2$Q11Emission == 1] <- 0.9
+FullSurvey2$Q11Price <- FullSurvey2$Q11Price+1
 FullSurvey2$Q11Price[FullSurvey2$Q11Price == 1] <- 0.5
 FullSurvey2$Q11Price[FullSurvey2$Q11Price == 2] <- 1
 FullSurvey2$Q11Price[FullSurvey2$Q11Price == 3] <- 2.5
@@ -183,19 +189,18 @@ FullSurvey2$Q11Price[FullSurvey2$Q11Price == 4] <- 5
 
 
 ## Converting automatic assignment into exact levels
-FullSurvey2$Q12Performance[FullSurvey2$Q12Performance == 2] <- 0.05
-FullSurvey2$Q12Performance[FullSurvey2$Q12Performance == 3] <- 0.5
-FullSurvey2$Q12Performance[FullSurvey2$Q12Performance == 1] <- 0.1
-FullSurvey2$Q12Emission[FullSurvey2$Q12Emission == 2] <- 0.4
-FullSurvey2$Q12Emission[FullSurvey2$Q12Emission == 1] <- 0.1
-FullSurvey2$Q12Price[FullSurvey2$Q12Price == 2] <- 1
-FullSurvey2$Q12Price[FullSurvey2$Q12Price == 3] <- 2.5
-FullSurvey2$Q12Price[FullSurvey2$Q12Price == 1] <- 0.5
-FullSurvey2$Q12Price[FullSurvey2$Q12Price == 4] <- 5
+FullSurvey2$Q12Performance[FullSurvey2$Q12Performance == 1] <- 0.05
+FullSurvey2$Q12Performance[FullSurvey2$Q12Performance == 2] <- 0.5
+FullSurvey2$Q12Performance[FullSurvey2$Q12Performance == 0] <- 0.1
+FullSurvey2$Q12Emission[FullSurvey2$Q12Emission == 1] <- 0.4
+FullSurvey2$Q12Emission[FullSurvey2$Q12Emission == 0] <- 0.1
+FullSurvey2$Q12Price[FullSurvey2$Q12Price == 1] <- 1
+FullSurvey2$Q12Price[FullSurvey2$Q12Price == 2] <- 2.5
+FullSurvey2$Q12Price[FullSurvey2$Q12Price == 0] <- 0.5
+FullSurvey2$Q12Price[FullSurvey2$Q12Price == 3] <- 5
 
 
 ## Again certainty was confused so reordering here for higher number = more certain.
-FullSurvey2$Q12CECertainty <- FullSurvey2$Q12CECertainty - 1
 FullSurvey2$Q12CECertainty[FullSurvey2$Q12CECertainty == 1] <- 3
 FullSurvey2$Q12CECertainty[FullSurvey2$Q12CECertainty == 0] <- 1
 FullSurvey2$Q12CECertainty[FullSurvey2$Q12CECertainty == 3] <- 0
@@ -294,9 +299,6 @@ FullSurvey2$Q25Understanding <- FullSurvey2$Q25Understanding -1
 FullSurvey2$Q25Understanding[FullSurvey2$Q25Understanding == 1] <- 10
 FullSurvey2$Q25Understanding[FullSurvey2$Q25Understanding == 0] <- 1
 
-# Correcting any other errors:
-FullSurvey2$Q8DominatedTest <- FullSurvey2$Q8DominatedTest - 1
-
 ## Adding an ID column which replaces the respondent category in the original dataset.
 FullSurvey2$ID <- seq.int(nrow(FullSurvey2))
 
@@ -379,7 +381,6 @@ Full <- cbind(Full,"Responsibility" =rowSums(Responsibility))
 Fulls <- Full
 Full$av_A <- rep(1,nrow(Full)) # Add a vector of ones to show that the alternative choice is always available to respondents.
 Full$av_B <- rep(1,nrow(Full)) # Add a vector of ones to show that the status quo is always available to respondents as consistent with theory.
-Full$Choice <- Full$Choice -1
 Full$Choice[Full$Choice == 0] <- "A"  ## Necessary here to change numeric to string
 Full$Choice[Full$Choice == 1] <- "B" ## The MFORMULA looks for _B or _A so choice must be SQ or ALT
 
