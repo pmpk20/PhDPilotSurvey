@@ -1,9 +1,27 @@
-#Peter King
-#### Introduction: Full survey data analysis script  ###############
+#### Survey data analysis script  ###############
+# Project author: Peter King (p.m.king@bath.ac.uk)
+# Project title: Economic valuation of benefits from the proposed REACH restriction of intentionally-added microplastics.
 
 
-#### 10/10 To Do: ####
-#### - Fix CV ICLV
+#### Section -1: Replication Information ####
+
+
+# R version 4.0.2 (2020-06-22)
+# RStudio Version 1.3.959
+# Platform: x86_64-w64-mingw32/x64 (64-bit)
+# Package information:
+# stats     graphics  grDevices utils     datasets  methods   base     
+# Rcpp_1.0.5          BiocManager_1.30.10 compiler_4.0.2      RSGHB_1.2.2        
+# prettyunits_1.1.1   miscTools_0.6-26    tools_4.0.2         digest_0.6.25      
+# pkgbuild_1.0.8      lattice_0.20-41     Matrix_1.2-18       cli_2.0.2          
+# rstudioapi_0.11     maxLik_1.4-4        mvtnorm_1.1-1       SparseM_1.78       
+# xfun_0.15           coda_0.19-4         MatrixModels_0.4-1  grid_4.0.2         
+# glue_1.4.1          R6_2.4.1            randtoolbox_1.30.1  processx_3.4.2     
+# fansi_0.4.1         callr_3.4.3         ps_1.3.3            mcmc_0.9-7         
+# MASS_7.3-51.6       assertthat_0.2.1    mnormt_2.0.2        xtable_1.8-4       
+# numDeriv_2016.8-1.1 Deriv_4.1.0         quantreg_5.55       sandwich_2.5-1     
+# tinytex_0.24        MCMCpack_1.4-9      rngWELL_0.10-6      tmvnsim_1.0-2      
+# crayon_1.3.4        zoo_1.8-8           apollo_0.1.0   
 
 
 #### Section 0: Package installation ####
@@ -33,7 +51,6 @@ Full_Final <- data.frame(read.csv("FinalData.csv"))
 
 
 #### Section 1: Data importing and manipulating ####
-#### Lines: 38:384
 #### To skip to estimation: import FinalData
 
 
@@ -147,8 +164,15 @@ FullSurvey2$Q7TreatmentLowerResponse[FullSurvey2$Q7TreatmentLowerResponse == 2] 
 
 
 ## As respondents did EITHER the upper or lower question there should only be one column. This requires using mutate and coalesce to merge the lower and upper responses.
+FullSurvey <- mutate(Q7Bid2 = coalesce(FullSurvey$Q7Bid2Lower,FullSurvey$Q7Bid2Upper),.data = FullSurvey)
+FullSurvey <- mutate(Q7Response2 = coalesce(FullSurvey$Q7TreatmentUpperResponse,FullSurvey$Q7TreatmentLowerResponse),.data = FullSurvey)
+
 FullSurvey2 <- mutate(Q7Bid2 = coalesce(FullSurvey2$Q7Bid2Lower,FullSurvey2$Q7Bid2Upper),.data = FullSurvey2)
 FullSurvey2 <- mutate(Q7Response2 = coalesce(FullSurvey2$Q7TreatmentUpperResponse,FullSurvey2$Q7TreatmentLowerResponse),.data = FullSurvey2)
+
+FullSurvey2$Q6Bid <- FullSurvey$Q6Bid
+FullSurvey2$Q7Bid <- FullSurvey$Q7Bid
+FullSurvey2$Q7Bid2 <- FullSurvey$Q7Bid2
 
 
 ## The following section codes all the attributes as their actual values.
@@ -286,21 +310,23 @@ FullSurvey2$Q24AIncome[FullSurvey2$Q24AIncome == 2] <- 1750.00
 FullSurvey2$Q24AIncome[FullSurvey2$Q24AIncome == 1] <- 1250.00
 FullSurvey2$Q24AIncome[FullSurvey2$Q24AIncome == 3] <- 2250.00
 FullSurvey2$Q24AIncome[FullSurvey2$Q24AIncome == 6] <- 4500.00
+FullSurvey2$Q24AIncome[FullSurvey2$Q24AIncome == 7] <- 5000
+FullSurvey2$Q24AIncome[FullSurvey2$Q24AIncome == 0] <- 250.00
 FullSurvey2$Q24AIncome[FullSurvey2$Q24AIncome == 9] <- NA 
 FullSurvey2$Q24AIncome <- with(FullSurvey2, impute(FullSurvey2$Q24AIncome, 'random')) ## Using random imputation for missing values
 FullSurvey2$Q24AIncome <- as.numeric(FullSurvey2$Q24AIncome)
-FullSurvey2$Q24AIncome[FullSurvey2$Q24AIncome == 7] <- 5000
-FullSurvey2$Q24AIncome[FullSurvey2$Q24AIncome == 0] <- 250.00
 FullSurvey2$Q24RonaImpact <- as.numeric(FullSurvey2$Q24RonaImpact)
 
 
 ## Updating the final survey question
-FullSurvey2$Q25Understanding <- FullSurvey2$Q25Understanding -1
 FullSurvey2$Q25Understanding[FullSurvey2$Q25Understanding == 1] <- 10
 FullSurvey2$Q25Understanding[FullSurvey2$Q25Understanding == 0] <- 1
 
 ## Adding an ID column which replaces the respondent category in the original dataset.
 FullSurvey2$ID <- seq.int(nrow(FullSurvey2))
+
+## Correcting the survey timing column:
+FullSurvey2$Timing <- FullSurvey$Timing
 
 
 ## Aim of the function is to express all variables in the FullSurvey data as factors
@@ -378,7 +404,7 @@ Responsibility <- data.frame(cbind(Full$Q17_Firms,Full$Q17_Cons,Full$Q17_Gov,Ful
 colnames(Responsibility) <- c("Q17_Firms","Q17_Cons","Q17_Gov","Q17_LA","Q17_Other")
 Full <- cbind(Full,"Responsibility" =rowSums(Responsibility))
 
-Fulls <- Full
+Fulls <- Full # Later I use the Full dataframe but just without choies as A or B
 Full$av_A <- rep(1,nrow(Full)) # Add a vector of ones to show that the alternative choice is always available to respondents.
 Full$av_B <- rep(1,nrow(Full)) # Add a vector of ones to show that the status quo is always available to respondents as consistent with theory.
 Full$Choice[Full$Choice == 0] <- "A"  ## Necessary here to change numeric to string
@@ -392,43 +418,65 @@ Full_Long <- mlogit.data(Full, shape = "wide", choice = "Choice",
                           varying = 16:21, sep = "_", id.var = "ID")
 
 
+
+
 #### Section 2: Sample truncation ####
 #### Notes: Protest IDs determined from eyeballing Excel responses.
 
 
-# Reporting a high understanding of the survey
-Full_Understanding <- Full_Long[Full_Long$Q25Understanding >= 7,]
-# 6.4% failure rate (43/670 failed)
 
-# Speeders:
-Full_Timing <- Full_Long[Full_Long$Timing >= (median(Full_Long$Timing)/60)/100*48,]
-# 30.30% failure rate (170/561 failed)
-
-# Passing the Q8 dominated test scenario
-Full_Dominated <- Full_Long[Full_Long$Q8DominatedTest == 0,]
-# 30.30% failure rate (170/561 failed)
-
-### Trimming by having certainty in their CE choices.
-Full_Certain <- Full_Long[Full_Long$Q12CECertainty >= 1,]
-# 6% failure (40/670 failed)
-
-###  Believing the survey responses to be consequential.
-Full_Cons <- Full_Long[Full_Long$Q20Consequentiality >= 1,]
-# Only 16% (110/670 failed)
-
-### Fully-truncated sample:
+### Truncation Rule One:
 AllCriteria <- data.frame("IDs" = unique(Full_Long$ID[ (Full_Long$Q25Understanding >=7) &
-                                  (Full_Long$Timing >= (median(Full_Long$Timing)/60)/100*48) &
+                                                         (Full_Long$Timing/60 >= (median(Full_Long$Timing)/60)/100*48) &
+                                                         (Full_Long$Q8DominatedTest == 0) &
+                                                         (Full_Long$Q12CECertainty > 1) &
+                                                         (Full_Long$Q20Consequentiality == 1) ])) 
+AllCriteria <- AllCriteria[ !(AllCriteria$IDs %in% c()),]
+Full_Full <- Full_Final[ (Full_Final$ID) %in% c(AllCriteria),]
+nrow(Full_Full)/8
+
+
+### Truncation Rule Two:
+AllCriteria <- data.frame("IDs" = unique(Full_Long$ID[ (Full_Long$Q25Understanding >=7) &
+                                  (Full_Long$Timing/60 >= (median(Full_Long$Timing)/60)/100*48) &
                                   (Full_Long$Q8DominatedTest == 0) &
                                   (Full_Long$Q12CECertainty >= 1) &
                                   (Full_Long$Q20Consequentiality >= 1) ])) 
 
 ## Here checking if any of the remaining respondents were on the protest list: 
-AllCriteria <- AllCriteria[ !(AllCriteria$IDs %in% c(24,33,44,61,121,127,182,200,211,219,239,251,275,306,320,326,341,360,363,371,399,464,467,479,480,506,579,591,649,654,931,932,935,953,989,1002,1011,1024,14,35,39,54,79,106,130,146,149,155,163,203,214,215,217,244,246,249,252,267,268,282,290,327,343,362,364,374,380,393,398,407,414,425,426,433,477,519,524,536,543,545,547,557,567,575,589,590,595,614,617,629,637,638,639,651,665,674,680,915,933,940,950,959,960,975,978,996,1026,1027,1028)),]
+AllCriteria <- AllCriteria[ !(AllCriteria$IDs %in% c()),]
+Full_Full <- Full_Final[ (Full_Final$ID) %in% c(AllCriteria),] ## Fully truncated:
+# Full_Full <- Full_Long[ (Full_Long$ID) %in% c(AllCriteria),] ## Can truncate the Full_Long dataframe too if needing to estimate in MLOGIT
+Full_Excluded <- Full_Final[ !(Full_Final$ID) %in% c(AllCriteria),] ## The excluded responses
+nrow(Full_Full)/8
 
-## Fully truncated:
-Full_Full <- Full_Final[ (Full_Final$ID) %in% c(AllCriteria),]
-# Full_Full <- Full_Long[ (Full_Long$ID) %in% c(AllCriteria),]
+## Can eliminate protestors here:
+AllCriteria <- AllCriteria[ !(AllCriteria$IDs %in% c(24,33,44,61,121,127,182,200,211,219,239,251,275,306,320,326,341,360,363,371,399,464,467,479,480,506,579,591,649,654,931,932,935,953,989,1002,1011,1024,14,35,39,54,79,106,130,146,149,155,163,203,214,215,217,244,246,249,252,267,268,282,290,327,343,362,364,374,380,393,398,407,414,425,426,433,477,519,524,536,543,545,547,557,567,575,589,590,595,614,617,629,637,638,639,651,665,674,680,915,933,940,950,959,960,975,978,996,1026,1027,1028)),]
+# Note: Protests examined by eyeballing the text responses.
+
+#### Section 2B: Sample Characteristics: ####
+
+
+
+
+# Gender proportion:
+100/670*table(FullSurvey$Q1Gender)
+
+# Mean age:
+mean(FullSurvey2$Q2Age)
+
+# Mean number of annual trips:
+mean(FullSurvey2$Q4Trips)
+
+# Sample education levels:
+100/670*table(FullSurvey$Q22Education)
+
+# Sample employment types:
+100/670*table(FullSurvey$Q23Employment)
+
+
+
+
 
 #### Section 3: Choice Experiment ####
 ############ Notes: Long and estimates a lot of models, initially in MLOGIT but later in GMNL.
@@ -1260,6 +1308,7 @@ plot(TreatmentKMT, main="Q7 Kaplan-Meier-Turnbull survival function.")
 Research_BidOnly <- sbchoice(Q6ResearchResponse ~ 1 | Q6Bid, data = Full_Long,dist="logistic")
 summary(Research_BidOnly) ## Reports the SBDC analysis for Q6 with mean, median and coefficients.
 
+Full_Long$Q24AIncome <- Full_Long$Q24AIncome*12
 ## The Q6 model with all covariates:
 Research_SB <- sbchoice(Q6ResearchResponse ~ Order + Q1Gender + Q2Age + Q3Distance
                         + Q4Trips +Q6ResearchCertainty + Q16BP + Q18Charity + Q20Consequentiality
@@ -1405,7 +1454,7 @@ plot(Treatment_ConsequentialKMT)
 plot(Treatment_InconsequentialKMT)
 
 
-#### Section 4D: Precautionary premia ####
+#### Section 4D: Fitting CV WTP ####
 
 
 ## In this section I directly compare the Full-bound Full-round Q6 and Q7 WTP valuations
@@ -1707,14 +1756,7 @@ mean(FullSurvey2$Q4Trips) ## Estimating average annual trips
 
 
 ## Employment: 
-100/nrow(FullSurvey2)*length(FullSurvey2$Q23Employment[FullSurvey2$Q23Employment==0]) ## 0 = Prefer not to say 2.68%
-100/nrow(FullSurvey2)*length(FullSurvey2$Q23Employment[FullSurvey2$Q23Employment==1]) ## 1 = NEET 11.34%
-100/nrow(FullSurvey2)*length(FullSurvey2$Q23Employment[FullSurvey2$Q23Employment==2]) ## 2 = Retired 7.76%
-100/nrow(FullSurvey2)*length(FullSurvey2$Q23Employment[FullSurvey2$Q23Employment==3]) ## 3 = Student 4.47%
-100/nrow(FullSurvey2)*length(FullSurvey2$Q23Employment[FullSurvey2$Q23Employment==4]) ## 4 = Part-time 14.95%
-100/nrow(FullSurvey2)*length(FullSurvey2$Q23Employment[FullSurvey2$Q23Employment==4]) ## 5 = Self 6.85%
-100/nrow(FullSurvey2)*length(FullSurvey2$Q23Employment[FullSurvey2$Q23Employment==4]) ## 6 = Full-time 51.94
-
+100/670*table(FullSurvey2$Q23Employment)
 
 ## Income: 
 mean(FullSurvey2$Q24AIncome) ## Estimating sample income
@@ -1735,7 +1777,7 @@ ggplot(FullSurvey2, aes(x=Timing/60)) +
 
 
 ### Plotting survey understanding
-ggplot(FullSurvey2, aes(x=Q25Understanding)) + 
+ggplot(Full_Final, aes(x=Q25Understanding)) + 
   geom_histogram(color="black", fill="white",binwidth = 1)+
   geom_vline(aes(xintercept=7),color="blue", linetype="dashed", size=1)+
   scale_x_continuous(name="Self-reported survey undertanding in 1-10")+
@@ -2198,14 +2240,77 @@ ggplot(data=Fulls, aes(x=as.numeric(Q24AIncome))) +
 #### Section 5Db: CV Section: ####
 
 
-Full_Final <- cbind(Full_Final, 
-      data.frame("e0.5"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^0.5),
-      data.frame("e0.75"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^0.75),
-      data.frame("e1"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^1),
-      data.frame("e1.25"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^1.25),
-      data.frame("e1.5"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^1.5),
-      data.frame("Q6Pro"=(100/(Full_Final$Q24AIncome*12)*Full_Final$Q6WTP)),
-      data.frame("Q7Pro"=(100/(Full_Final$Q24AIncome*12)*Full_Final$Q7WTP)))
+#### Section 5DbI: CBA Distribution section: ####
+
+## Explicit Weights using sensitivity analysis for the elasticity of marginal utility of income
+Weights <- cbind(data.frame("e0"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^0),
+                 data.frame("e0.5"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^0.5),
+                 data.frame("e0.75"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^0.75),
+                 data.frame("e1"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^1),
+                 data.frame("e1.3"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^1.3),
+                 data.frame("e1.5"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^1.5))
+
+summary(Weights$e0)
+summary((Weights$e0*Full_Final$Q6WTP))
+summary((Weights$e0*Full_Final$Q7WTP))
+round(summary((Weights$e0*(Full_Final$EmissionCoef*100))),2)
+round(summary((Weights$e0*(Full_Final$PerformanceCoef*100))),2)
+
+summary(Weights$e0.5)
+summary((Weights$e0.5*Full_Final$Q6WTP))
+summary((Weights$e0.5*Full_Final$Q7WTP))
+round(summary((Weights$e0.5*(Full_Final$EmissionCoef*100))),2)
+round(summary((Weights$e0.5*(Full_Final$PerformanceCoef*100))),2)
+
+summary(Weights$e0.75)
+summary((Weights$e0.75*Full_Final$Q6WTP))
+summary((Weights$e0.75*Full_Final$Q7WTP))
+round(summary((Weights$e0.75*(Full_Final$EmissionCoef*100))),2)
+round(summary((Weights$e0.75*(Full_Final$PerformanceCoef*100))),2)
+
+summary(Weights$e1)
+summary((Weights$e1*Full_Final$Q6WTP))
+summary((Weights$e1*Full_Final$Q7WTP))
+round(summary((Weights$e1*(Full_Final$EmissionCoef*100))),2)
+round(summary((Weights$e1*(Full_Final$PerformanceCoef*100))),2)
+
+summary(Weights$e1.3)
+summary((Weights$e1.3*Full_Final$Q6WTP))
+summary((Weights$e1.3*Full_Final$Q7WTP))
+round(summary((Weights$e1.3*(Full_Final$EmissionCoef*100))),2)
+round(summary((Weights$e1.3*(Full_Final$PerformanceCoef*100))),2)
+
+summary(Weights$e1.5)
+summary((Weights$e1.5*Full_Final$Q6WTP))
+summary((Weights$e1.5*Full_Final$Q7WTP))
+round(summary((Weights$e1.5*(Full_Final$EmissionCoef*100))),2)
+round(summary((Weights$e1.5*(Full_Final$PerformanceCoef*100))),2)
+
+View(round(cbind(e05*Full_Final$Q6WTP,e075*Full_Final$Q6WTP,e1*Full_Final$Q6WTP,e125*Full_Final$Q6WTP,e15*Full_Final$Q6WTP),2))
+e05 <- data.frame("e0.5"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^0.5)
+e075 <- data.frame("e0.75"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^0.75)
+e1 <- data.frame("e1"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^1)
+e13 <- data.frame("e1.3"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^1.3)
+e15 <- data.frame("e1.5"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^1.5)
+
+
+## Implicit weights calculated by the procedure suggested in Pearce, Atkinson and Mourato (2006):
+## I use groups below ("poor") and above ("rich") mean sample income
+# Q6: 
+round(mean(Full_Final$Q6WTP[Full_Final$Q24AIncome < mean(Full_Final$Q24AIncome)])/
+  mean(Full_Final$Q6WTP[Full_Final$Q24AIncome > mean(Full_Final$Q24AIncome)]),2)
+
+# Q7: 
+round(mean(Full_Final$Q7WTP[Full_Final$Q24AIncome < mean(Full_Final$Q24AIncome)])/
+  mean(Full_Final$Q7WTP[Full_Final$Q24AIncome > mean(Full_Final$Q24AIncome)]),2)
+
+# Emission MWTP: 
+round(mean(Full_Final$EmissionCoef[Full_Final$Q24AIncome < mean(Full_Final$Q24AIncome)])/
+        mean(Full_Final$EmissionCoef[Full_Final$Q24AIncome > mean(Full_Final$Q24AIncome)]),2)
+
+# Performance MWTP: 
+round(mean(Full_Final$PerformanceCoef[Full_Final$Q24AIncome < mean(Full_Final$Q24AIncome)])/
+        mean(Full_Final$PerformanceCoef[Full_Final$Q24AIncome > mean(Full_Final$Q24AIncome)]),2)
 
 
 ## Here I make a dataframe which has Q6, Q7 WTP and the precautionary premium and is truncated according to all criteria 
