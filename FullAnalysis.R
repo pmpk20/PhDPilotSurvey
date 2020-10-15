@@ -25,8 +25,6 @@
 
 
 #### Section 0: Package installation ####
-#### Lines: 15:28
-#### Notes: May have to reinstall rTools package.
 
 
 pkgbuild::has_build_tools()
@@ -2238,79 +2236,6 @@ ggplot(data=Fulls, aes(x=as.numeric(Q24AIncome))) +
 
 
 #### Section 5Db: CV Section: ####
-
-
-#### Section 5DbI: CBA Distribution section: ####
-
-## Explicit Weights using sensitivity analysis for the elasticity of marginal utility of income
-Weights <- cbind(data.frame("e0"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^0),
-                 data.frame("e0.5"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^0.5),
-                 data.frame("e0.75"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^0.75),
-                 data.frame("e1"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^1),
-                 data.frame("e1.3"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^1.3),
-                 data.frame("e1.5"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^1.5))
-
-summary(Weights$e0)
-summary((Weights$e0*Full_Final$Q6WTP))
-summary((Weights$e0*Full_Final$Q7WTP))
-round(summary((Weights$e0*(Full_Final$EmissionCoef*100))),2)
-round(summary((Weights$e0*(Full_Final$PerformanceCoef*100))),2)
-
-summary(Weights$e0.5)
-summary((Weights$e0.5*Full_Final$Q6WTP))
-summary((Weights$e0.5*Full_Final$Q7WTP))
-round(summary((Weights$e0.5*(Full_Final$EmissionCoef*100))),2)
-round(summary((Weights$e0.5*(Full_Final$PerformanceCoef*100))),2)
-
-summary(Weights$e0.75)
-summary((Weights$e0.75*Full_Final$Q6WTP))
-summary((Weights$e0.75*Full_Final$Q7WTP))
-round(summary((Weights$e0.75*(Full_Final$EmissionCoef*100))),2)
-round(summary((Weights$e0.75*(Full_Final$PerformanceCoef*100))),2)
-
-summary(Weights$e1)
-summary((Weights$e1*Full_Final$Q6WTP))
-summary((Weights$e1*Full_Final$Q7WTP))
-round(summary((Weights$e1*(Full_Final$EmissionCoef*100))),2)
-round(summary((Weights$e1*(Full_Final$PerformanceCoef*100))),2)
-
-summary(Weights$e1.3)
-summary((Weights$e1.3*Full_Final$Q6WTP))
-summary((Weights$e1.3*Full_Final$Q7WTP))
-round(summary((Weights$e1.3*(Full_Final$EmissionCoef*100))),2)
-round(summary((Weights$e1.3*(Full_Final$PerformanceCoef*100))),2)
-
-summary(Weights$e1.5)
-summary((Weights$e1.5*Full_Final$Q6WTP))
-summary((Weights$e1.5*Full_Final$Q7WTP))
-round(summary((Weights$e1.5*(Full_Final$EmissionCoef*100))),2)
-round(summary((Weights$e1.5*(Full_Final$PerformanceCoef*100))),2)
-
-View(round(cbind(e05*Full_Final$Q6WTP,e075*Full_Final$Q6WTP,e1*Full_Final$Q6WTP,e125*Full_Final$Q6WTP,e15*Full_Final$Q6WTP),2))
-e05 <- data.frame("e0.5"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^0.5)
-e075 <- data.frame("e0.75"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^0.75)
-e1 <- data.frame("e1"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^1)
-e13 <- data.frame("e1.3"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^1.3)
-e15 <- data.frame("e1.5"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^1.5)
-
-
-## Implicit weights calculated by the procedure suggested in Pearce, Atkinson and Mourato (2006):
-## I use groups below ("poor") and above ("rich") mean sample income
-# Q6: 
-round(mean(Full_Final$Q6WTP[Full_Final$Q24AIncome < mean(Full_Final$Q24AIncome)])/
-  mean(Full_Final$Q6WTP[Full_Final$Q24AIncome > mean(Full_Final$Q24AIncome)]),2)
-
-# Q7: 
-round(mean(Full_Final$Q7WTP[Full_Final$Q24AIncome < mean(Full_Final$Q24AIncome)])/
-  mean(Full_Final$Q7WTP[Full_Final$Q24AIncome > mean(Full_Final$Q24AIncome)]),2)
-
-# Emission MWTP: 
-round(mean(Full_Final$EmissionCoef[Full_Final$Q24AIncome < mean(Full_Final$Q24AIncome)])/
-        mean(Full_Final$EmissionCoef[Full_Final$Q24AIncome > mean(Full_Final$Q24AIncome)]),2)
-
-# Performance MWTP: 
-round(mean(Full_Final$PerformanceCoef[Full_Final$Q24AIncome < mean(Full_Final$Q24AIncome)])/
-        mean(Full_Final$PerformanceCoef[Full_Final$Q24AIncome > mean(Full_Final$Q24AIncome)]),2)
 
 
 ## Here I make a dataframe which has Q6, Q7 WTP and the precautionary premium and is truncated according to all criteria 
@@ -5560,6 +5485,138 @@ round(100/length(ICLV_CVQ7_Predictions$Match)*length(ICLV_CVQ7_Predictions$Match
 ## WTP:
 apollo_deltaMethod(CVModel7, list(operation="ratio", parName1="b_Performance", parName2="b_Price"))
 apollo_deltaMethod(CVModel7, list(operation="ratio", parName1="b_Emission", parName2="b_Price"))
+
+
+
+
+#### Section 7: CBA section: ####
+
+
+#### Section 7A: Distributional weights: ####
+## Explicit Weights using sensitivity analysis for the elasticity of marginal utility of income
+Weights <- cbind(data.frame("e0"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^0),
+                 data.frame("e0.5"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^0.5),
+                 data.frame("e0.75"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^0.75),
+                 data.frame("e1"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^1),
+                 data.frame("e1.3"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^1.3),
+                 data.frame("e1.5"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^1.5))
+
+summary(Weights$e0)
+summary((Weights$e0*Full_Final$Q6WTP))
+summary((Weights$e0*Full_Final$Q7WTP))
+round(summary((Weights$e0*(Full_Final$EmissionCoef*100))),2)
+round(summary((Weights$e0*(Full_Final$PerformanceCoef*100))),2)
+
+summary(Weights$e0.5)
+summary((Weights$e0.5*Full_Final$Q6WTP))
+summary((Weights$e0.5*Full_Final$Q7WTP))
+round(summary((Weights$e0.5*(Full_Final$EmissionCoef*100))),2)
+round(summary((Weights$e0.5*(Full_Final$PerformanceCoef*100))),2)
+
+summary(Weights$e0.75)
+summary((Weights$e0.75*Full_Final$Q6WTP))
+summary((Weights$e0.75*Full_Final$Q7WTP))
+round(summary((Weights$e0.75*(Full_Final$EmissionCoef*100))),2)
+round(summary((Weights$e0.75*(Full_Final$PerformanceCoef*100))),2)
+
+summary(Weights$e1)
+summary((Weights$e1*Full_Final$Q6WTP))
+summary((Weights$e1*Full_Final$Q7WTP))
+round(summary((Weights$e1*(Full_Final$EmissionCoef*100))),2)
+round(summary((Weights$e1*(Full_Final$PerformanceCoef*100))),2)
+
+summary(Weights$e1.3)
+summary((Weights$e1.3*Full_Final$Q6WTP))
+summary((Weights$e1.3*Full_Final$Q7WTP))
+round(summary((Weights$e1.3*(Full_Final$EmissionCoef*100))),2)
+round(summary((Weights$e1.3*(Full_Final$PerformanceCoef*100))),2)
+
+summary(Weights$e1.5)
+summary((Weights$e1.5*Full_Final$Q6WTP))
+summary((Weights$e1.5*Full_Final$Q7WTP))
+round(summary((Weights$e1.5*(Full_Final$EmissionCoef*100))),2)
+round(summary((Weights$e1.5*(Full_Final$PerformanceCoef*100))),2)
+
+View(round(cbind(e05*Full_Final$Q6WTP,e075*Full_Final$Q6WTP,e1*Full_Final$Q6WTP,e125*Full_Final$Q6WTP,e15*Full_Final$Q6WTP),2))
+e05 <- data.frame("e0.5"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^0.5)
+e075 <- data.frame("e0.75"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^0.75)
+e1 <- data.frame("e1"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^1)
+e13 <- data.frame("e1.3"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^1.3)
+e15 <- data.frame("e1.5"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^1.5)
+
+
+## Implicit weights calculated by the procedure suggested in Pearce, Atkinson and Mourato (2006):
+## I use groups below ("poor") and above ("rich") mean sample income
+# Q6: 
+round(mean(Full_Final$Q6WTP[Full_Final$Q24AIncome < mean(Full_Final$Q24AIncome)])/
+        mean(Full_Final$Q6WTP[Full_Final$Q24AIncome > mean(Full_Final$Q24AIncome)]),2)
+
+# Q7: 
+round(mean(Full_Final$Q7WTP[Full_Final$Q24AIncome < mean(Full_Final$Q24AIncome)])/
+        mean(Full_Final$Q7WTP[Full_Final$Q24AIncome > mean(Full_Final$Q24AIncome)]),2)
+
+# Emission MWTP: 
+round(mean(Full_Final$EmissionCoef[Full_Final$Q24AIncome < mean(Full_Final$Q24AIncome)])/
+        mean(Full_Final$EmissionCoef[Full_Final$Q24AIncome > mean(Full_Final$Q24AIncome)]),2)
+
+# Performance MWTP: 
+round(mean(Full_Final$PerformanceCoef[Full_Final$Q24AIncome < mean(Full_Final$Q24AIncome)])/
+        mean(Full_Final$PerformanceCoef[Full_Final$Q24AIncome > mean(Full_Final$Q24AIncome)]),2)
+
+
+#### Section 7B: Net Benefits: ####
+# Figures estimated in Thesis C5
+Households <- 27800000
+Products <- 23000000
+ResearchPoint <- 20000000
+ResearchLower <- 5000000
+ResearchUpper <- 100000000
+
+WWTPPoint <- 1370000000
+WWTPLower <- 1000000000
+WWTPUpper <- 5000000000
+
+CosmeticsPoint <- 1010000000
+CosmeticsLower <- 213000000
+CosmeticsUpper <- 2500000000
+
+Full_Final <- cbind(Full_Final,
+      data.frame("ResearchPointNB"=Full_Final$Q6WTP - (ResearchPoint/Households)),
+      data.frame("ResearchLowerNB"=Full_Final$Q6WTP - (ResearchLower/Households)),
+      data.frame("ResearchUpperNB"=Full_Final$Q6WTP - (ResearchUpper/Households)),
+      data.frame("WWTPPointNB"=Full_Final$Q7WTP - (WWTPPoint/Households)),
+      data.frame("WWTPLowerNB"=Full_Final$Q7WTP - (WWTPLower/Households)),
+      data.frame("WWTPUpperNB"=Full_Final$Q7WTP - (WWTPUpper/Households)),
+      data.frame("CosmeticsPointNB"=Full_Final$EmissionCoef*100 - (CosmeticsPoint/Products)),
+      data.frame("CosmeticsLowerNB"=Full_Final$EmissionCoef*100 - (CosmeticsPoint/Products)),
+      data.frame("CosmeticsUpperNB"=Full_Final$EmissionCoef*100 - (CosmeticsPoint/Products)))
+
+## Implicit weights using net benefits instead:
+# Q6 using point, lower and upper bound cost estimates:
+round(mean(Full_Final$ResearchPointNB[Full_Final$Q24AIncome < mean(Full_Final$Q24AIncome)])/
+        mean(Full_Final$ResearchPointNB[Full_Final$Q24AIncome > mean(Full_Final$Q24AIncome)]),2)
+round(mean(Full_Final$ResearchLowerNB[Full_Final$Q24AIncome < mean(Full_Final$Q24AIncome)])/
+        mean(Full_Final$ResearchLowerNB[Full_Final$Q24AIncome > mean(Full_Final$Q24AIncome)]),2)
+round(mean(Full_Final$ResearchUpperNB[Full_Final$Q24AIncome < mean(Full_Final$Q24AIncome)])/
+        mean(Full_Final$ResearchUpperNB[Full_Final$Q24AIncome > mean(Full_Final$Q24AIncome)]),2)
+
+# Q7: 
+round(mean(Full_Final$WWTPPointNB[Full_Final$Q24AIncome < mean(Full_Final$Q24AIncome)])/
+        mean(Full_Final$WWTPPointNB[Full_Final$Q24AIncome > mean(Full_Final$Q24AIncome)]),2)
+round(mean(Full_Final$WWTPLowerNB[Full_Final$Q24AIncome < mean(Full_Final$Q24AIncome)])/
+        mean(Full_Final$WWTPLowerNB[Full_Final$Q24AIncome > mean(Full_Final$Q24AIncome)]),2)
+round(mean(Full_Final$WWTPUpperNB[Full_Final$Q24AIncome < mean(Full_Final$Q24AIncome)])/
+        mean(Full_Final$WWTPUpperNB[Full_Final$Q24AIncome > mean(Full_Final$Q24AIncome)]),2)
+
+# Emission MWTP: 
+round(mean(Full_Final$CosmeticsPointNB[Full_Final$Q24AIncome < mean(Full_Final$Q24AIncome)])/
+        mean(Full_Final$CosmeticsPointNB[Full_Final$Q24AIncome > mean(Full_Final$Q24AIncome)]),2)
+round(mean(Full_Final$CosmeticsLowerNB[Full_Final$Q24AIncome < mean(Full_Final$Q24AIncome)])/
+        mean(Full_Final$CosmeticsLowerNB[Full_Final$Q24AIncome > mean(Full_Final$Q24AIncome)]),2)
+round(mean(Full_Final$CosmeticsUpperNB[Full_Final$Q24AIncome < mean(Full_Final$Q24AIncome)])/
+        mean(Full_Final$CosmeticsUpperNB[Full_Final$Q24AIncome > mean(Full_Final$Q24AIncome)]),2)
+
+
 
 
 ####  END OF SCRIPT ####
