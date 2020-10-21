@@ -269,7 +269,9 @@ FullSurvey2$Q20Consequentiality[FullSurvey2$Q20Consequentiality == 0] <- 3
 FullSurvey2$Q20Consequentiality[FullSurvey2$Q20Consequentiality == 1] <- 0
 FullSurvey2$Q20Consequentiality[FullSurvey2$Q20Consequentiality == 2] <- 1
 FullSurvey2$Q20Consequentiality[FullSurvey2$Q20Consequentiality == 3] <- 2
-
+FullSurvey2$Q20Consequentiality[FullSurvey2$Q20Consequentiality==2] <- 3
+FullSurvey2$Q20Consequentiality[FullSurvey2$Q20Consequentiality==1] <- 2
+FullSurvey2$Q20Consequentiality[FullSurvey2$Q20Consequentiality==3] <- 1
 
 ## Belief in experts used a zero so just moving up one
 FullSurvey2$Q21Experts <- FullSurvey2$Q21Experts +1
@@ -427,11 +429,11 @@ Full_Long <- mlogit.data(Full, shape = "wide", choice = "Choice",
 AllCriteria <- data.frame("IDs" = unique(Full_Long$ID[ (Full_Long$Q25Understanding >=7) &
                                                          (Full_Long$Timing/60 >= (median(Full_Long$Timing)/60)/100*48) &
                                                          (Full_Long$Q8DominatedTest == 0) &
-                                                         (Full_Long$Q12CECertainty > 1) &
-                                                         (Full_Long$Q20Consequentiality == 1) ])) 
-AllCriteria <- AllCriteria[ !(AllCriteria$IDs %in% c()),]
-Full_Full <- Full_Final[ (Full_Final$ID) %in% c(AllCriteria),]
-nrow(Full_Full)/8
+                                                         (Full_Long$Q12CECertainty == 2) &
+                                                         (Full_Long$Q20Consequentiality == 2) ])) 
+AllCriteria1 <- AllCriteria[ !(AllCriteria$IDs %in% c()),]
+Full_Full1 <- Full_Final[ (Full_Final$ID) %in% c(AllCriteria1),]
+nrow(Full_Full1)/8
 
 
 ### Truncation Rule Two:
@@ -448,14 +450,45 @@ Full_Full <- Full_Final[ (Full_Final$ID) %in% c(AllCriteria),] ## Fully truncate
 Full_Excluded <- Full_Final[ !(Full_Final$ID) %in% c(AllCriteria),] ## The excluded responses
 nrow(Full_Full)/8
 
+
+length(Full_Long$ID[(Full_Long$Timing/60 >= (median(Full_Long$Timing)/60)/100*48)])/8
+length(Full_Long$ID[(Full_Long$Timing/60 >= (median(Full_Long$Timing)/60)/100*50)])/8
+
 ## Can eliminate protestors here:
 AllCriteria <- AllCriteria[ !(AllCriteria$IDs %in% c(24,33,44,61,121,127,182,200,211,219,239,251,275,306,320,326,341,360,363,371,399,464,467,479,480,506,579,591,649,654,931,932,935,953,989,1002,1011,1024,14,35,39,54,79,106,130,146,149,155,163,203,214,215,217,244,246,249,252,267,268,282,290,327,343,362,364,374,380,393,398,407,414,425,426,433,477,519,524,536,543,545,547,557,567,575,589,590,595,614,617,629,637,638,639,651,665,674,680,915,933,940,950,959,960,975,978,996,1026,1027,1028)),]
 # Note: Protests examined by eyeballing the text responses.
 
 #### Section 2B: Sample Characteristics: ####
 
-
-
+SummaryTable <- cbind("Q1Gender"=summary(FullSurvey2$Q1Gender),
+      "Q2Age"=summary(FullSurvey2$Q2Age),
+      "Q3Distance"=summary(FullSurvey2$Q3Distance),
+      "Q4Trips"=summary(FullSurvey2$Q4Trips),
+      "Q5Knowledge"=summary(FullSurvey2$Q5Knowledge),
+      "Q6ResearchResponse"=summary(FullSurvey2$Q6ResearchResponse),
+      "Q6ResearchCertainty"=summary(FullSurvey2$Q6ResearchCertainty),
+      "Q7TreatmentResponse"=summary(FullSurvey2$Q7TreatmentResponse),
+      "Q7TreatmentCertainty"=summary(FullSurvey2$Q7TreatmentCertainty),
+      "Q7TreatmentUpperResponse"=summary(FullSurvey2$Q7TreatmentUpperResponse),
+      "Q7TreatmentLowerResponse"=summary(FullSurvey2$Q7TreatmentLowerResponse),
+      "Q8DominatedTest"=summary(FullSurvey2$Q8DominatedTest),
+      "Q12CECertainty"=summary(FullSurvey2$Q12CECertainty),
+      "Q13CurrentThreatToSelf"=summary(FullSurvey2$Q13CurrentThreatToSelf),
+      "Q14FutureThreatToSelf"=summary(FullSurvey2$Q14FutureThreatToSelf),
+      "Q15ThreatToEnvironment"=summary(FullSurvey2$Q15ThreatToEnvironment),
+      "Q16BP"=summary(FullSurvey2$Q16BP),
+      "Q18Charity"=summary(FullSurvey2$Q18Charity),
+      "Q19Knowledge"=summary(FullSurvey2$Q19Knowledge),
+      "Q20Consequentiality"=summary(FullSurvey2$Q20Consequentiality),
+      "Q21Experts"=summary(FullSurvey2$Q21Experts),
+      "Q22Education"=summary(FullSurvey2$Q22Education),
+      "Q23Employment"=summary(FullSurvey2$Q23Employment),
+      "Q24RonaImpact"=summary(FullSurvey2$Q24RonaImpact),
+      "Q24AIncome"=summary(FullSurvey2$Q24AIncome),
+      "Q25Understanding"=summary(FullSurvey2$Q25Understanding),
+      "Timing"=summary(FullSurvey2$Timing),
+      "Order"=summary(FullSurvey2$Order))
+xtable::xtable(SummaryTable,digits=3)
 
 # Gender proportion:
 100/670*table(FullSurvey$Q1Gender)
@@ -509,7 +542,7 @@ MNL_1 <- mlogit(Choice ~  Price + Performance + Emission,
                    alt.subset = c("A","B"),reflevel = "A") 
 summary(MNL_1) ## Estimates a simplistic mlogit model before adding in individual-specifics
 MNL_1_WTP <- c(-1*coef(MNL_1)["Emission"]/coef(MNL_1)["Price"],-1*coef(MNL_1)["Performance"]/coef(MNL_1)["Price"])
-
+MNL_1_WTP
 
 ## Model 2: Attributes only with quadratic terms: 
 MNL_2 <- mlogit(Choice ~  Price + I(Performance^2) + I(Emission^2), 
@@ -1958,19 +1991,58 @@ wilcox.test(x=Full_Final$EmissionCoef[Full_Final$Q8DominatedTest==0],y=Full_Fina
 
 
 ## Rule 5) Consequentiality testing: Shows there is a significant difference
-wilcox.test(x=Full_Final$Q6WTP[Full_Final$Q20Consequentiality==0],y=Full_Final$Q6WTP[Full_Final$Q20Consequentiality==1]) ## Outcome: NULL
-wilcox.test(x=Full_Final$Q7WTP[Full_Final$Q20Consequentiality==0],y=Full_Final$Q7WTP[Full_Final$Q20Consequentiality==1]) ## Outcome: Alternative of =/= 
-wilcox.test(x=Full_Final$PerformanceCoef[Full_Final$Q20Consequentiality==0],y=Full_Final$PerformanceCoef[Full_Final$Q20Consequentiality==1]) ## Outcome: Alternative of =/=
-wilcox.test(x=Full_Final$EmissionCoef[Full_Final$Q20Consequentiality==0],y=Full_Final$EmissionCoef[Full_Final$Q20Consequentiality==1]) ## Outcome: Alternative of =/= 
+wilcox.test(x=Full_Final$Q6WTP[Full_Final$Q20Consequentiality==0],y=Full_Final$Q6WTP[Full_Final$Q20Consequentiality==1]) ## Outcome: P=0.2353
+wilcox.test(x=Full_Final$Q6WTP[Full_Final$Q20Consequentiality==0],y=Full_Final$Q6WTP[Full_Final$Q20Consequentiality==2]) ## Outcome: P<0.000
+wilcox.test(x=Full_Final$Q6WTP[Full_Final$Q20Consequentiality==1],y=Full_Final$Q6WTP[Full_Final$Q20Consequentiality==2]) ## Outcome: P<0.000
+
+wilcox.test(x=Full_Final$Q7WTP[Full_Final$Q20Consequentiality==0],y=Full_Final$Q7WTP[Full_Final$Q20Consequentiality==1]) ## Outcome: P<0.000
+wilcox.test(x=Full_Final$Q7WTP[Full_Final$Q20Consequentiality==0],y=Full_Final$Q7WTP[Full_Final$Q20Consequentiality==2]) ## Outcome: P<0.000
+wilcox.test(x=Full_Final$Q7WTP[Full_Final$Q20Consequentiality==1],y=Full_Final$Q7WTP[Full_Final$Q20Consequentiality==2]) ## Outcome: P<0.000
+
+wilcox.test(x=Full_Final$PerformanceCoef[Full_Final$Q20Consequentiality==0],y=Full_Final$PerformanceCoef[Full_Final$Q20Consequentiality==1]) ## Outcome: P=0.007
+wilcox.test(x=Full_Final$PerformanceCoef[Full_Final$Q20Consequentiality==0],y=Full_Final$PerformanceCoef[Full_Final$Q20Consequentiality==2]) ## Outcome: P<0.000
+wilcox.test(x=Full_Final$PerformanceCoef[Full_Final$Q20Consequentiality==1],y=Full_Final$PerformanceCoef[Full_Final$Q20Consequentiality==2]) ## Outcome: P<0.000
+
+wilcox.test(x=Full_Final$EmissionCoef[Full_Final$Q20Consequentiality==0],y=Full_Final$EmissionCoef[Full_Final$Q20Consequentiality==1]) ## Outcome: P=0.007
+wilcox.test(x=Full_Final$EmissionCoef[Full_Final$Q20Consequentiality==0],y=Full_Final$EmissionCoef[Full_Final$Q20Consequentiality==2]) ## Outcome: P<0.000
+wilcox.test(x=Full_Final$EmissionCoef[Full_Final$Q20Consequentiality==1],y=Full_Final$EmissionCoef[Full_Final$Q20Consequentiality==2]) ## Outcome: P<0.000
+
+
 
 
 ## Rule 6) Certainty testing: Shows there is a significant difference
+wilcox.test(x=Full_Final$Q6WTP[Full_Final$Q6ResearchCertainty==0],y=Full_Final$Q6WTP[Full_Final$Q6ResearchCertainty==1]) ## Outcome: Alternative of =/=
 wilcox.test(x=Full_Final$Q6WTP[Full_Final$Q6ResearchCertainty==0],y=Full_Final$Q6WTP[Full_Final$Q6ResearchCertainty==2]) ## Outcome: Alternative of =/=
+wilcox.test(x=Full_Final$Q6WTP[Full_Final$Q6ResearchCertainty==1],y=Full_Final$Q6WTP[Full_Final$Q6ResearchCertainty==2]) ## Outcome: Alternative of =/=
+
 wilcox.test(x=Full_Final$Q7WTP[Full_Final$Q7TreatmentCertainty==0],y=Full_Final$Q7WTP[Full_Final$Q7TreatmentCertainty==1]) ## Outcome: Alternative of =/= 
+wilcox.test(x=Full_Final$Q7WTP[Full_Final$Q7TreatmentCertainty==0],y=Full_Final$Q7WTP[Full_Final$Q7TreatmentCertainty==2]) ## Outcome: Alternative of =/= 
+wilcox.test(x=Full_Final$Q7WTP[Full_Final$Q7TreatmentCertainty==1],y=Full_Final$Q7WTP[Full_Final$Q7TreatmentCertainty==2]) ## Outcome: Alternative of =/= 
+
+wilcox.test(x=Full_Final$PerformanceCoef[Full_Final$Q12CECertainty==0],y=Full_Final$PerformanceCoef[Full_Final$Q12CECertainty==1]) ## Outcome: NULL
 wilcox.test(x=Full_Final$PerformanceCoef[Full_Final$Q12CECertainty==0],y=Full_Final$PerformanceCoef[Full_Final$Q12CECertainty==2]) ## Outcome: NULL
+wilcox.test(x=Full_Final$PerformanceCoef[Full_Final$Q12CECertainty==1],y=Full_Final$PerformanceCoef[Full_Final$Q12CECertainty==2]) ## Outcome: NULL
+
+wilcox.test(x=Full_Final$EmissionCoef[Full_Final$Q12CECertainty==0],y=Full_Final$EmissionCoef[Full_Final$Q12CECertainty==1]) ## Outcome: NULL 
+wilcox.test(x=Full_Final$EmissionCoef[Full_Final$Q12CECertainty==0],y=Full_Final$EmissionCoef[Full_Final$Q12CECertainty==2]) ## Outcome: NULL 
 wilcox.test(x=Full_Final$EmissionCoef[Full_Final$Q12CECertainty==1],y=Full_Final$EmissionCoef[Full_Final$Q12CECertainty==2]) ## Outcome: NULL 
 
+## Testing difference between full and truncated samples
+wilcox.test(x=Full_Final$Q6WTP,y=Full_Full$Q6WTP) ## P=0.049
+wilcox.test(x=Full_Final$Q6WTP,y=Full_Full1$Q6WTP) ## P=0.041 
+wilcox.test(x=Full_Full$Q6WTP,y=Full_Full1$Q6WTP) ## P=0.16
 
+wilcox.test(x=Full_Final$Q7WTP,y=Full_Full$Q7WTP) ## P=0.049
+wilcox.test(x=Full_Final$Q7WTP,y=Full_Full1$Q7WTP) ## P=0.041 
+wilcox.test(x=Full_Full$Q7WTP,y=Full_Full1$Q7WTP) ## P=0.16
+
+wilcox.test(x=Full_Final$PerformanceCoef,y=Full_Full$PerformanceCoef) ## P=0.049
+wilcox.test(x=Full_Final$PerformanceCoef,y=Full_Full1$PerformanceCoef) ## P=0.041 
+wilcox.test(x=Full_Full$PerformanceCoef,y=Full_Full1$PerformanceCoef) ## P=0.16
+
+wilcox.test(x=Full_Final$EmissionCoef,y=Full_Full$EmissionCoef) ## P=0.049
+wilcox.test(x=Full_Final$EmissionCoef,y=Full_Full1$EmissionCoef) ## P=0.041 
+wilcox.test(x=Full_Full$EmissionCoef,y=Full_Full1$EmissionCoef) ## P=0.16
 
 
 
@@ -2158,7 +2230,7 @@ library(gridExtra)
 
 
 ## Plotting a histogram of individual attribute-specific WTP 
-EmissionDistribution <- ggplot(Full_Long, aes(x=EmissionCoef)) + 
+EmissionDistribution <- ggplot(Full_Final, aes(x=EmissionCoef)) + 
   geom_histogram(color="black", fill="white",bins = 50)+
   scale_x_continuous(breaks=waiver(),limits = c(-0.5,0.5),
                      n.breaks = 10)+
@@ -2172,6 +2244,29 @@ PerformanceDistribution <- ggplot(Full_Final, aes(x=PerformanceCoef)) +
                      n.breaks = 10)+
   ggtitle("Histogram of performance WTP.")
 
+
+### Plotting Q8 Dominance test on MWTP:
+Q8PerformanceGraph <- ggplot(Full_Final, aes(as.numeric(Q8DominatedTest), abs(PerformanceCoef))) + 
+  stat_summary(fun=mean, geom="col")+
+  scale_x_discrete(name="Q8DominatedTest",limits=c(0, 1),
+                   labels=c("0 (Pass)\n (N = 478)","1 (Fail)\n (N = 192)"))+
+  scale_y_continuous(name="| Performance MWTP |",
+                   breaks=waiver(),n.breaks = 10, labels = function(x) paste0("£",x))+
+  geom_text(x = 0, y = 0.02, label = paste0("Mean: -£",abs(round(mean(Full_Final$PerformanceCoef[Full_Final$Q8DominatedTest==0]),3))), color="white")+
+  geom_text(x = 1, y = 0.02, label = paste0("Mean: -£",abs(round(mean(Full_Final$PerformanceCoef[Full_Final$Q8DominatedTest==1]),3))), color="white")+
+  ggtitle("Absolute performance MWTP by dominated test.")
+  
+Q8EmissionGraph <- ggplot(Full_Final, aes(as.numeric(Q8DominatedTest), EmissionCoef)) + 
+  stat_summary(fun=mean, geom="col")+
+  scale_x_discrete(name="Q8DominatedTest",limits=c(0, 1),
+                   labels=c("0 (Pass)\n (N = 478)","1 (Fail)\n (N = 192)"))+
+  scale_y_continuous(name="Emissions MWTP",
+                     breaks=waiver(),n.breaks = 10, labels = function(x) paste0("£",x))+
+  geom_text(x = 0, y = 0.02, label = paste0("Mean: £",abs(round(mean(Full_Final$EmissionCoef[Full_Final$Q8DominatedTest==0]),3))), color="white")+
+  geom_text(x = 1, y = 0.02, label = paste0("Mean: £",abs(round(mean(Full_Final$EmissionCoef[Full_Final$Q8DominatedTest==1]),3))), color="white")+
+  ggtitle("Emissions MWTP by dominated test.")
+  
+grid.arrange(Q8PerformanceGraph, Q8EmissionGraph)
 
 ### Plotting Q8 Dominance test
 PerformanceWTP <- ggplot(Full_Final, aes(y= PerformanceCoef,x=as.numeric(Q24AIncome))) + 
@@ -2331,6 +2426,55 @@ Q20GraphB <- ggplot(FF, aes(x=as.numeric(Q20Consequentiality))) +
   labs(x = "Q20 Do you think this survey could be policy consequential?",y="Fitted CV WTP")
 
 
+ConsBarEmissions <- ggplot(Full_Final, aes((Q20Consequentiality), EmissionCoef)) + 
+  stat_summary(fun=mean, geom="col")+
+  scale_x_discrete(name="Q20Consequentiality",limits=c(0,1, 2),
+                 labels=c("Not Consequential\n (N = 110)","Don't Know\n (N = 202)","Yes\n (N = 358)"))+
+  scale_y_continuous(name="Emissions MWTP",
+                     breaks=waiver(),n.breaks = 10, labels = function(x) paste0("£",x))+
+  geom_text(x = 0, y = 0.02, label = paste0("Mean: £",round(mean(Full_Final$EmissionCoef[Full_Final$Q20Consequentiality==0]),3)), color="white")+
+  geom_text(x = 1, y = 0.02, label = paste0("Mean: £",round(mean(Full_Final$EmissionCoef[Full_Final$Q20Consequentiality==1]),3)), color="white")+
+  geom_text(x = 2, y = 0.02, label = paste0("Mean: £",round(mean(Full_Final$EmissionCoef[Full_Final$Q20Consequentiality==2]),3)), color="white")+ 
+  ggtitle("Mean Emission MWTP by consequentiality beliefs.")
+
+ConsBarPerformance <- ggplot(Full_Final, aes((Q20Consequentiality), PerformanceCoef)) + 
+  stat_summary(fun=mean, geom="col")+
+  scale_x_discrete(name="Q20Consequentiality",limits=c(0,1, 2),
+                   labels=c("Not Consequential\n (N = 110)","Don't Know\n (N = 202)","Yes\n (N = 358)"))+
+  scale_y_continuous(name="Performance MWTP",
+                     breaks=waiver(),n.breaks = 10, labels = function(x) paste0("£",x))+
+  geom_text(x = 0, y = -0.02, label = paste0("Mean: -£",abs(round(mean(Full_Final$PerformanceCoef[Full_Final$Q20Consequentiality==0]),3))), color="white")+
+  geom_text(x = 1, y = -0.02, label = paste0("Mean: -£",abs(round(mean(Full_Final$PerformanceCoef[Full_Final$Q20Consequentiality==1]),3))), color="white")+
+  geom_text(x = 2, y = -0.02, label = paste0("Mean: -£",abs(round(mean(Full_Final$PerformanceCoef[Full_Final$Q20Consequentiality==2]),3))), color="white")+
+  ggtitle("Mean Performance MWTP by consequentiality beliefs.")
+
+ConsBarQ6 <- ggplot(Full_Final, aes((Q20Consequentiality), Q6WTP)) + 
+  stat_summary(fun=mean, geom="col")+
+  scale_x_discrete(name="Q20Consequentiality",limits=c(0,1, 2),
+                   labels=c("Not Consequential\n (N = 110)","Don't Know\n (N = 202)","Yes\n (N = 358)"))+
+  scale_y_continuous(name="Q6WTP",
+                     breaks=waiver(),n.breaks = 10, labels = function(x) paste0("£",x))+
+  geom_text(x = 0, y = 20, label = paste0("Mean: £",round(mean(Full_Final$Q6WTP[Full_Final$Q20Consequentiality==0]),2)), color="white")+
+  geom_text(x = 1, y = 20, label = paste0("Mean: £",round(mean(Full_Final$Q6WTP[Full_Final$Q20Consequentiality==1]),2)), color="white")+
+  geom_text(x = 2, y = 20, label = paste0("Mean: £",round(mean(Full_Final$Q6WTP[Full_Final$Q20Consequentiality==2]),2)), color="white")+ 
+  ggtitle("Mean Q6 WTP by consequentiality beliefs.")
+
+ConsBarQ7 <- ggplot(Full_Final, aes((Q20Consequentiality), Q7WTP)) + 
+  stat_summary(fun=mean, geom="col")+
+  scale_x_discrete(name="Q20Consequentiality",limits=c(0,1, 2),
+                   labels=c("Not Consequential\n (N = 110)","Don't Know\n (N = 202)","Yes\n (N = 358)"))+
+  scale_y_continuous(name="Q7WTP",
+                     breaks=waiver(),n.breaks = 10, labels = function(x) paste0("£",x))+
+  geom_text(x = 0, y = 20, label = paste0("Mean: £",round(mean(Full_Final$Q7WTP[Full_Final$Q20Consequentiality==0]),2)), color="white")+
+  geom_text(x = 1, y = 20, label = paste0("Mean: £",round(mean(Full_Final$Q7WTP[Full_Final$Q20Consequentiality==1]),2)), color="white")+
+  geom_text(x = 2, y = 20, label = paste0("Mean: £",round(mean(Full_Final$Q7WTP[Full_Final$Q20Consequentiality==2]),2)), color="white")+
+  ggtitle("Mean Q7 WTP by consequentiality beliefs.")
+
+grid.arrange(ConsBarEmissions, ConsBarPerformance)
+grid.arrange(ConsBarQ6, ConsBarQ7)
+
+  
+  
 rbind(cbind("Q6o0C0"=length(Full_Final$Q6ResearchCertainty[(Full_Final$Order==0) & (Full_Final$Q6ResearchCertainty ==0)])/8,"Q6o1C0"=length(Full_Final$Q6ResearchCertainty[(Full_Final$Order==1) & (Full_Final$Q6ResearchCertainty ==0)])/8),
 cbind("Q6o0C1"=length(Full_Final$Q6ResearchCertainty[(Full_Final$Order==0) & (Full_Final$Q6ResearchCertainty ==1)])/8,"Q6o1C1"=length(Full_Final$Q6ResearchCertainty[(Full_Final$Order==1) & (Full_Final$Q6ResearchCertainty ==1)])/8),
 cbind("Q6o0C1"=length(Full_Final$Q6ResearchCertainty[(Full_Final$Order==0) & (Full_Final$Q6ResearchCertainty ==2)])/8,"Q6o1C1"=length(Full_Final$Q6ResearchCertainty[(Full_Final$Order==1) & (Full_Final$Q6ResearchCertainty ==2)])/8))
@@ -2416,6 +2560,69 @@ CertaintyGraph <- ggplot(Full_Final, aes(x=Q6ResearchCertainty)) +
   scale_y_continuous(name="WTP",breaks = waiver(), n.breaks=10,
                      limits=c(0,75),labels = function(x) paste0("£",x))+
   labs(x = "Income",y="WTP")
+
+Q20P <- ggplot(Full_Final, aes(as.numeric(Q6ResearchCertainty), abs(PerformanceCoef))) + 
+  stat_summary(fun=mean, geom="col")+
+  scale_x_discrete(name="Q12CECertainty",limits=c(0, 1,2),
+                   labels=c("0 (Unsure)\n (N = 40)","1 (Quite Sure)\n (N = 328)","2 (Very Sure)\n (N=302)"))+
+  scale_y_continuous(name="| PerformanceCoef |",
+                     breaks=waiver(),n.breaks = 10, labels = function(x) paste0("£",x))+
+  geom_text(x = 0, y = 0.01, label = paste0("Mean: -£",abs(round(mean(Full_Final$PerformanceCoef[Full_Final$Q12CECertainty==0]),3))), color="white")+
+  geom_text(x = 1, y = 0.01, label = paste0("Mean: -£",abs(round(mean(Full_Final$PerformanceCoef[Full_Final$Q12CECertainty==1]),3))), color="white")+
+  geom_text(x = 2, y = 0.01, label = paste0("Mean: -£",abs(round(mean(Full_Final$PerformanceCoef[Full_Final$Q12CECertainty==2]),3))), color="white")+
+  ggtitle("Performance MWTP by certainty beliefs.")
+
+Q20E <- ggplot(Full_Final, aes(as.numeric(Q12CECertainty), abs(EmissionCoef))) + 
+  stat_summary(fun=mean, geom="col")+
+  scale_x_discrete(name="Q12CECertainty",limits=c(0, 1,2),
+                   labels=c("0 (Unsure)\n (N = 40)","1 (Quite Sure)\n (N = 328)","2 (Very Sure)\n (N=302)"))+
+  scale_y_continuous(name="Emission MWTP",
+                     breaks=waiver(),n.breaks = 10, labels = function(x) paste0("£",x))+
+  geom_text(x = 0, y = 0.02, label = paste0("Mean: £",round(mean(Full_Final$EmissionCoef[Full_Final$Q12CECertainty==0]),3)), color="white")+
+  geom_text(x = 1, y = 0.02, label = paste0("Mean: £",round(mean(Full_Final$EmissionCoef[Full_Final$Q12CECertainty==1]),3)), color="white")+
+  geom_text(x = 2, y = 0.02, label = paste0("Mean: £",round(mean(Full_Final$EmissionCoef[Full_Final$Q12CECertainty==2]),3)), color="white")+ 
+  ggtitle("Emissions MWTP by certainty beliefs.")
+
+grid.arrange(Q20P,Q20E)
+
+
+Q20Q6 <- ggplot(Full_Final, aes(as.numeric(Q6ResearchCertainty), abs(Q6WTP))) + 
+  stat_summary(fun=mean, geom="col")+
+  scale_x_discrete(name="Q6ResearchCertainty",limits=c(0, 1,2),
+                   labels=c("0 (Unsure)\n (N = 70)","1 (Quite Sure)\n (N = 277)","2 (Very Sure)\n (N=323)"))+
+  scale_y_continuous(name="Q6WTP",
+                     breaks=waiver(),n.breaks = 10, labels = function(x) paste0("£",x))+
+  geom_text(x = 0, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Q6WTP[Full_Final$Q6ResearchCertainty==0]),2)), color="white")+
+  geom_text(x = 1, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Q6WTP[Full_Final$Q6ResearchCertainty==1]),2)), color="white")+
+  geom_text(x = 2, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Q6WTP[Full_Final$Q6ResearchCertainty==2]),2)), color="white")+ 
+  ggtitle("Mean Q6 WTP by certainty beliefs.")
+
+Q20Q7 <- ggplot(Full_Final, aes(as.numeric(Q7TreatmentCertainty), abs(Q7WTP))) + 
+  stat_summary(fun=mean, geom="col")+
+  scale_x_discrete(name="Q7ResearchCertainty",limits=c(0, 1,2),
+                   labels=c("0 (Unsure)\n (N = 54)","1 (Quite Sure)\n (N = 269)","2 (Very Sure)\n (N=347)"))+
+  scale_y_continuous(name="Q7WTP",
+                     breaks=waiver(),n.breaks = 10, labels = function(x) paste0("£",x))+
+  geom_text(x = 0, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Q7WTP[Full_Final$Q7TreatmentCertainty==0]),2)), color="white")+
+  geom_text(x = 1, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Q7WTP[Full_Final$Q7TreatmentCertainty==1]),2)), color="white")+
+  geom_text(x = 2, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Q7WTP[Full_Final$Q7TreatmentCertainty==2]),2)), color="white")+ 
+  ggtitle("Mean Q7 WTP by certainty beliefs.")
+
+grid.arrange(Q20Q6,Q20Q7)
+
+
+
+
+Q8EmissionGraph <- ggplot(Full_Final, aes(as.numeric(Q8DominatedTest), EmissionCoef)) + 
+  stat_summary(fun=mean, geom="col")+
+  scale_x_discrete(name="Q8DominatedTest",limits=c(0, 1),
+                   labels=c("0 (Pass)\n (N = 478)","1 (Fail)\n (N = 192)"))+
+  scale_y_continuous(name="Emissions MWTP",
+                     breaks=waiver(),n.breaks = 10, labels = function(x) paste0("£",x))
+grid.arrange(Q8PerformanceGraph, Q8EmissionGraph)
+
+
+grid.arrange(Q12GraphB,CertaintyGraph)
 
 
 AgeGraphCV <- ggplot(Full_Final, aes(x=Q2Age)) + 
