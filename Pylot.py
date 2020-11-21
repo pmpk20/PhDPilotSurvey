@@ -457,7 +457,204 @@ def NPV(X):
     BaseCosts = pd.DataFrame([Total["Base"],Total["Base"],Total["Base"],Total["Base"],Total["Base"],Total["Base"],Total["Base"],Total["Base"],Total["Base"],Total["Base"]])
     BaseCosts = BaseCosts.transpose()
     BaseCosts.columns = range(10)
-    print(round(npf.npv(0.05,BaseCosts.iloc[0,:]),2))
+    return (round(npf.npv(0.035,BaseCosts.iloc[0,:]),2))
     
     
-        
+Households =27800000
+Products =23000000
+
+ResearchPointCost =20
+ResearchLowerCost =5
+ResearchUpperCost =100
+ResearchPointBenefit =1480
+ResearchLowerBenefit =1390
+ResearchUpperBenefit =1570
+
+
+WWTPPointCost =1370
+WWTPLowerCost =1000
+WWTPUpperCost =5000
+WWTPPointBenefit =2050
+WWTPLowerBenefit =1970
+WWTPUpperBenefit =2120
+
+CosmeticsPointCost =1010
+CosmeticsLowerCost =213
+CosmeticsUpperCost =2500
+CosmeticsPointBenefit =82.8
+CosmeticsLowerBenefit =78.2
+CosmeticsUpperBenefit =89.7
+
+#### NPV
+pd.concat([pd.DataFrame({'-20%':[round(NPV(((ResearchPointBenefit*0.8)-(ResearchPointCost*0.8)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*0.9)-(ResearchPointCost*0.8)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*0.95)-(ResearchPointCost*0.8)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*1)-(ResearchPointCost*0.8)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*1.05)-(ResearchPointCost*0.8)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*1.1)-(ResearchPointCost*0.8)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*1.2)-(ResearchPointCost*0.8)) )/1000,2)]}),
+pd.DataFrame({'-10%':[round(NPV(((ResearchPointBenefit*0.8)-(ResearchPointCost*0.9)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*0.9)-(ResearchPointCost*0.9)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*0.95)-(ResearchPointCost*0.9)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*1)-(ResearchPointCost*0.9)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*1.05)-(ResearchPointCost*0.9)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*1.1)-(ResearchPointCost*0.9)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*1.2)-(ResearchPointCost*0.9)) )/1000,2)]}),
+pd.DataFrame({'-5%':[round(NPV(((ResearchPointBenefit*0.8)-(ResearchPointCost*0.95)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*0.9)-(ResearchPointCost*0.95)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*0.95)-(ResearchPointCost*0.95)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*1)-(ResearchPointCost*0.95)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*1.05)-(ResearchPointCost*0.95)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*1.1)-(ResearchPointCost*0.95)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*1.2)-(ResearchPointCost*0.95)) )/1000,2)]}),
+pd.DataFrame({'0%':[round(NPV(((ResearchPointBenefit*0.8)-(ResearchPointCost*1)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*0.9)-(ResearchPointCost*1)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*0.95)-(ResearchPointCost*1)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*1)-(ResearchPointCost*1)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*1.05)-(ResearchPointCost*1)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*1.1)-(ResearchPointCost*1)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*1.2)-(ResearchPointCost*1)) )/1000,2)]}),
+pd.DataFrame({'+5%':[round(NPV(((ResearchPointBenefit*0.8)-(ResearchPointCost*1.05)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*0.9)-(ResearchPointCost*1.05)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*0.95)-(ResearchPointCost*1.05)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*1)-(ResearchPointCost*1.05)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*1.05)-(ResearchPointCost*1.05)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*1.1)-(ResearchPointCost*1.05)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*1.2)-(ResearchPointCost*1.05)) )/1000,2)]}),
+pd.DataFrame({'+10%':[round(NPV(((ResearchPointBenefit*0.8)-(ResearchPointCost*1.1)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*0.9)-(ResearchPointCost*1.1)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*0.95)-(ResearchPointCost*1.1)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*1)-(ResearchPointCost*1.1)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*1.05)-(ResearchPointCost*1.1)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*1.1)-(ResearchPointCost*1.1)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*1.2)-(ResearchPointCost*1.1)) )/1000,2)]}),
+pd.DataFrame({'+20%':[round(NPV(((ResearchPointBenefit*0.8)-(ResearchPointCost*1.2)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*0.9)-(ResearchPointCost*1.2)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*0.95)-(ResearchPointCost*1.2)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*1)-(ResearchPointCost*1.2)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*1.05)-(ResearchPointCost*1.2)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*1.1)-(ResearchPointCost*1.2)) )/1000,2),
+                    round(NPV(((ResearchPointBenefit*1.2)-(ResearchPointCost*1.2)) )/1000,2)]})],axis=1)
+
+#### B:C Ratio
+pd.concat([pd.DataFrame({'-20%':[round(NPV(ResearchPointBenefit*0.8)/NPV(ResearchPointCost*0.8),2),
+                      round(NPV(ResearchPointBenefit*0.9)/NPV(ResearchPointCost*0.8),2),
+                      round(NPV(ResearchPointBenefit*0.95)/NPV(ResearchPointCost*0.8),2),
+                      round(NPV(ResearchPointBenefit*1)/NPV(ResearchPointCost*0.8),2),
+                      round(NPV(ResearchPointBenefit*1.05)/NPV(ResearchPointCost*0.8),2),
+                      round(NPV(ResearchPointBenefit*1.1)/NPV(ResearchPointCost*0.8),2),
+                      round(NPV(ResearchPointBenefit*1.2)/NPV(ResearchPointCost*0.8),2)]}),
+pd.DataFrame({'-10%':[round(NPV(ResearchPointBenefit*0.8)/NPV(ResearchPointCost*0.9),2),
+                      round(NPV(ResearchPointBenefit*0.9)/NPV(ResearchPointCost*0.9),2),
+                      round(NPV(ResearchPointBenefit*0.95)/NPV(ResearchPointCost*0.9),2),
+                      round(NPV(ResearchPointBenefit*1)/NPV(ResearchPointCost*0.9),2),
+                      round(NPV(ResearchPointBenefit*1.05)/NPV(ResearchPointCost*0.9),2),
+                      round(NPV(ResearchPointBenefit*1.1)/NPV(ResearchPointCost*0.9),2),
+                      round(NPV(ResearchPointBenefit*1.2)/NPV(ResearchPointCost*0.9),2)]}),
+pd.DataFrame({'-5%':[round(NPV(ResearchPointBenefit*0.8)/NPV(ResearchPointCost*0.95),2),
+                      round(NPV(ResearchPointBenefit*0.9)/NPV(ResearchPointCost*0.95),2),
+                      round(NPV(ResearchPointBenefit*0.95)/NPV(ResearchPointCost*0.95),2),
+                      round(NPV(ResearchPointBenefit*1)/NPV(ResearchPointCost*0.95),2),
+                      round(NPV(ResearchPointBenefit*1.05)/NPV(ResearchPointCost*0.95),2),
+                      round(NPV(ResearchPointBenefit*1.1)/NPV(ResearchPointCost*0.95),2),
+                      round(NPV(ResearchPointBenefit*1.2)/NPV(ResearchPointCost*0.95),2)]}),
+pd.DataFrame({'0%':[round(NPV(ResearchPointBenefit*0.8)/NPV(ResearchPointCost*1),2),
+                      round(NPV(ResearchPointBenefit*0.9)/NPV(ResearchPointCost*1),2),
+                      round(NPV(ResearchPointBenefit*0.95)/NPV(ResearchPointCost*1),2),
+                      round(NPV(ResearchPointBenefit*1)/NPV(ResearchPointCost*1),2),
+                      round(NPV(ResearchPointBenefit*1.05)/NPV(ResearchPointCost*1),2),
+                      round(NPV(ResearchPointBenefit*1.1)/NPV(ResearchPointCost*1),2),
+                      round(NPV(ResearchPointBenefit*1.2)/NPV(ResearchPointCost*1),2)]}),
+pd.DataFrame({'+5%':[round(NPV(ResearchPointBenefit*0.8)/NPV(ResearchPointCost*1.05),2),
+                      round(NPV(ResearchPointBenefit*0.9)/NPV(ResearchPointCost*1.05),2),
+                      round(NPV(ResearchPointBenefit*0.95)/NPV(ResearchPointCost*1.05),2),
+                      round(NPV(ResearchPointBenefit*1)/NPV(ResearchPointCost*1.05),2),
+                      round(NPV(ResearchPointBenefit*1.05)/NPV(ResearchPointCost*1.05),2),
+                      round(NPV(ResearchPointBenefit*1.1)/NPV(ResearchPointCost*1.05),2),
+                      round(NPV(ResearchPointBenefit*1.2)/NPV(ResearchPointCost*1.05),2)]}),
+pd.DataFrame({'+10%':[round(NPV(ResearchPointBenefit*0.8)/NPV(ResearchPointCost*1.1),2),
+                      round(NPV(ResearchPointBenefit*0.9)/NPV(ResearchPointCost*1.1),2),
+                      round(NPV(ResearchPointBenefit*0.95)/NPV(ResearchPointCost*1.1),2),
+                      round(NPV(ResearchPointBenefit*1)/NPV(ResearchPointCost*1.1),2),
+                      round(NPV(ResearchPointBenefit*1.05)/NPV(ResearchPointCost*1.1),2),
+                      round(NPV(ResearchPointBenefit*1.1)/NPV(ResearchPointCost*1.1),2),
+                      round(NPV(ResearchPointBenefit*1.2)/NPV(ResearchPointCost*1.1),2)]}),
+pd.DataFrame({'+20%':[round(NPV(ResearchPointBenefit*0.8)/NPV(ResearchPointCost*1.2),2),
+                      round(NPV(ResearchPointBenefit*0.9)/NPV(ResearchPointCost*1.2),2),
+                      round(NPV(ResearchPointBenefit*0.95)/NPV(ResearchPointCost*1.2),2),
+                      round(NPV(ResearchPointBenefit*1)/NPV(ResearchPointCost*1.2),2),
+                      round(NPV(ResearchPointBenefit*1.05)/NPV(ResearchPointCost*1.2),2),
+                      round(NPV(ResearchPointBenefit*1.1)/NPV(ResearchPointCost*1.2),2),
+                      round(NPV(ResearchPointBenefit*1.2)/NPV(ResearchPointCost*1.2),2)]})],axis=1)
+
+
+
+
+Households = 27800000
+Products = 23000000
+ResearchPoint = 20000000/27800000
+ResearchLower = 5
+ResearchUpper = 100
+
+WWTPPoint = 1370
+WWTPLower = 1000
+WWTPUpper = 5000
+WWTPPoint = 1370000000/27800000
+
+CosmeticsPoint = 1010
+CosmeticsLower = 2130
+CosmeticsUpper = 2500
+CosmeticsPoint = 1010000000/23000000
+
+Q6 = 53.25
+Q7 = 73.71
+SampleY = 2192
+Em = 0.038
+Perf = 0.045
+
+
+Explicits = pd.concat([pd.concat([pd.DataFrame([np.mean(Q6*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),0)),
+np.mean(Q6*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),0.5)),
+np.mean(Q6*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),0.75)),
+np.mean(Q6*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),1)),
+np.mean(Q6*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),1.25)),
+np.mean(Q6*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),1.5))]).transpose(),
+pd.DataFrame([round(NPV((Q6*Households*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),0))-np.mean(ResearchPoint*Households*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),0)))/1000,2),
+              round(NPV((Q6*Households*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),0.5))-np.mean(ResearchPoint*Households*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),0.5)))/1000,2),
+              round(NPV((Q6*Households*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),0.75))-np.mean(ResearchPoint*Households*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),0.75)))/1000,2),
+              round(NPV((Q6*Households*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),1))-np.mean(ResearchPoint*Households*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),1)))/1000,2),
+              round(NPV((Q6*Households*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),1.25))-np.mean(ResearchPoint*Households*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),1.25)))/1000,2),
+round(NPV((Q6*Households*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),1.5))-np.mean(ResearchPoint*Households*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),1.5)))/1000,2)]).transpose()],axis=0),
+pd.concat([pd.DataFrame([np.mean(Q7*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),0)),
+np.mean(Q7*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),0.5)),
+np.mean(Q7*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),0.75)),
+np.mean(Q7*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),1)),
+np.mean(Q7*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),1.25)),
+np.mean(Q7*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),1.5))]).transpose(),
+pd.DataFrame([round(NPV((Q7*Households*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),0))-np.mean(WWTPPoint*Households*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),0)))/1000,2),
+              round(NPV((Q7*Households*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),0.5))-np.mean(WWTPPoint*Households*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),0.5)))/1000,2),
+              round(NPV((Q7*Households*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),0.75))-np.mean(WWTPPoint*Households*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),0.75)))/1000,2),
+              round(NPV((Q7*Households*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),1))-np.mean(WWTPPoint*Households*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),1)))/1000,2),
+              round(NPV((Q7*Households*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),1.25))-np.mean(WWTPPoint*Households*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),1.25)))/1000,2),
+              round(NPV((Q7*Households*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),1.5))-np.mean(WWTPPoint*Households*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),1.5)))/1000,2)]).transpose()],axis=0),
+pd.concat([pd.DataFrame([np.mean(Em*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),0)),
+np.mean(Em*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),0.5)),
+np.mean(Em*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),0.75)),
+np.mean(Em*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),1)),
+np.mean(Em*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),1.25)),
+np.mean(Em*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),1.5))]).transpose(),
+pd.DataFrame([round(NPV((Em*Products*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),0))-np.mean(CosmeticsPoint*Products*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),0)))/1000,2),
+              round(NPV((Em*Products*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),0.5))-np.mean(CosmeticsPoint*Products*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),0.5)))/1000,2),
+              round(NPV((Em*Products*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),0.75))-np.mean(CosmeticsPoint*Products*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),0.75)))/1000,2),
+              round(NPV((Em*Products*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),1))-np.mean(CosmeticsPoint*Products*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),1)))/1000,2),
+              round(NPV((Em*Products*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),1.25))-np.mean(CosmeticsPoint*Products*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),1.25)))/1000,2),
+              round(NPV((Em*Products*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),1.5))-np.mean(CosmeticsPoint*Products*np.power(np.mean(SampleY/FullSurvey2.Q24AIncome),1.5)))/1000,2)]).transpose()],axis=0)])
+
+Explicits.columns = ["e0","e0.5","e0.75","e1","e1.25","e1.5"]
+Explicits.index=["Q6 WTP","Q6 NPV","Q7 WTP","Q7 NPV","Emissions MWTP","Restriction NPV"]
+Explicits = round(Explicits,2)
+Explicits.to_latex()
+
+
+
+
