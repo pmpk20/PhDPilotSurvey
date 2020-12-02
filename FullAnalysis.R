@@ -36,16 +36,18 @@ library(gridExtra)
 library(apollo)
 setwd("H:/PhDPilotSurvey") ## Sets working directory. This is where my Github repo is cloned to.
 source('Thesis_SetupCode.r')
+# rm(list=ls())
 
 ## Run the following on first run:
 # Sys.setenv(PATH = paste(Sys.getenv("PATH"), "C:\\Rtools\\bin", sep = ";"))
 # pkgbuild::find_rtools(debug = TRUE)
+# install.packages("lifecycle")
 # install.packages("mnormt")
 # install.packages("RSGHB")
 # install.packages("Rcpp") ## Necessary dependency for rngWELL
 # install.packages("rngWELL") ## Can sometimes fix APOLLO issues
 # install.packages("randtoolbox") ## Necessary for APOLLO random draws
-# install.packages("apollo") ## Most complex and powerful library for discrete choice
+## install.packages("apollo") ## Most complex and powerful library for discrete choice
 # install.packages("H:/dos/PhD/Other/Training courses/CMC/apollo_libraries/apollo_0.2.1.zip", repos = NULL, type = "win.binary")
 # install.packages("mlogit") ## MLOGIT is the best DCE package in R so far.
 # install.packages("gmnl") ## Very similar to MLOGIT but more flexibility.
@@ -430,13 +432,14 @@ Full_Long <- mlogit.data(Full, shape = "wide", choice = "Choice",
 #### Section 2: Sample truncation ####
 # Note: Protests examined by eyeballing the text responses.
 
+ProtestVotes <- c(24,33,44,61,121,127,182,200,211,219,239,251,275,306,320,326,341,360,363,371,399,464,467,479,480,506,579,591,649,654,931,932,935,953,989,1002,1011,1024,14,35,39,54,79,106,130,146,149,155,163,203,214,215,217,244,246,249,252,267,268,282,290,327,343,362,364,374,380,393,398,407,414,425,426,433,477,519,524,536,543,545,547,557,567,575,589,590,595,614,617,629,637,638,639,651,665,674,680,915,933,940,950,959,960,975,978,996,1026,1027,1028)
 
 ### Truncation Strategy One:
 AllCriteria <- data.frame("IDs" = unique(Full_Long$ID[ (Full_Long$Q25Understanding >=7) &
                                                          (Full_Long$Q8DominatedTest == 0) &
                                                          (Full_Long$Q12CECertainty == 2) &
                                                          (Full_Long$Q20Consequentiality == 2) ])) 
-AllCriteria <- AllCriteria[ !(AllCriteria$IDs %in% c(24,33,44,61,121,127,182,200,211,219,239,251,275,306,320,326,341,360,363,371,399,464,467,479,480,506,579,591,649,654,931,932,935,953,989,1002,1011,1024,14,35,39,54,79,106,130,146,149,155,163,203,214,215,217,244,246,249,252,267,268,282,290,327,343,362,364,374,380,393,398,407,414,425,426,433,477,519,524,536,543,545,547,557,567,575,589,590,595,614,617,629,637,638,639,651,665,674,680,915,933,940,950,959,960,975,978,996,1026,1027,1028)),]
+AllCriteria <- AllCriteria[ !(AllCriteria$IDs %in% c(ProtestVotes)),]
 Full_Full1 <- Full_Final[ (Full_Final$ID) %in% c(AllCriteria1),]
 nrow(Full_Full1)/8
 # Includes: 105
@@ -1975,10 +1978,10 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
   return(P)
 }
 
-CLmodelWTP = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs,estimate_settings = list(bootstrapSE=1,bootstrapSeed = 24))
+CLModel = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
 
-apollo_modelOutput(CLmodelWTP,modelOutput_settings = list(printPVal=TRUE))
-
+apollo_modelOutput(CLModel,modelOutput_settings = list(printPVal=TRUE))
+saveRDS(CLModel,"CLmodel.rds")
 
 
 #### Section 6A: MNL Linear: Replicate MNL_3 ####
@@ -2031,7 +2034,7 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
   P = list()
   
   ## Must specify SDs against the ASC directly
-  asc_B = asc_B + b_Gender*Q1Gender + b_Age*Age +
+  asc_B1 = asc_B + b_Gender*Q1Gender + b_Age*Age +
     b_Distance * Distance + 
     b_Trips * Trips +
     b_BP * BP +
@@ -2051,7 +2054,7 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
   ### List of utilities: these must use the same names as in mnl_settings, order is irrelevant
   V = list()
   V[['A']]  = asc_A        + b_Performance  * Performance_A + b_Emission * Emission_A + b_Price * Price_A
-  V[['B']]  = asc_B  + b_Performance  * Performance_B  + b_Emission * Emission_B + b_Price * Price_B
+  V[['B']]  = asc_B1  + b_Performance  * Performance_B  + b_Emission * Emission_B + b_Price * Price_B
 
   ### Define settings for MNL model component
   mnl_settings = list(
@@ -2072,17 +2075,18 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
   return(P)
 }
 
-model = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+MNL1 = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
 
-apollo_modelOutput(model,modelOutput_settings = list(printPVal=TRUE))
+apollo_modelOutput(MNL1,modelOutput_settings = list(printPVal=TRUE))
+apollo_saveOutput(MNL1)
+saveRDS(MNL1,"MNL1.rds")
 
 ## WTP calculations: 
+apollo_deltaMethod(MNL1, list(operation="ratio", parName1="b_Performance", parName2="b_Price"))
+apollo_deltaMethod(MNL1, list(operation="ratio", parName1="b_Emission", parName2="b_Price"))
 
-apollo_deltaMethod(model, list(operation="ratio", parName1="b_Performance", parName2="b_Price"))
-apollo_deltaMethod(model, list(operation="ratio", parName1="b_Emission", parName2="b_Price"))
 
-
-#### Section 6A: MNL Linear: Replicate MNL_4 ####
+#### Section 6A: MNL Linear: TRUNCATED ####
 
 Test_Truncated =Test_Apollo[ (Test_Apollo$ID) %in% c(AllCriteria),] 
 database = Test_Truncated
@@ -2112,7 +2116,6 @@ apollo_beta=c(asc_A      = 0,
               b_Task       = 0,
               b_Cons       = 0,
               b_Experts    = 0,
-              b_Timing     = 0,
               b_Understanding =0,
               b_Certainty=0)
 
@@ -2133,7 +2136,7 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
   P = list()
   
   ## Must specify SDs against the ASC directly
-  asc_B = asc_B + b_Gender*Q1Gender + b_Age*Age +
+  asc_B1 = asc_B + b_Gender*Q1Gender + b_Age*Age +
     b_Distance * Distance + 
     b_Trips * Trips +
     b_BP * BP +
@@ -2145,7 +2148,6 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
     b_Task * Task +       
     b_Cons * Consequentiality +       
     b_Experts * Experts+
-    b_Timing * Timing+
     b_Understanding*Survey +
     b_Certainty*Q12CECertainty
   
@@ -2153,7 +2155,7 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
   ### List of utilities: these must use the same names as in mnl_settings, order is irrelevant
   V = list()
   V[['A']]  = asc_A        + b_Performance  * Performance_A + b_Emission * Emission_A + b_Price * Price_A
-  V[['B']]  = asc_B  + b_Performance  * Performance_B  + b_Emission * Emission_B + b_Price * Price_B
+  V[['B']]  = asc_B1  + b_Performance  * Performance_B  + b_Emission * Emission_B + b_Price * Price_B
   
   ### Define settings for MNL model component
   mnl_settings = list(
@@ -2174,15 +2176,14 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
   return(P)
 }
 
-ApolloMNL_4 = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs,estimate_settings = list(bootstrapSE=1,bootstrapSeed = 24))
+MNL2 = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
 
-apollo_modelOutput(ApolloMNL_4,modelOutput_settings = list(printPVal=TRUE))
-AM <- data.frame(apollo_modelOutput(ApolloMNL_4,modelOutput_settings = list(printPVal=TRUE)))
-stargazer(AM$Bootstrap.p.val.0., title = "MNL_4", align = TRUE)
+apollo_modelOutput(MNL2,modelOutput_settings = list(printPVal=TRUE))
+saveRDS(MNL2,"MNL2.rds")
+xtable(data.frame(apollo_modelOutput(MNL2,modelOutput_settings = list(printPVal=TRUE)))    )
 
-
-apollo_deltaMethod(ApolloMNL_4, list(operation="ratio", parName1="b_Performance", parName2="b_Price"))
-apollo_deltaMethod(ApolloMNL_4, list(operation="ratio", parName1="b_Emission", parName2="b_Price"))
+apollo_deltaMethod(MNL2, list(operation="ratio", parName1="b_Performance", parName2="b_Price"))
+apollo_deltaMethod(MNL2, list(operation="ratio", parName1="b_Emission", parName2="b_Price"))
 
 
 #### Section 6A: MNL Quadratic ####

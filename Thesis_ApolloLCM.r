@@ -3,14 +3,31 @@
 # Project title: Economic valuation of benefits from the proposed REACH restriction of intentionally-added microplastics.
 # Code description: This script estimates all the LCM models and experiments in one place ####
 
-#### LCMStandard2CNoSD ####
 
-apollo_initialise()
+#### Setup:  ####
+library(apollo)
+setwd("H:/PhDPilotSurvey") ## Sets working directory. This is where my Github repo is cloned to.
+source('Thesis_SetupCode.r')
+
+
+## The structure of this script is very repetitive
+## Basically I estimate one by one every possibly LCM specification
+
+
+#### LCMStandard2CNoSD ####
+## 2-class model, full sample, no-socioeconomic variables
+## Based closely from: http://www.apollochoicemodelling.com/files/Apollo_example_18.r
+
+
+database <- Test_Apollo
+apollo_initialise() ## Going to comment this once bc it's repeated a lot but this is a necessary first step
 
 apollo_control = list(
   modelName  ="LCMStandard2CNoSD",modelDescr ="2-class LCM",
-  indivID    ="ID",nCores     = 4)
+  indivID    ="ID",nCores     = 4) ## can use detectCores for the appropriate amount
 
+
+## Have to define the parameters first:
 apollo_beta = c(asc_1           = 0,
                 asc_2           = 0,
                 beta_Price_a       = 0,
@@ -21,7 +38,7 @@ apollo_beta = c(asc_1           = 0,
                 beta_Emission_b       =0,
                 delta_b = 0)
 
-apollo_fixed = c("asc_1")
+apollo_fixed = c("asc_1") ## force to zero to create utility differences
 
 apollo_lcPars=function(apollo_beta, apollo_inputs){
   lcpars = list()
@@ -66,7 +83,7 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
     
     V=list()
     V[['alt1']]  = asc_1 + beta_Performance[[s]]*Performance_A + beta_Price[[s]]*Price_A + beta_Emission[[s]]*Emission_A
-    V[['alt2']]  = asc_2 + beta_Performance[[s]]*Performance_B + beta_Price[[s]]*Price_B + beta_Emission[[s]]*Emission_B
+    V[['alt2']]  = asc_2 + beta_Performance[[s]]*Performance_B + beta_Price[[s]]*Price_B + beta_Emission[[s]]*Emission_B ## Later I change this to WTP-space
     
     mnl_settings$V = V
     mnl_settings$componentName = paste0("Class_",s)
@@ -95,7 +112,10 @@ apollo_modelOutput(LCMStandard2CNoSD,modelOutput_settings = list(printPVal=TRUE)
 
 
 #### LCMStandard3CNoSD ####
+## 3-classes but still no socioeconomic variables
 
+
+database <- Test_Apollo
 apollo_initialise()
 
 apollo_control = list(
@@ -191,7 +211,9 @@ apollo_modelOutput(LCMStandard3CNoSD,modelOutput_settings = list(printPVal=TRUE)
 
 
 #### LCMStandard4CNoSD ####
+## Iterative approach here now estimating 4-clases without SDs on the full sample 
 
+database <- Test_Apollo
 apollo_initialise()
 
 apollo_control = list(
@@ -1440,8 +1462,8 @@ apollo_modelOutput(LCMStandard2CNoSDTRUNCATED,modelOutput_settings = list(printP
 saveRDS(LCMStandard2CNoSDTRUNCATED,"LCMStandard2CNoSDTRUNCATED.rds")
 
 
-#### LCMStandard3CNoSDTRUNCATED ####
-
+#### LCMStandard3CNoSDTRUNCATED: CHOSEN ####
+database <- Test_Truncated
 apollo_initialise()
 
 apollo_control = list(
@@ -1529,6 +1551,7 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
 
 #apollo_beta=apollo_searchStart(apollo_beta, apollo_fixed,apollo_probabilities, apollo_inputs)
 #apollo_outOfSample(apollo_beta, apollo_fixed,apollo_probabilities, apollo_inputs)
+# estimate_settings=list(writeIter=FALSE,bootstrapSE=10)
 
 ### Estimate model
 LCMStandard3CNoSDTRUNCATED = apollo_estimate(apollo_beta, apollo_fixed, 
@@ -1912,7 +1935,7 @@ apollo_modelOutput(LCMStandard3CAllSDTRUNCATED,modelOutput_settings = list(print
 saveRDS(LCMStandard3CAllSDTRUNCATED,"LCMStandard3CAllSDTRUNCATED.rds")
 
 
-#### LCMStandard4CAllSDTRUNCATED ####
+#### LCMStandard4CAllSDTRUNCATED: FAILED ####
 
 apollo_initialise()
 
@@ -2216,7 +2239,7 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
 ### Estimate model
 LCmodelMXL2CNoSDTruncated = apollo_estimate(apollo_beta, apollo_fixed, 
                              apollo_probabilities, apollo_inputs)
-apollo_modelOutput(LCmodelMXL,modelOutput_settings = list(printPVal=TRUE))
+apollo_modelOutput(LCmodelMXL2CNoSDTruncated,modelOutput_settings = list(printPVal=TRUE))
 saveRDS(LCmodelMXL2CNoSDTruncated,"LCmodelMXL2CNoSDTruncated.rds")
 
 
@@ -2226,7 +2249,7 @@ saveRDS(LCmodelMXL2CNoSDTruncated,"LCmodelMXL2CNoSDTruncated.rds")
 apollo_initialise()
 
 apollo_control = list(
-  modelName  ="LCmodelMXL2CNoSDTruncated",modelDescr ="2-class LCM",
+  modelName  ="LCmodelMXL3CNoSDTruncated",modelDescr ="2-class LCM",
   indivID    ="ID",nCores     = 4,mixing=TRUE)
 
 apollo_beta = c(asc_1           = 0,
@@ -2363,13 +2386,13 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
 #apollo_outOfSample(apollo_beta, apollo_fixed,apollo_probabilities, apollo_inputs)
 
 ### Estimate model
-LCmodelMXL2CNoSDTruncated = apollo_estimate(apollo_beta, apollo_fixed, 
+LCmodelMXL3CNoSDTruncated = apollo_estimate(apollo_beta, apollo_fixed, 
                               apollo_probabilities, apollo_inputs)
 # estimate_settings=list(writeIter=FALSE,bootstrapSE=10)
 
 ### Show output in screen
-apollo_modelOutput(LCmodelMXL2CNoSDTruncated,modelOutput_settings = list(printPVal=TRUE))
-saveRDS(LCmodelMXL2CNoSDTruncated,"LCmodelMXL2CNoSDTruncated.rds")
+apollo_modelOutput(LCmodelMXL3CNoSDTruncated,modelOutput_settings = list(printPVal=TRUE))
+saveRDS(LCmodelMXL3CNoSDTruncated,"LCmodelMXL3CNoSDTruncated.rds")
 
 
 #### LCmodelMXL3CSDTruncated: 3-class More SD ####
@@ -2559,53 +2582,397 @@ apollo_modelOutput(LCmodelMXL3CSDTruncated,modelOutput_settings = list(printPVal
 saveRDS(LCmodelMXL3CSDTruncated,"LCmodelMXL3CSDTruncated.rds")
 
 
+#### CVLCM: FAILED  ####
+
+apollo_initialise()
+
+apollo_control = list(
+  modelName  ="CVLCM",modelDescr ="CVLCM",
+  indivID    ="ID",nCores     = 4)
+
+apollo_beta = c(asc_2           = 0,
+                beta_bid_a       = 0,
+                beta_bid_b       = 0,
+                delta_b = 0)
+
+apollo_fixed = c()
+
+apollo_lcPars=function(apollo_beta, apollo_inputs){
+  lcpars = list()
+  lcpars[["beta_bid"]] = list(beta_bid_a, beta_bid_b)
+
+  V=list()
+  V[["class_a"]] = 0 
+  V[["class_b"]] = delta_b 
+  
+  mnl_settings = list(
+    alternatives = c(class_a=0, class_b=1), 
+    avail        = 1, 
+    choiceVar    = NA, 
+    V            = V
+  )
+  lcpars[["pi_values"]] = apollo_mnl(mnl_settings, functionality="raw")
+  
+  lcpars[["pi_values"]] = apollo_firstRow(lcpars[["pi_values"]], apollo_inputs)
+  
+  return(lcpars)
+}
+
+apollo_inputs = apollo_validateInputs()
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  
+  P = list()
+  
+  mnl_settings = list(
+    alternatives = c(alt1=0, alt2=1),
+    avail        = list(alt1=1,alt2=1),
+    choiceVar    = Q7TreatmentResponse)
+  
+  ### Loop over classes
+  s=1
+  while(s<=length(pi_values)){
+    
+    V=list()
+    V[['alt1']]  = 0
+    V[['alt2']]  = asc_2 + beta_bid[[s]]*Q7Bid
+    
+    mnl_settings$V = V
+    mnl_settings$componentName = paste0("Class_",s)
+    
+    P[[paste0("Class_",s)]] = apollo_mnl(mnl_settings, functionality)
+    P[[paste0("Class_",s)]] = apollo_panelProd(P[[paste0("Class_",s)]], apollo_inputs ,functionality)
+    
+    s=s+1}
+  
+  ### Compute latent class model probabilities
+  lc_settings   = list(inClassProb = P, classProb=pi_values)
+  P[["model"]] = apollo_lc(lc_settings, apollo_inputs, functionality)
+  
+  ### Prepare and return outputs of function
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+#apollo_beta=apollo_searchStart(apollo_beta, apollo_fixed,apollo_probabilities, apollo_inputs)
+#apollo_outOfSample(apollo_beta, apollo_fixed,apollo_probabilities, apollo_inputs)
+
+### Estimate model
+CVLCM = apollo_estimate(apollo_beta, apollo_fixed, 
+                                    apollo_probabilities, apollo_inputs)
+apollo_modelOutput(CVLCM,modelOutput_settings = list(printPVal=TRUE))
+
+
+
 #### Post-Estimation Codes #### 
 
 
-### Reporting WTP:
+## Reporting WTP using delta method:
 apollo_deltaMethod(LCmodel, list(operation="ratio", parName1="beta_Performance_a", parName2="beta_Price_a"))
 apollo_deltaMethod(LCmodel, list(operation="ratio", parName1="beta_Performance_b", parName2="beta_Price_b"))
 apollo_deltaMethod(LCmodel, list(operation="ratio", parName1="beta_Emission_a", parName2="beta_Price_a"))
 apollo_deltaMethod(LCmodel, list(operation="ratio", parName1="beta_Emission_b", parName2="beta_Price_b"))
 
-unconditionals=apollo_lcUnconditionals(LCmodel,apollo_probabilities,apollo_inputs)
+
+## Reporting WTP using the unconditionals:
+## Curiously these two approaches produce equivalent values
+unconditionals=apollo_lcUnconditionals(LCMStandard3CNoSDTRUNCATED,apollo_probabilities,apollo_inputs)
 classes=length(unconditionals[["pi_values"]])
 colMeans(matrix(unlist(unconditionals[["pi_values"]]),ncol=classes,byrow=FALSE))
 
-### look at WTP for different combinations
+
+## Can do more fancy WTP calculations here:
+# unweighted values:
 Performance_ClassMWTP=mapply("/",unconditionals[["beta_Performance"]],unconditionals[["beta_Price"]],SIMPLIFY=FALSE)
 Emission_ClassMWTP=mapply("/",unconditionals[["beta_Emission"]],unconditionals[["beta_Price"]],SIMPLIFY=FALSE)
 colMeans(matrix(unlist(Performance_ClassMWTP),ncol=classes,byrow=FALSE))
 colMeans(matrix(unlist(Emission_ClassMWTP),ncol=classes,byrow=FALSE))
 
-### weighted WTP
+
+## weighted values
 Performance_ClassMWTP_unconditional=rowSums(mapply("*",Performance_ClassMWTP,unconditionals[["pi_values"]],SIMPLIFY=TRUE))
 Emission_ClassMWTP_unconditional=rowSums(mapply("*",Emission_ClassMWTP,unconditionals[["pi_values"]],SIMPLIFY=TRUE))
 mean(Performance_ClassMWTP_unconditional)
 mean(Emission_ClassMWTP_unconditional)
 
 
-## Model prediction accuracy
-LC2_Predictions <- data.frame(LCmodel$avgCP) ## Getting probabilities of choosing each option from the model
-LC2_Predictions[LC2_Predictions$LCmodel.avgCP < 0.5,] <- 0
-LC2_Predictions[LC2_Predictions$LCmodel.avgCP >= 0.5,] <- 1
-LC2_Predictions <- cbind("Actual"=Fulls$Choice,"Predicted"=slice(data.frame(LC2_Predictions$LCmodel.avgCP),rep(1:n(), each = 4)))
-LC2_Predictions$Match <- LC2_Predictions$Actual==LC2_Predictions$LC2_Predictions.LCmodel.avgCP
-LC2_Predictions$Match[LC2_Predictions$Match==TRUE] <- 1
-LC2_Predictions$Match[LC2_Predictions$Match==FALSE] <- 0
+## Prediction Accuracy:
+
+
+Fulls2 <- Fulls[ (Fulls$ID) %in% c(AllCriteria),] ## The excluded responses
+
+LC2_Predictions <- data.frame(LCMStandard3CNoSDTRUNCATED$avgCP) ## Getting probabilities of choosing each option from the model
+LC2_Predictions[LC2_Predictions$LCMStandard3CNoSDTRUNCATED.avgCP < 0.5,] <- 0
+LC2_Predictions[LC2_Predictions$LCMStandard3CNoSDTRUNCATED.avgCP >= 0.5,] <- 1
+LC2_Predictions <- cbind("Actual"=Fulls2$Choice,"Predicted"=slice(data.frame(LC2_Predictions$LCMStandard3CNoSDTRUNCATED.avgCP),rep(1:n(), each = 4)))
+LC2_Predictions$Match <- ifelse(LC2_Predictions$Actual==LC2_Predictions$LC2_Predictions.LCMStandard3CNoSDTRUNCATED.avgCP,1,0)
 round(100/length(LC2_Predictions$Match)*length(LC2_Predictions$Match[LC2_Predictions$Match==0]),3)
-# 44.524
+# 45.789
 round(100/length(LC2_Predictions$Match)*length(LC2_Predictions$Match[LC2_Predictions$Match==1]),3)
-# 55.746
+# 54.211
 
 ## Model individual level class-allocation
-LC2_Class <- data.frame(apollo_lcConditionals(model = LCmodel,apollo_probabilities,apollo_inputs)) ## Getting probabilities of choosing each option from the model
-colnames(LC2_Class) <- c(1,2) ## Name columns as each option 
-LC2_Class <- data.frame("Class" = as.integer(colnames(LC2_Class)[apply(round(LC2_Class,4),1,which.max)])) ## This picks the class that is most likely for each individual
-colnames(LC2_Class) <- "LCM2Class"
-Full_Final <- cbind(Full_Final,"LCM2Class"=slice(data.frame(LC2_Class$LCM2Class),rep(1:n(), each = 8)))
-colnames(Full_Final)[69] <- "LCM2Class"
+LC3_Class <- data.frame(apollo_lcConditionals(model = LCMStandard3CNoSDTRUNCATED,apollo_probabilities,apollo_inputs)) ## Getting probabilities of choosing each option from the model
+LC3_Class$ID <- NULL
+colnames(LC3_Class) <- c(1,2,3) ## Name columns as each option 
+LC3_Class <- data.frame("Class" = as.integer(colnames(LC3_Class)[apply(round(LC3_Class,4),1,which.max)])) ## This picks the class that is most likely for each individual
+colnames(LC3_Class) <- "LCM3Class"
+Full_Full$LCM2Class <- slice(data.frame(LC3_Class$LCM3Class),rep(1:n(), each = 8))
+
+
+#### Model Evaluation ####
+
+
+## Performing likelihood-ratio tests to show which models are better
+apollo_lrTest(LCMStandard2CNoSDTRUNCATED,LCMStandard3CNoSDTRUNCATED)
+apollo_lrTest(LCMStandard4CNoSDTRUNCATED,LCMStandard2CAllSDTRUNCATED)
+
+
+# Importing all the full sample models to save estimation:
+LCMStandard2CNoSD <- readRDS("LCMStandard2CNoSD.rds")
+LCMStandard3CNoSD <- readRDS("LCMStandard3CNoSD.rds")
+LCMStandard4CNoSD <- readRDS("LCMStandard4CNoSD.rds")
+LCMStandard2CAllSD <- readRDS("LCMStandard2CAllSD.rds")
+LCMStandard3CAllSD <- readRDS("LCMStandard3CAllSD.rds")
+LCMStandard4CAllSD <- readRDS("LCMStandard4CAllSD.rds")
+LCmodelMXL <- readRDS("LCmodelMXL.rds")
+LCmodelMXL2 <- readRDS("LCmodelMXL2.rds")
+LCmodelMXL3SD <- readRDS("LCmodelMXL3SD.rds")
+
+
+# Importing the truncated modelse:
+LCMStandard2CNoSDTRUNCATED <- readRDS("LCMStandard2CNoSDTRUNCATED.rds")
+LCMStandard3CNoSDTRUNCATED <- readRDS("LCMStandard3CNoSDTRUNCATED.rds")
+LCMStandard4CNoSDTRUNCATED <- readRDS("LCMStandard4CNoSDTRUNCATED.rds")
+LCMStandard2CAllSDTRUNCATED <- readRDS("LCMStandard2CAllSDTRUNCATED.rds")
+LCMStandard3CAllSDTRUNCATED <- readRDS("LCMStandard3CAllSDTRUNCATED.rds")
+LCmodelMXL2CNoSDTruncated <- readRDS("LCmodelMXL2CNoSDTruncated.rds")
+LCmodelMXL3CNoSDTruncated <- readRDS("LCmodelMXL3CNoSDTruncated.rds")
+LCmodelMXL3CSDTruncated <- readRDS("LCmodelMXL3CSDTruncated.rds")
+
+
+# Class-Allocations of all models in one place:
+LCM_ClassTable <- (rbind("LCMStandard2CNoSD"=data.frame(LCMStandard2CNoSD$componentReport$model$param)[4:7,],
+"LCMStandard2CAllSD"=data.frame(LCMStandard2CAllSD$componentReport$model$param)[4:7,],
+"LCMStandard3CNoSD"=data.frame(LCMStandard3CNoSD$componentReport$model$param)[4:7,],
+"LCMStandard3CAllSD"=data.frame(LCMStandard3CAllSD$componentReport$model$param)[4:7,],
+"LCMStandard4CNoSD"=data.frame(LCMStandard4CNoSD$componentReport$model$param)[4:7,],
+"LCmodelMXL"=data.frame(LCmodelMXL$componentReport$model$param)[4:7,],
+"LCmodelMXL2"=data.frame(LCmodelMXL2$componentReport$model$param)[4:7,],
+"LCmodelMXL3SD"=data.frame(LCmodelMXL3SD$componentReport$model$param)[4:7,],
+"LCMStandard2CNoSDTRUNCATED"=data.frame(LCMStandard2CNoSDTRUNCATED$componentReport$model$param)[4:7,],
+"LCMStandard3CNoSDTRUNCATED"=data.frame(LCMStandard3CNoSDTRUNCATED$componentReport$model$param)[4:7,],
+"LCMStandard4CNoSDTRUNCATED"=data.frame(LCMStandard4CNoSDTRUNCATED$componentReport$model$param)[4:7,],
+"LCMStandard2CAllSDTRUNCATED"=data.frame(LCMStandard2CAllSDTRUNCATED$componentReport$model$param)[4:7,],
+"LCMStandard3CAllSDTRUNCATED"=data.frame(LCMStandard3CAllSDTRUNCATED$componentReport$model$param)[4:7,],
+"LCmodelMXL2CNoSDTruncated"=data.frame(LCmodelMXL2CNoSDTruncated$componentReport$model$param)[4:7,],
+"LCmodelMXL3CNoSDTruncated"=data.frame(LCmodelMXL3CNoSDTruncated$componentReport$model$param)[4:7,],
+"LCmodelMXL3CSDTruncated"=data.frame(LCmodelMXL3CSDTruncated$componentReport$model$param)[4:7,]))
+xtable::xtable(LCM_ClassTable,digits=3)
+
+
+## The following section is extremely messy but can report WTP for each class in each model:
+
+
+# Class-specific MWTP
+rbind(cbind(rbind("Performance_A"=data.frame(apollo_deltaMethod(LCMStandard2CNoSD, list(operation="ratio", parName1="beta_Performance_a", parName2="beta_Price_a")))$Value,
+            "Emission_A"=data.frame(apollo_deltaMethod(LCMStandard2CNoSD, list(operation="ratio", parName1="beta_Emission_a", parName2="beta_Price_a")))$Value),
+rbind("Performance_B"=data.frame(apollo_deltaMethod(LCMStandard2CNoSD, list(operation="ratio", parName1="beta_Performance_b", parName2="beta_Price_b")))$Value,
+      "Emission_B"=data.frame(apollo_deltaMethod(LCMStandard2CNoSD, list(operation="ratio", parName1="beta_Emission_b", parName2="beta_Price_b")))$Value)),
+cbind(rbind("Performance_A"=data.frame(apollo_deltaMethod(LCMStandard2CAllSD, list(operation="ratio", parName1="beta_Performance_a", parName2="beta_Price_a")))$Value,
+      "Emission_A"=data.frame(apollo_deltaMethod(LCMStandard2CAllSD, list(operation="ratio", parName1="beta_Emission_a", parName2="beta_Price_a")))$Value),
+      rbind("Performance_B"=data.frame(apollo_deltaMethod(LCMStandard2CAllSD, list(operation="ratio", parName1="beta_Performance_b", parName2="beta_Price_b")))$Value,
+      "Emission_B"=data.frame(apollo_deltaMethod(LCMStandard2CAllSD, list(operation="ratio", parName1="beta_Emission_b", parName2="beta_Price_b")))$Value)))
+
+rbind(cbind(rbind("Performance_A"=data.frame(apollo_deltaMethod(LCMStandard3CNoSD, list(operation="ratio", parName1="beta_Performance_a", parName2="beta_Price_a")))$Value,
+            "Emission_A"=data.frame(apollo_deltaMethod(LCMStandard3CNoSD, list(operation="ratio", parName1="beta_Emission_a", parName2="beta_Price_a")))$Value),
+      rbind("Performance_B"=data.frame(apollo_deltaMethod(LCMStandard3CNoSD, list(operation="ratio", parName1="beta_Performance_b", parName2="beta_Price_b")))$Value,
+            "Emission_B"=data.frame(apollo_deltaMethod(LCMStandard3CNoSD, list(operation="ratio", parName1="beta_Emission_b", parName2="beta_Price_b")))$Value),
+      rbind("Performance_C"=data.frame(apollo_deltaMethod(LCMStandard3CNoSD, list(operation="ratio", parName1="beta_Performance_c", parName2="beta_Price_c")))$Value,
+            "Emission_C"=data.frame(apollo_deltaMethod(LCMStandard3CNoSD, list(operation="ratio", parName1="beta_Emission_c", parName2="beta_Price_c")))$Value)),
+cbind(rbind("Performance_A"=data.frame(apollo_deltaMethod(LCMStandard3CAllSD, list(operation="ratio", parName1="beta_Performance_a", parName2="beta_Price_a")))$Value,
+            "Emission_A"=data.frame(apollo_deltaMethod(LCMStandard3CAllSD, list(operation="ratio", parName1="beta_Emission_a", parName2="beta_Price_a")))$Value),
+      rbind("Performance_B"=data.frame(apollo_deltaMethod(LCMStandard3CAllSD, list(operation="ratio", parName1="beta_Performance_b", parName2="beta_Price_b")))$Value,
+            "Emission_B"=data.frame(apollo_deltaMethod(LCMStandard3CAllSD, list(operation="ratio", parName1="beta_Emission_b", parName2="beta_Price_b")))$Value),
+      rbind("Performance_C"=data.frame(apollo_deltaMethod(LCMStandard3CAllSD, list(operation="ratio", parName1="beta_Performance_c", parName2="beta_Price_c")))$Value,
+            "Emission_C"=data.frame(apollo_deltaMethod(LCMStandard3CAllSD, list(operation="ratio", parName1="beta_Emission_c", parName2="beta_Price_c")))$Value)))
+
+cbind(rbind("Performance_A"=data.frame(apollo_deltaMethod(LCMStandard4CNoSD, list(operation="ratio", parName1="beta_Performance_a", parName2="beta_Price_a")))$Value,
+            "Emission_A"=data.frame(apollo_deltaMethod(LCMStandard4CNoSD, list(operation="ratio", parName1="beta_Emission_a", parName2="beta_Price_a")))$Value),
+      rbind("Performance_B"=data.frame(apollo_deltaMethod(LCMStandard4CNoSD, list(operation="ratio", parName1="beta_Performance_b", parName2="beta_Price_b")))$Value,
+            "Emission_B"=data.frame(apollo_deltaMethod(LCMStandard4CNoSD, list(operation="ratio", parName1="beta_Emission_b", parName2="beta_Price_b")))$Value),
+      rbind("Performance_C"=data.frame(apollo_deltaMethod(LCMStandard4CNoSD, list(operation="ratio", parName1="beta_Performance_c", parName2="beta_Price_c")))$Value,
+            "Emission_C"=data.frame(apollo_deltaMethod(LCMStandard4CNoSD, list(operation="ratio", parName1="beta_Emission_c", parName2="beta_Price_c")))$Value),
+      rbind("Performance_D"=data.frame(apollo_deltaMethod(LCMStandard4CNoSD, list(operation="ratio", parName1="beta_Performance_d", parName2="beta_Price_d")))$Value,
+            "Emission_D"=data.frame(apollo_deltaMethod(LCMStandard4CNoSD, list(operation="ratio", parName1="beta_Emission_d", parName2="beta_Price_d")))$Value))
+
+rbind(cbind(c(data.frame("Performance_A"=apollo_modelOutput(LCmodelMXL)["b_log_Perf_a_mu",1]),data.frame("Emission_A"=apollo_modelOutput(LCmodelMXL)["b_log_Em_a_mu",1])),
+c(data.frame("Performance_B"=apollo_modelOutput(LCmodelMXL)["b_log_Perf_b_mu",1]),data.frame("Emission_B"=apollo_modelOutput(LCmodelMXL)["b_log_Em_b_mu",1]))),
+cbind(c(data.frame("Performance_A"=apollo_modelOutput(LCmodelMXL2)["b_log_Perf_a_mu",1]),data.frame("Emission_A"=apollo_modelOutput(LCmodelMXL2)["b_log_Em_a_mu",1])),
+      c(data.frame("Performance_B"=apollo_modelOutput(LCmodelMXL2)["b_log_Perf_b_mu",1]),data.frame("Emission_B"=apollo_modelOutput(LCmodelMXL2)["b_log_Em_b_mu",1]))))
+
+cbind(c(data.frame("Performance_A"=apollo_modelOutput(LCmodelMXL3SD)["b_log_Perf_a_mu",1]),data.frame("Emission_A"=apollo_modelOutput(LCmodelMXL3SD)["b_log_Em_a_mu",1])),
+      c(data.frame("Performance_B"=apollo_modelOutput(LCmodelMXL3SD)["b_log_Perf_b_mu",1]),data.frame("Emission_B"=apollo_modelOutput(LCmodelMXL3SD)["b_log_Em_b_mu",1])),
+      c(data.frame("Performance_C"=apollo_modelOutput(LCmodelMXL3SD)["b_log_Perf_c_mu",1]),data.frame("Emission_C"=apollo_modelOutput(LCmodelMXL3SD)["b_log_Em_c_mu",1])))
+
+cbind(rbind("Performance_A"=data.frame(apollo_deltaMethod(LCMStandard2CNoSDTRUNCATED, list(operation="ratio", parName1="beta_Performance_a", parName2="beta_Price_a")))$Value,
+            "Emission_A"=data.frame(apollo_deltaMethod(LCMStandard2CNoSDTRUNCATED, list(operation="ratio", parName1="beta_Emission_a", parName2="beta_Price_a")))$Value),
+      rbind("Performance_B"=data.frame(apollo_deltaMethod(LCMStandard2CNoSDTRUNCATED, list(operation="ratio", parName1="beta_Performance_b", parName2="beta_Price_b")))$Value,
+            "Emission_B"=data.frame(apollo_deltaMethod(LCMStandard2CNoSDTRUNCATED, list(operation="ratio", parName1="beta_Emission_b", parName2="beta_Price_b")))$Value))
+
+LCMWTP  <- cbind(rbind("Performance_A"=data.frame(apollo_deltaMethod(LCMStandard3CNoSDTRUNCATED, list(operation="ratio", parName1="beta_Performance_a", parName2="beta_Price_a")))$Value,
+            "Emission_A"=data.frame(apollo_deltaMethod(LCMStandard3CNoSDTRUNCATED, list(operation="ratio", parName1="beta_Emission_a", parName2="beta_Price_a")))$Value),
+      rbind("Performance_B"=data.frame(apollo_deltaMethod(LCMStandard3CNoSDTRUNCATED, list(operation="ratio", parName1="beta_Performance_b", parName2="beta_Price_b")))$Value,
+            "Emission_B"=data.frame(apollo_deltaMethod(LCMStandard3CNoSDTRUNCATED, list(operation="ratio", parName1="beta_Emission_b", parName2="beta_Price_b")))$Value),
+      rbind("Performance_C"=data.frame(apollo_deltaMethod(LCMStandard3CNoSDTRUNCATED, list(operation="ratio", parName1="beta_Performance_c", parName2="beta_Price_c")))$Value,
+            "Emission_C"=data.frame(apollo_deltaMethod(LCMStandard3CNoSDTRUNCATED, list(operation="ratio", parName1="beta_Emission_c", parName2="beta_Price_c")))$Value))
+
+cbind(rbind("Performance_A"=data.frame(apollo_deltaMethod(LCMStandard4CNoSDTRUNCATED, list(operation="ratio", parName1="beta_Performance_a", parName2="beta_Price_a")))$Value,
+            "Emission_A"=data.frame(apollo_deltaMethod(LCMStandard4CNoSDTRUNCATED, list(operation="ratio", parName1="beta_Emission_a", parName2="beta_Price_a")))$Value),
+      rbind("Performance_B"=data.frame(apollo_deltaMethod(LCMStandard4CNoSDTRUNCATED, list(operation="ratio", parName1="beta_Performance_b", parName2="beta_Price_b")))$Value,
+            "Emission_B"=data.frame(apollo_deltaMethod(LCMStandard4CNoSDTRUNCATED, list(operation="ratio", parName1="beta_Emission_b", parName2="beta_Price_b")))$Value),
+      rbind("Performance_C"=data.frame(apollo_deltaMethod(LCMStandard4CNoSDTRUNCATED, list(operation="ratio", parName1="beta_Performance_c", parName2="beta_Price_c")))$Value,
+            "Emission_C"=data.frame(apollo_deltaMethod(LCMStandard4CNoSDTRUNCATED, list(operation="ratio", parName1="beta_Emission_c", parName2="beta_Price_c")))$Value),
+      rbind("Performance_D"=data.frame(apollo_deltaMethod(LCMStandard4CNoSDTRUNCATED, list(operation="ratio", parName1="beta_Performance_d", parName2="beta_Price_d")))$Value,
+            "Emission_D"=data.frame(apollo_deltaMethod(LCMStandard4CNoSDTRUNCATED, list(operation="ratio", parName1="beta_Emission_d", parName2="beta_Price_d")))$Value))
+
+cbind(rbind("Performance_A"=data.frame(apollo_deltaMethod(LCMStandard2CAllSDTRUNCATED, list(operation="ratio", parName1="beta_Performance_a", parName2="beta_Price_a")))$Value,
+            "Emission_A"=data.frame(apollo_deltaMethod(LCMStandard2CAllSDTRUNCATED, list(operation="ratio", parName1="beta_Emission_a", parName2="beta_Price_a")))$Value),
+      rbind("Performance_B"=data.frame(apollo_deltaMethod(LCMStandard2CAllSDTRUNCATED, list(operation="ratio", parName1="beta_Performance_b", parName2="beta_Price_b")))$Value,
+            "Emission_B"=data.frame(apollo_deltaMethod(LCMStandard2CAllSDTRUNCATED, list(operation="ratio", parName1="beta_Emission_b", parName2="beta_Price_b")))$Value))
+
+cbind(rbind("Performance_A"=data.frame(apollo_deltaMethod(LCMStandard3CAllSDTRUNCATED, list(operation="ratio", parName1="beta_Performance_a", parName2="beta_Price_a")))$Value,
+            "Emission_A"=data.frame(apollo_deltaMethod(LCMStandard3CAllSDTRUNCATED, list(operation="ratio", parName1="beta_Emission_a", parName2="beta_Price_a")))$Value),
+      rbind("Performance_B"=data.frame(apollo_deltaMethod(LCMStandard3CAllSDTRUNCATED, list(operation="ratio", parName1="beta_Performance_b", parName2="beta_Price_b")))$Value,
+            "Emission_B"=data.frame(apollo_deltaMethod(LCMStandard3CAllSDTRUNCATED, list(operation="ratio", parName1="beta_Emission_b", parName2="beta_Price_b")))$Value),
+      rbind("Performance_C"=data.frame(apollo_deltaMethod(LCMStandard3CAllSDTRUNCATED, list(operation="ratio", parName1="beta_Performance_c", parName2="beta_Price_c")))$Value,
+            "Emission_C"=data.frame(apollo_deltaMethod(LCMStandard3CAllSDTRUNCATED, list(operation="ratio", parName1="beta_Emission_c", parName2="beta_Price_c")))$Value))
+
+cbind(c(data.frame("Performance_A"=apollo_modelOutput(LCmodelMXL2CNoSDTruncated)["b_log_Perf_a_mu",1]),data.frame("Emission_A"=apollo_modelOutput(LCmodelMXL2CNoSDTruncated)["b_log_Em_a_mu",1])),
+      c(data.frame("Performance_B"=apollo_modelOutput(LCmodelMXL2CNoSDTruncated)["b_log_Perf_b_mu",1]),data.frame("Emission_B"=apollo_modelOutput(LCmodelMXL2CNoSDTruncated)["b_log_Em_b_mu",1])))
+
+cbind(c(data.frame("Performance_A"=apollo_modelOutput(LCmodelMXL3CNoSDTruncated)["b_log_Perf_a_mu",1]),data.frame("Emission_A"=apollo_modelOutput(LCmodelMXL3CNoSDTruncated)["b_log_Em_a_mu",1])),
+      c(data.frame("Performance_B"=apollo_modelOutput(LCmodelMXL3CNoSDTruncated)["b_log_Perf_b_mu",1]),data.frame("Emission_B"=apollo_modelOutput(LCmodelMXL3CNoSDTruncated)["b_log_Em_b_mu",1])))
+
+cbind(c(data.frame("Performance_A"=apollo_modelOutput(LCmodelMXL3CSDTruncated)["b_log_Perf_a_mu",1]),data.frame("Emission_A"=apollo_modelOutput(LCmodelMXL3CSDTruncated)["b_log_Em_a_mu",1])),
+      c(data.frame("Performance_B"=apollo_modelOutput(LCmodelMXL3CSDTruncated)["b_log_Perf_b_mu",1]),data.frame("Emission_B"=apollo_modelOutput(LCmodelMXL3CSDTruncated)["b_log_Em_b_mu",1])),
+      c(data.frame("Performance_C"=apollo_modelOutput(LCmodelMXL3CSDTruncated)["b_log_Perf_c_mu",1]),data.frame("Emission_C"=apollo_modelOutput(LCmodelMXL3CSDTruncated)["b_log_Em_c_mu",1])))
 
 
 
+# \begin{table}[]
+# \begin{tabular}{|r|l}
+# \hline
+# \textbf{\textbf{Model}} & \textbf{} \\ \hline
+# LCMStandard2CNoSD & \textbf{Model 1: Full Sample, 2-classes, no-socioeconomics} \\ \hline
+# LCMStandard2CAllSD & Model 2: Full Sample, 2-classes, all-socioeconomics \\ \hline
+# LCMStandard3CNoSD & Model 3: Full Sample, 3-classes, no-socioeconomics \\ \hline
+# LCMStandard3CAllSD & Model 4: Full Sample, 3-classes, all-socioeconomics \\ \hline
+# LCMStandard4CNoSD & Model 5: Full Sample, 4-classes, no-socioeconomics \\ \hline
+# LCmodelMXL & Model 6: Full Sample, Mixed within-classes, 2-classes, no-socioeconomics \\ \hline
+# LCmodelMXL2 & Model 7: Full Sample, Mixed within-classes, 2-classes, all-socioeconomics \\ \hline
+# LCmodelMXL3SD & Model 8: Full Sample, Mixed within-classes, 3-classes, all-socioeconomics \\ \hline
+# LCMStandard2CNoSDTRUNCATED & Model 9: Truncated Sample, 2-classes, no-socioeconomics \\ \hline
+# LCMStandard3CNoSDTRUNCATED & Model 10: Truncated Sample, 3-classes, no-socioeconomics \\ \hline
+# LCMStandard4CNoSDTRUNCATED & Model 11: Truncated Sample, 2-classes, no-socioeconomics \\ \hline
+# LCMStandard2CAllSDTRUNCATED & Model 12: Truncated Sample, 2-classes, all-socioeconomics \\ \hline
+# LCMStandard3CAllSDTRUNCATED & Model 13: Truncated Sample, 3-classes, all-socioeconomics \\ \hline
+# LCmodelMXL2CNoSDTruncated & Model 14: Truncated Sample, Mixed within-classes, 2-classes, no-socioeconomics \\ \hline
+# LCmodelMXL3CNoSDTruncated & Model 15: Truncated Sample, Mixed within-classes, 2-classes, all-socioeconomics \\ \hline
+# LCmodelMXL3CSDTruncated & Model 16: Truncated Sample, Mixed within-classes, 3-classes, all-socioeconomics \\ \hline
+# \end{tabular}
+# \end{table}
 
+
+#### LCM3C Characteristics ####
+## This section reports summary stats for different groups using the chosen model:
+
+
+# Gender:
+round(100/(length(Full_Full$LCM2Class[Full_Full$LCM2Class==1])/8)*(table(Full_Full$Q1Gender[Full_Full$LCM2Class==1])/8))
+round(100/(length(Full_Full$LCM2Class[Full_Full$LCM2Class==2])/8)*(table(Full_Full$Q1Gender[Full_Full$LCM2Class==2])/8))
+round(100/(length(Full_Full$LCM2Class[Full_Full$LCM2Class==3])/8)*(table(Full_Full$Q1Gender[Full_Full$LCM2Class==3])/8))
+
+# Age:
+round(mean(Full_Full$Q2Age[Full_Full$LCM2Class==1]),2)
+round(mean(Full_Full$Q2Age[Full_Full$LCM2Class==2]),2)
+round(mean(Full_Full$Q2Age[Full_Full$LCM2Class==3]),2)
+
+# Distance:
+round(mean(Full_Full$Q3Distance[Full_Full$LCM2Class==1]),2)
+round(mean(Full_Full$Q3Distance[Full_Full$LCM2Class==2]),2)
+round(mean(Full_Full$Q3Distance[Full_Full$LCM2Class==3]),2)
+
+# Distance:
+round(mean(Full_Full$Q18Charity[Full_Full$LCM2Class==1]),2)
+round(mean(Full_Full$Q18Charity[Full_Full$LCM2Class==2]),2)
+round(mean(Full_Full$Q18Charity[Full_Full$LCM2Class==3]),2)
+
+# Education:
+round(100/(length(Full_Full$LCM2Class[Full_Full$LCM2Class==1])/8)*(table(Full_Full$Q22Education[Full_Full$LCM2Class==1])/8))
+round(100/(length(Full_Full$LCM2Class[Full_Full$LCM2Class==2])/8)*(table(Full_Full$Q22Education[Full_Full$LCM2Class==2])/8))
+round(100/(length(Full_Full$LCM2Class[Full_Full$LCM2Class==3])/8)*(table(Full_Full$Q22Education[Full_Full$LCM2Class==3])/8))
+
+
+# Employment:
+round(100/(length(Full_Full$LCM2Class[Full_Full$LCM2Class==1])/8)*(table(Full_Full$Q23Employment[Full_Full$LCM2Class==1])/8),2)
+round(100/(length(Full_Full$LCM2Class[Full_Full$LCM2Class==2])/8)*(table(Full_Full$Q23Employment[Full_Full$LCM2Class==2])/8),2)
+round(100/(length(Full_Full$LCM2Class[Full_Full$LCM2Class==3])/8)*(table(Full_Full$Q23Employment[Full_Full$LCM2Class==3])/8),2)
+
+# Income:
+round(mean(Full_Full$Q24AIncome[Full_Full$LCM2Class==1]),2)
+round(mean(Full_Full$Q24AIncome[Full_Full$LCM2Class==2]),2)
+round(mean(Full_Full$Q24AIncome[Full_Full$LCM2Class==3]),2)
+
+# Q6:
+round(mean(Full_Full$Q6WTP[Full_Full$LCM2Class==1]),2)
+round(mean(Full_Full$Q6WTP[Full_Full$LCM2Class==2]),2)
+round(mean(Full_Full$Q6WTP[Full_Full$LCM2Class==3]),2)
+
+# Q7:
+round(mean(Full_Full$Q7WTP[Full_Full$LCM2Class==1]),2)
+round(mean(Full_Full$Q7WTP[Full_Full$LCM2Class==2]),2)
+round(mean(Full_Full$Q7WTP[Full_Full$LCM2Class==3]),2)
+
+# Precuation:
+round(mean(Full_Full$Precaution[Full_Full$LCM2Class==1]),2)
+round(mean(Full_Full$Precaution[Full_Full$LCM2Class==2]),2)
+round(mean(Full_Full$Precaution[Full_Full$LCM2Class==3]),2)
+
+# Emission:
+round(mean(Full_Full$EmissionCoef[Full_Full$LCM2Class==1]),3)
+round(mean(Full_Full$EmissionCoef[Full_Full$LCM2Class==2]),3)
+round(mean(Full_Full$EmissionCoef[Full_Full$LCM2Class==3]),3)
+
+# Performance:
+round(mean(Full_Full$PerformanceCoef[Full_Full$LCM2Class==1]),3)
+round(mean(Full_Full$PerformanceCoef[Full_Full$LCM2Class==2]),3)
+round(mean(Full_Full$PerformanceCoef[Full_Full$LCM2Class==3]),3)
+
+# Knowlede Q5 and Q19:
+c(round(mean(Full_Full$Q5Knowledge[Full_Full$LCM2Class==1]),2),
+round(mean(Full_Full$Q19Knowledge[Full_Full$LCM2Class==1]),2))
+
+c(round(mean(Full_Full$Q5Knowledge[Full_Full$LCM2Class==2]),2),
+round(mean(Full_Full$Q19Knowledge[Full_Full$LCM2Class==2]),2))
+
+c(round(mean(Full_Full$Q5Knowledge[Full_Full$LCM2Class==3]),2),
+round(mean(Full_Full$Q19Knowledge[Full_Full$LCM2Class==3]),2))
+
+
+# C1 Attitudes:
+c(round(mean(Full_Full$Q13CurrentThreatToSelf[Full_Full$LCM2Class==1]),2),
+  round(mean(Full_Full$Q14FutureThreatToSelf[Full_Full$LCM2Class==1]),2),
+  round(mean(Full_Full$Q15ThreatToEnvironment[Full_Full$LCM2Class==1]),2))
+
+# C2 Attitudes:
+c(round(mean(Full_Full$Q13CurrentThreatToSelf[Full_Full$LCM2Class==2]),2),
+round(mean(Full_Full$Q14FutureThreatToSelf[Full_Full$LCM2Class==2]),2),
+round(mean(Full_Full$Q15ThreatToEnvironment[Full_Full$LCM2Class==2]),2))
+
+# C3 Attitudes:
+c(round(mean(Full_Full$Q13CurrentThreatToSelf[Full_Full$LCM2Class==3]),2),
+round(mean(Full_Full$Q14FutureThreatToSelf[Full_Full$LCM2Class==3]),2),
+round(mean(Full_Full$Q15ThreatToEnvironment[Full_Full$LCM2Class==3]),2))

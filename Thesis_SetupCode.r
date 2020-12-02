@@ -2,11 +2,12 @@
 # Project author: Peter King (p.m.king@bath.ac.uk)
 # Project title: Economic valuation of benefits from the proposed REACH restriction of intentionally-added microplastics.
 # Code description: Opening the raw data and converting into usable dataframes
+# Note: may be messy in parts if I am rushing a solution.
 
 
-options(scipen=50)
+options(scipen=50) # Makes presentation of tables nicer; changes from scientific notation
 setwd("H:/PhDPilotSurvey") ## Sets working directory. This is where my Github repo is cloned to.
-Full_Final <- data.frame(read.csv("FinalData.csv")) 
+Full_Final <- data.frame(read.csv("FinalData.csv")) # Import the final data for ease
 
 
 #### Section 1: Importing ####
@@ -54,7 +55,7 @@ for (i in colnames(FullSurvey)){
   if (is.factor(FullSurvey[[i]]) != TRUE){
     FullSurvey2[[i]] <- as.numeric(as.factor(as.character(FullSurvey[[i]])))-1
   }
-} ## Use this if the previous one didn't work.
+} ## Use this if the previous one didn't work. An R update made the previous one not work. 
 
 # FullSurvey2$Order[FullSurvey2$Order == 2] <-0 ## The order dummy should be 0 for Q6 > Q7 and 1 for Q7 > Q6
 
@@ -63,6 +64,7 @@ for (i in colnames(FullSurvey)){
 
 
 ## Here I update the age categories to take the midpoint of the brackets.
+## There is almost certainlty an easier way but I wrote this ages ago and it works
 FullSurvey2$Q2Age[FullSurvey2$Q2Age == 0] <- 21.5
 FullSurvey2$Q2Age[FullSurvey2$Q2Age == 1] <- 32.5
 FullSurvey2$Q2Age[FullSurvey2$Q2Age == 2] <- 47.5
@@ -70,7 +72,7 @@ FullSurvey2$Q2Age[FullSurvey2$Q2Age == 3] <- 63
 FullSurvey2$Q2Age[FullSurvey2$Q2Age == 4] <- 71
 FullSurvey2$Q2Age[FullSurvey2$Q2Age == 5.0] <- NA
 FullSurvey2$Q2Age <- with(FullSurvey2, impute(FullSurvey2$Q2Age, 'random')) ## I replace the missing with a random imputed value
-FullSurvey2$Q2Age <- as.numeric(FullSurvey2$Q2Age)
+FullSurvey2$Q2Age <- as.numeric(FullSurvey2$Q2Age) ## Fixes error where the impute type isn't right.
 
 
 ## The loop got the distances ordered incorrectly and also didn't use midpoints.
@@ -131,9 +133,13 @@ FullSurvey2$Q7TreatmentLowerResponse[FullSurvey2$Q7TreatmentLowerResponse == 2] 
 FullSurvey <- mutate(Q7Bid2 = coalesce(FullSurvey$Q7Bid2Lower,FullSurvey$Q7Bid2Upper),.data = FullSurvey)
 FullSurvey <- mutate(Q7Response2 = coalesce(FullSurvey$Q7TreatmentUpperResponse,FullSurvey$Q7TreatmentLowerResponse),.data = FullSurvey)
 
+
+## Mutate merges two columns
 FullSurvey2 <- mutate(Q7Bid2 = coalesce(FullSurvey2$Q7Bid2Lower,FullSurvey2$Q7Bid2Upper),.data = FullSurvey2)
 FullSurvey2 <- mutate(Q7Response2 = coalesce(FullSurvey2$Q7TreatmentUpperResponse,FullSurvey2$Q7TreatmentLowerResponse),.data = FullSurvey2)
 
+
+## These are fine so just copy across
 FullSurvey2$Q6Bid <- FullSurvey$Q6Bid
 FullSurvey2$Q7Bid <- FullSurvey$Q7Bid
 FullSurvey2$Q7Bid2 <- FullSurvey$Q7Bid2
@@ -288,8 +294,10 @@ FullSurvey2$Q24RonaImpact <- as.numeric(FullSurvey2$Q24RonaImpact)
 FullSurvey2$Q25Understanding[FullSurvey2$Q25Understanding == 1] <- 10
 FullSurvey2$Q25Understanding[FullSurvey2$Q25Understanding == 0] <- 1
 
+
 ## Adding an ID column which replaces the respondent category in the original dataset.
 FullSurvey2$ID <- seq.int(nrow(FullSurvey2))
+
 
 ## Correcting the survey timing column:
 FullSurvey2$Timing <- FullSurvey$Timing
@@ -369,9 +377,13 @@ colnames(Full) <- c("ID","Timing","Order","Q1Gender","Q2Age","Q3Distance","Q4Tri
                     "Q24RonaImpact","Q24AIncome","Q25Understanding","Q7Bid2","Q7Response2",
                     "Task")  
 
+
+## This little section adds in the data about firms responsibility
+## It just adds the variables together, renames them, and adds back
 Responsibility <- data.frame(cbind(Full$Q17_Firms,Full$Q17_Cons,Full$Q17_Gov,Full$Q17_LA,Full$Q17_Other))
 colnames(Responsibility) <- c("Q17_Firms","Q17_Cons","Q17_Gov","Q17_LA","Q17_Other")
 Full <- cbind(Full,"Responsibility" =rowSums(Responsibility))
+
 
 Fulls <- Full # Later I use the Full dataframe but just without choies as A or B
 Full$av_A <- rep(1,nrow(Full)) # Add a vector of ones to show that the alternative choice is always available to respondents.
@@ -402,14 +414,18 @@ Full_Long$Emission[Full_Long$Emission == 0.4] <- 40
 #### TRUNCATION #### 
 
 
+## These are respondent IDs obtained by visual inspection of text responses
+ProtestVotes <- c(24,33,44,61,121,127,182,200,211,219,239,251,275,306,320,326,341,360,363,371,399,464,467,479,480,506,579,591,649,654,931,932,935,953,989,1002,1011,1024,14,35,39,54,79,106,130,146,149,155,163,203,214,215,217,244,246,249,252,267,268,282,290,327,343,362,364,374,380,393,398,407,414,425,426,433,477,519,524,536,543,545,547,557,567,575,589,590,595,614,617,629,637,638,639,651,665,674,680,915,933,940,950,959,960,975,978,996,1026,1027,1028)
+
 ### Truncation Rule Two:
 AllCriteria <- data.frame("IDs" = unique(Full_Long$ID[ (Full_Long$Q25Understanding >=7) &
                                                          (Full_Long$Q8DominatedTest == 0) &
                                                          (Full_Long$Q12CECertainty >= 1) &
                                                          (Full_Long$Q20Consequentiality >= 1) ])) 
 
+
 ## Here checking if any of the remaining respondents were on the protest list: 
-AllCriteria <- AllCriteria[ !(AllCriteria$IDs %in% c(24,33,44,61,121,127,182,200,211,219,239,251,275,306,320,326,341,360,363,371,399,464,467,479,480,506,579,591,649,654,931,932,935,953,989,1002,1011,1024,14,35,39,54,79,106,130,146,149,155,163,203,214,215,217,244,246,249,252,267,268,282,290,327,343,362,364,374,380,393,398,407,414,425,426,433,477,519,524,536,543,545,547,557,567,575,589,590,595,614,617,629,637,638,639,651,665,674,680,915,933,940,950,959,960,975,978,996,1026,1027,1028)),]
+AllCriteria <- AllCriteria[ !(AllCriteria$IDs %in% c(ProtestVotes)),]
 Full_Full <- Full_Final[ (Full_Final$ID) %in% c(AllCriteria),] ## Fully truncated:
 # Full_Full <- Full_Long[ (Full_Long$ID) %in% c(AllCriteria),] ## Can truncate the Full_Long dataframe too if needing to estimate in MLOGIT
 Full_Excluded <- Full_Final[ !(Full_Final$ID) %in% c(AllCriteria),] ## The excluded responses
@@ -452,13 +468,21 @@ colnames(Test_Apollo) <- c("ID","Task","Q1Gender","Age","Distance",
 # Tests_Understanding <- Tests_Dominated[!Tests_Dominated$ID %in% c( unique(Tests_Dominated$ID[Tests_Dominated$Survey <= 5])),]
 # Test_Apollo <- Tests_Understanding
 
+
+## Each alternative is always available so I just rep the 1 value for all respondents
 Test_Apollo$av_A <- rep(1,nrow(Full)) 
 Test_Apollo$av_B <- rep(1,nrow(Full)) 
 
+
+## I think I change this later but basically changing [0,1] to [1,2] for the code
 Test_Apollo$Q6ResearchResponse <- Test_Apollo$Q6ResearchResponse +1
 Test_Apollo$Q7TreatmentResponse <- Test_Apollo$Q7TreatmentResponse +1
-Test_Apollo$Bid_Alt <- rep(0,nrow(Test_Apollo))
+Test_Apollo$Bid_Alt <- rep(0,nrow(Test_Apollo)) ## I don't use this anymore but it was the alternative scenario for the CV estimation
 
+
+## Here I recode the attribute levels:
+## I did a lot of testing on which levels worked best and I think this is those:
+## The negative sign for performance represents the expected WTA
 Test_Apollo$Performance_B[Test_Apollo$Performance_B == 0.05] <- -5
 Test_Apollo$Performance_B[Test_Apollo$Performance_B == 0.10] <- -10
 Test_Apollo$Performance_B[Test_Apollo$Performance_B == 0.50] <- -50
@@ -467,11 +491,98 @@ Test_Apollo$Emission_B[Test_Apollo$Emission_B == 0.9] <- 90
 Test_Apollo$Emission_B[Test_Apollo$Emission_B == 0.4] <- 40 
 
 
+## Could also just do Test_Apollo$Choice <- Test_Apollo$Choice+1
+## But Apollo wanted data in [1,2] rather than [0,1]
 Test_Apollo$Choice[Test_Apollo$Choice == 1] <- 2
 Test_Apollo$Choice[Test_Apollo$Choice == 0] <- 1
 
+
+##  Apollo requires a variable called database:
 database = Test_Apollo
 
+## Making some changes to the variable coding from [0,1] to [1,2]
 database$Q7Response2 <- database$Q7Response2+1
 database$Q6ResearchResponse <- database$Q6ResearchResponse-1
+
+
+## Providing a truncated sample
 Test_Truncated <- Test_Apollo[ (Test_Apollo$ID) %in% c(AllCriteria),] 
+Fulls2 <- Fulls[ (Fulls$ID) %in% c(AllCriteria),] ## The excluded responses
+# database <- Test_Truncated ## Use this to estimate with the truncated sample instead
+
+
+# Import All Models:
+## This saves a lot of re-estimation:
+
+CLModel <- readRDS("CLmodel.rds") ## The conditional logit
+MNLFull<- readRDS("MNL1.rds") ## Full sample multinomial logit with covariates
+MNLTrunc<- readRDS("MNL2.rds") ## Truncated sample multinomial logit with covariates
+MXLAttributes<- readRDS("MXL19.rds") ## MXL full sample but no covariates 
+MXLFull<- readRDS("MXLModel20.rds") ## MXL WTP-space, three negative lognormals, uncorrelated, full sample
+MXLTrunc<- readRDS("MXLModel21.rds") ## Same as above but truncated sample
+LCMFull<- readRDS("LCMStandard3CNoSD.rds") ## 3-class no SD LCM
+LCMTrunc<- readRDS("LCMStandard3CNoSDTRUNCATED.rds") ## Same but truncated sample
+ICLVFull<- readRDS("CE2.rds") ## The full sample CE ICLV
+ICLVTrunc <- readRDS("CEmodel4.rds") ## Truncated sample CE ICLV
+CVmodel6N <- readRDS("CVmodel6N.rds") ## Q6 CV Full sample ICLV
+CVmodel6NT <- readRDS("CVmodel6NT.rds") ## Q6 CV truncated sample ICLV
+CVmodel7N <- readRDS("CVmodel7N.rds") ## Q7 CV Full sample ICLV
+CVmodel7NT <- readRDS("CVmodel7NT.rds") ## Q7 CV truncated sample ICLV
+
+
+## Make a function to estimate model prediction accuracy from Apollo objects
+Predictions <- function(Model,data){
+  Pred <- data.frame(Model$avgCP) ## Getting probabilities of choosing each option from the model
+  Pred[Pred$Model.avgCP < 0.5,] <- 0
+  Pred[Pred$Model.avgCP >= 0.5,] <- 1
+  Pred <- cbind("Actual"=data$Choice,"Predicted"=slice(data.frame(Pred$Model.avgCP),rep(1:n(), each = 4)))
+  Pred$Match <- ifelse(Pred$Actual==Pred$Pred.Model.avgCP,1,0)
+  print(paste0("Correct: ",(round(100/length(Pred$Match)*length(Pred$Match[Pred$Match==1]),2)),"%"))
+}
+
+
+###### The rest of this is commented out code that may be useful for specific outputs:
+
+## If you need all models prediction accuracy:
+# Predictions(CLModel,Fulls)
+# Predictions(MNLFull,Fulls)
+# Predictions(MNLTrunc,Fulls2)
+# Predictions(MXLAttributes,Fulls)
+# Predictions(MXLFull,Fulls)
+# Predictions(MXLTrunc,Fulls2)
+# Predictions(LCMFull,Fulls)
+# Predictions(LCMTrunc,Fulls2)
+# Predictions(ICLVFull,Fulls)
+# Predictions(ICLVTrunc,Fulls2)
+
+
+## First step to estimate bivariate-probit ICLV
+# FullSurvey2$Q7OKBR <- (ifelse(FullSurvey2$Q7TreatmentResponse == 1 & FullSurvey2$Q7TreatmentUpperResponse==1, FullSurvey2$Q7Bid2Upper,
+#                               ifelse(FullSurvey2$Q7TreatmentResponse == 1 & FullSurvey2$Q7TreatmentUpperResponse==0, FullSurvey2$Q7Bid,
+#                                      ifelse(FullSurvey2$Q7TreatmentResponse == 0 & FullSurvey2$Q7TreatmentLowerResponse==1, FullSurvey2$Q7Bid2Lower,
+#                                             ifelse(FullSurvey2$Q7TreatmentResponse == 0 & FullSurvey2$Q7TreatmentLowerResponse==0, 0,0)))))
+
+
+## Reporting details of all imported models:
+# MNLFull<- data.frame(apollo_modelOutput(readRDS("MNL1.rds"),modelOutput_settings = list(printPVal=TRUE)))
+# MNLTrunc<- data.frame(apollo_modelOutput(readRDS("MNL2.rds"),modelOutput_settings = list(printPVal=TRUE)))
+# MXLAttributes<- data.frame(apollo_modelOutput(readRDS("MXL19.rds"),modelOutput_settings = list(printPVal=TRUE)))
+# MXLFull<- data.frame(apollo_modelOutput(readRDS("MXLModel20.rds"),modelOutput_settings = list(printPVal=TRUE)))
+# MXLTrunc<- data.frame(apollo_modelOutput(readRDS("MXLModel21.rds"),modelOutput_settings = list(printPVal=TRUE)))
+# LCMFull<- data.frame(apollo_modelOutput(readRDS("LCMStandard3CNoSD.rds"),modelOutput_settings = list(printPVal=TRUE)))
+# LCMTrunc<- data.frame(apollo_modelOutput(readRDS("LCMStandard3CNoSDTRUNCATED.rds"),modelOutput_settings = list(printPVal=TRUE)))
+# ICLVFull<- data.frame(apollo_modelOutput(readRDS("CE2.rds"),modelOutput_settings = list(printPVal=TRUE)))
+# ICLVTrunc <- data.frame(apollo_modelOutput(readRDS("CE3.rds"),modelOutput_settings = list(printPVal=TRUE)))
+# 
+
+## Exporting details of al model parameters:
+## Extremely ugly table do not replicate
+# xtable(rbind(cbind(rownames(MNLFull),round(MNLFull$Estimate,3)),
+# cbind(rownames(MNLTrunc),round(MNLTrunc$Estimate,3)),
+# cbind(rownames(MXLAttributes),round(MXLAttributes$Estimate,3)),
+# cbind(rownames(MXLFull),round(MXLFull$Estimate,3)),
+# cbind(rownames(MXLTrunc),round(MXLTrunc$Estimate,3)),
+# cbind(rownames(LCMFull),round(LCMFull$Estimate,3)),
+# cbind(rownames(LCMTrunc),round(LCMTrunc$Estimate,3)),
+# cbind(rownames(ICLVFull),round(ICLVFull$Estimate,3)),
+# cbind(rownames(ICLVTrunc),round(ICLVTrunc$Estimate,3))),digits=3)

@@ -2,954 +2,24 @@
 # Project author: Peter King (p.m.king@bath.ac.uk)
 # Project title: Economic valuation of benefits from the proposed REACH restriction of intentionally-added microplastics.
 # Code description: This script estimates all the ICLV models and experiments in one place 
+# Note: Very long and repetitive, again many Apollo-specific things are uncommented given the extensive guidance in the Manual
+# Note: Many might fail or not replicate as I am trying to estimate the bivariate-probit ICLV
+# The structure here is to estimate CV in the normal Apollo method, then using probit instead, then estimate the standard ICLV with CV data, and then ICLV with probits
 
 
+## Setup:
+library(DCchoice)
+library(apollo)
+setwd("H:/PhDPilotSurvey") ## Sets working directory. This is where my Github repo is cloned to.
+source('Thesis_SetupCode.r')
 
+
+## Cronbach's alpha to use Q13, 14, 15 as indicators for a single construct: 
 library(psych)
 alpha(x = data.frame(Full_Final$Q13CurrentThreatToSelf,Full_Final$Q14FutureThreatToSelf, Full_Final$Q15ThreatToEnvironment))
 
 
-#### CE ICLV 1 MNL Pref Space ####
-
-library(apollo)
-
-### Initialise code
-apollo_initialise()
-
-### Set core controls
-apollo_control = list(
-  modelName  = "ICLV model: CE",
-  modelDescr = "ICLV model: CE",
-  indivID    = "ID",
-  mixing     = TRUE,
-  nCores     = 4
-)
-
-Test_Apollo_Truncated <- Test_Apollo[ (Test_Apollo$ID) %in% c(AllCriteria),]
-database <- Test_Apollo_Truncated
-
-### Vector of parameters, including any that are kept fixed in estimation
-apollo_beta = c(b_Emission     = 0, 
-                b_Performance       = 0, 
-                b_Price            = 0,  
-                lambda             = 1, 
-                gamma_Age       = 0, 
-                gamma_Gender    = 0,
-                gamma_Distance  = 0, 
-                gamma_Income =0,
-                gamma_Employment =0,
-                gamma_Experts =0,
-                gamma_Cons =0,
-                gamma_BP =0,
-                gamma_Charity =0,
-                gamma_Certainty=0,
-                zeta_Q13   = 1, 
-                zeta_Q14   = 1, 
-                zeta_Q15   = 1, 
-                tau_Q13_1  =-2, 
-                tau_Q13_2  =-1, 
-                tau_Q13_3  = 1, 
-                tau_Q13_4  = 2, 
-                tau_Q14_1  =-2, 
-                tau_Q14_2  =-1, 
-                tau_Q14_3  = 1, 
-                tau_Q14_4  = 2, 
-                tau_Q15_1  =-2, 
-                tau_Q15_2  =-1, 
-                tau_Q15_3  = 1, 
-                tau_Q15_4  = 2)
-
-## Vector with names (in quotes) of parameters to be kept fixed at their starting value in apollo_beta, use apollo_beta_fixed = c() if none
-apollo_fixed = c()
-
-## DEFINE RANDOM COMPONENTS                                    
-
-### Set parameters for generating draws
-apollo_draws = list(
-  interDrawsType="halton", 
-  interNDraws=1000,          
-  interUnifDraws=c(),      
-  interNormDraws=c("eta"), 
-  intraDrawsType='',
-  intraNDraws=0,          
-  intraUnifDraws=c(),     
-  intraNormDraws=c()      
-)
-
-### Create random parameters
-apollo_randCoeff=function(apollo_beta, apollo_inputs){
-  randcoeff = list()
-  
-  randcoeff[["LV"]] = gamma_Age*Age +gamma_Gender*Q1Gender + gamma_Distance*Distance + gamma_Income*Income + gamma_Employment*Employment + gamma_Experts*Experts + gamma_Cons*Consequentiality + gamma_BP*BP + gamma_Charity*Charity + gamma_Certainty*Q12CECertainty + eta
-  
-  return(randcoeff)
-}
-
-
-## GROUP AND VALIDATE INPUTS
-
-apollo_inputs = apollo_validateInputs()
-
-## DEFINE MODEL AND LIKELIHOOD FUNCTION                        
-
-apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
-  
-  ### Attach inputs and detach after function exit
-  apollo_attach(apollo_beta, apollo_inputs)
-  on.exit(apollo_detach(apollo_beta, apollo_inputs))
-  
-  ### Create list of probabilities P
-  P = list()
-  
-  ### Likelihood of indicators
-  op_settings1 = list(outcomeOrdered = Q13CurrentThreatToSelf, 
-                      V              = zeta_Q13*LV, 
-                      tau            = c(tau_Q13_1, tau_Q13_2, tau_Q13_3, tau_Q13_4),
-                      rows           = (Task==1),
-                      componentName  = "indic_Q13")
-  op_settings2 = list(outcomeOrdered = Q14FutureThreatToSelf, 
-                      V              = zeta_Q14*LV, 
-                      tau            = c(tau_Q14_1, tau_Q14_2, tau_Q14_3, tau_Q14_4), 
-                      rows           = (Task==1),
-                      componentName  = "indic_Q14")
-  op_settings3 = list(outcomeOrdered = Q15ThreatToEnvironment, 
-                      V              = zeta_Q15*LV, 
-                      tau            = c(tau_Q15_1, tau_Q15_2, tau_Q15_3, tau_Q15_4), 
-                      rows           = (Task==1),
-                      componentName  = "indic_Q15")
-  P[["indic_Q13"]]     = apollo_op(op_settings1, functionality)
-  P[["indic_Q14"]] = apollo_op(op_settings2, functionality)
-  P[["indic_Q15"]]      = apollo_op(op_settings3, functionality)
-  
-  ### Likelihood of choices
-  ### List of utilities: these must use the same names as in mnl_settings, order is irrelevant
-  V = list()
-  V[['A']] = ( b_Emission*(Emission_A==0) + b_Performance*(Performance_A==0)+ b_Price*Price_A )
-  V[['B']] = ( b_Emission*(Emission_B)+ b_Performance*(Performance_B)+ b_Price*Price_B + lambda*LV )
-  
-  ### Define settings for MNL model component
-  mnl_settings = list(
-    alternatives = c(A=1, B=2),
-    avail        = list(A=1, B=1),
-    choiceVar    = Choice,
-    V            = V,
-    componentName= "choice"
-  )
-  
-  ### Compute probabilities for MNL model component
-  P[["choice"]] = apollo_mnl(mnl_settings, functionality)
-  
-  ### Likelihood of the whole model
-  P = apollo_combineModels(P, apollo_inputs, functionality)
-  
-  ### Take product across observation for same individual
-  P = apollo_panelProd(P, apollo_inputs, functionality)
-  
-  ### Average across inter-individual draws
-  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
-  
-  ### Prepare and return outputs of function
-  P = apollo_prepareProb(P, apollo_inputs, functionality)
-  return(P)
-}
-
-### MODEL ESTIMATION
-
-# Starting value search:
-apollo_beta = apollo_searchStart(apollo_beta,
-                                 apollo_fixed,
-                                 apollo_probabilities,
-                                 apollo_inputs,
-                                 searchStart_settings=list(nCandidates=20))
-
-## Optional: calculate LL before model estimation
-apollo_llCalc(apollo_beta, apollo_probabilities, apollo_inputs)
-
-### Estimate model
-CEmodel = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
-apollo_modelOutput(CEmodel,modelOutput_settings = list(printPVal=TRUE))
-
-
-#### CE ICLV 2 MXL WTP space####
-
-library(apollo)
-
-### Initialise code
-apollo_initialise()
-
-### Set core controls
-apollo_control = list(
-  modelName  = "ICLV model: CE2",
-  modelDescr = "ICLV model: CE2",
-  indivID    = "ID",
-  mixing     = TRUE,
-  nCores     = 4
-)
-
-### Vector of parameters, including any that are kept fixed in estimation
-apollo_beta = c(mu_Price    =-3,
-  sig_Price=0,
-  mu_Performance = -3,
-  sig_Performance = 0,
-  mu_Emission = -3,
-  sig_Emission = 0, 
-                lambda             = 1, 
-                gamma_Age       = 0, 
-                gamma_Gender    = 0,
-                gamma_Distance  = 0, 
-                gamma_Income =0,
-                gamma_Employment =0,
-                gamma_Experts =0,
-                gamma_Cons =0,
-                gamma_BP =0,
-                gamma_Charity =0,
-                gamma_Certainty=0,
-                zeta_Q13   = 1, 
-                zeta_Q14   = 1, 
-                zeta_Q15   = 1, 
-                tau_Q13_1  =-2, 
-                tau_Q13_2  =-1, 
-                tau_Q13_3  = 1, 
-                tau_Q13_4  = 2, 
-                tau_Q14_1  =-2, 
-                tau_Q14_2  =-1, 
-                tau_Q14_3  = 1, 
-                tau_Q14_4  = 2, 
-                tau_Q15_1  =-2, 
-                tau_Q15_2  =-1, 
-                tau_Q15_3  = 1, 
-                tau_Q15_4  = 2)
-
-## Vector with names (in quotes) of parameters to be kept fixed at their starting value in apollo_beta, use apollo_beta_fixed = c() if none
-apollo_fixed = c()
-
-## DEFINE RANDOM COMPONENTS                                    
-
-### Set parameters for generating draws
-apollo_draws = list(
-  interDrawsType="halton", 
-  interNDraws=1000,          
-  interUnifDraws=c(),      
-  interNormDraws=c("eta","draws_Price","draws_Performance","draws_Emission"), 
-  intraDrawsType='',
-  intraNDraws=0,          
-  intraUnifDraws=c(),     
-  intraNormDraws=c()      
-)
-
-### Create random parameters
-apollo_randCoeff=function(apollo_beta, apollo_inputs){
-  randcoeff = list()
-  
-  randcoeff[["LV"]] = gamma_Age*Age +gamma_Gender*Q1Gender + gamma_Distance*Distance + gamma_Income*Income + gamma_Employment*Employment + gamma_Experts*Experts + gamma_Cons*Consequentiality + gamma_BP*BP + gamma_Charity*Charity + gamma_Certainty*Q12CECertainty + eta
-  randcoeff[["b_Price"]] =  -exp(mu_Price + sig_Price * draws_Price )
-  randcoeff[["b_Performance"]] =  -exp(mu_Performance + sig_Performance * draws_Performance )
-  randcoeff[["b_Emission"]] =  -exp(mu_Emission + sig_Emission * draws_Emission )
-  
-  return(randcoeff)
-}
-
-apollo_inputs = apollo_validateInputs()
-
-## DEFINE MODEL AND LIKELIHOOD FUNCTION                        
-
-apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
-  
-  ### Attach inputs and detach after function exit
-  apollo_attach(apollo_beta, apollo_inputs)
-  on.exit(apollo_detach(apollo_beta, apollo_inputs))
-  
-  ### Create list of probabilities P
-  P = list()
-  
-  ### Likelihood of indicators
-  op_settings1 = list(outcomeOrdered = Q13CurrentThreatToSelf, 
-                      V              = zeta_Q13*LV, 
-                      tau            = c(tau_Q13_1, tau_Q13_2, tau_Q13_3, tau_Q13_4),
-                      rows           = (Task==1),
-                      componentName  = "indic_Q13")
-  op_settings2 = list(outcomeOrdered = Q14FutureThreatToSelf, 
-                      V              = zeta_Q14*LV, 
-                      tau            = c(tau_Q14_1, tau_Q14_2, tau_Q14_3, tau_Q14_4), 
-                      rows           = (Task==1),
-                      componentName  = "indic_Q14")
-  op_settings3 = list(outcomeOrdered = Q15ThreatToEnvironment, 
-                      V              = zeta_Q15*LV, 
-                      tau            = c(tau_Q15_1, tau_Q15_2, tau_Q15_3, tau_Q15_4), 
-                      rows           = (Task==1),
-                      componentName  = "indic_Q15")
-  P[["indic_Q13"]] = apollo_op(op_settings1, functionality)
-  P[["indic_Q14"]] = apollo_op(op_settings2, functionality)
-  P[["indic_Q15"]] = apollo_op(op_settings3, functionality)
-  
-  ### Likelihood of choices
-  ### List of utilities: these must use the same names as in mnl_settings, order is irrelevant
-  V = list()
-  V[['A']] = b_Price*(Price_A + b_Performance*Performance_A + b_Emission*Emission_A)
-  V[['B']] = b_Price*(Price_B + b_Performance*Performance_B + b_Emission*Emission_B+ lambda*LV )
-  
-  ### Define settings for MNL model component
-  mnl_settings = list(
-    alternatives = c(A=1, B=2),
-    avail        = list(A=1, B=1),
-    choiceVar    = Choice,
-    V            = V,
-    componentName= "choice"
-  )
-  
-  ### Compute probabilities for MNL model component
-  P[["choice"]] = apollo_mnl(mnl_settings, functionality)
-  
-  ### Likelihood of the whole model
-  P = apollo_combineModels(P, apollo_inputs, functionality)
-  
-  ### Take product across observation for same individual
-  P = apollo_panelProd(P, apollo_inputs, functionality)
-  
-  ### Average across inter-individual draws
-  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
-  
-  ### Prepare and return outputs of function
-  P = apollo_prepareProb(P, apollo_inputs, functionality)
-  return(P)
-}
-
-### MODEL ESTIMATION
-
-# Starting value search:
-apollo_beta = apollo_searchStart(apollo_beta,
-                                 apollo_fixed,
-                                 apollo_probabilities,
-                                 apollo_inputs,
-                                 searchStart_settings=list(nCandidates=20))
-
-## Optional: calculate LL before model estimation
-apollo_llCalc(apollo_beta, apollo_probabilities, apollo_inputs)
-
-### Estimate model
-CEmodel2 = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
-apollo_modelOutput(CEmodel2,modelOutput_settings = list(printPVal=TRUE))
-apollo_saveOutput(CEmodel2)
-saveRDS(CEmodel2, file="CE2.rds")
-# readRDS("CE2.rds")
-xtable::xtable(round(data.frame(apollo_modelOutput(CE2,modelOutput_settings = list(printPVal=TRUE))),3),digits=3)
-Full_Final <- cbind(Full_Final,"LV"=slice(data.frame(unconditionals$LV[,2]),rep(1:n(), each = 8)))
-ggplot(Full_Final, aes(x=Full_Final$unconditionals.LV...2., y=Q7WTP)) + geom_point()
-
-
-
-
-#### CE ICLV 2 MXL WTP space truncated ####
-
-library(apollo)
-
-Test_Truncated =Test_Apollo[ (Test_Apollo$ID) %in% c(AllCriteria),] 
-database = Test_Truncated
-apollo_initialise()
-
-apollo_control = list(
-  modelName  = "ICLV model: CE2",
-  modelDescr = "ICLV model: CE2",
-  indivID    = "ID", mixing     = TRUE, nCores     = 4)
-
-apollo_beta = c(mu_Price    =-3,
-                sig_Price=0,
-                mu_Performance = -3,
-                sig_Performance = 0,
-                mu_Emission = -3,
-                sig_Emission = 0, 
-                lambda             = 1, 
-                gamma_Age       = 0, 
-                gamma_Gender    = 0,
-                gamma_Distance  = 0, 
-                gamma_Income =0,
-                gamma_Employment =0,
-                gamma_Experts =0,
-                gamma_Cons =0,
-                gamma_BP =0,
-                gamma_Charity =0,
-                gamma_Certainty=0,
-                zeta_Q13   = 1, 
-                zeta_Q14   = 1, 
-                zeta_Q15   = 1, 
-                tau_Q13_1  =-2, 
-                tau_Q13_2  =-1, 
-                tau_Q13_3  = 1, 
-                tau_Q13_4  = 2, 
-                tau_Q14_1  =-2, 
-                tau_Q14_2  =-1, 
-                tau_Q14_3  = 1, 
-                tau_Q14_4  = 2, 
-                tau_Q15_1  =-2, 
-                tau_Q15_2  =-1, 
-                tau_Q15_3  = 1, 
-                tau_Q15_4  = 2)
-
-apollo_fixed = c()
-
-apollo_draws = list(
-  interDrawsType="halton", 
-  interNDraws=1000,          
-  interUnifDraws=c(),      
-  interNormDraws=c("eta","draws_Price","draws_Performance","draws_Emission"))
-
-apollo_randCoeff=function(apollo_beta, apollo_inputs){
-  randcoeff = list()
-  randcoeff[["LV"]] = gamma_Age*Age +gamma_Gender*Q1Gender + gamma_Distance*Distance + gamma_Income*Income + gamma_Employment*Employment + gamma_Experts*Experts + gamma_Cons*Consequentiality + gamma_BP*BP + gamma_Charity*Charity + gamma_Certainty*Q12CECertainty + eta
-  randcoeff[["b_Price"]] =  -exp(mu_Price + sig_Price * draws_Price )
-  randcoeff[["b_Performance"]] =  -exp(mu_Performance + sig_Performance * draws_Performance )
-  randcoeff[["b_Emission"]] =  -exp(mu_Emission + sig_Emission * draws_Emission )
-  return(randcoeff)
-}
-
-apollo_inputs = apollo_validateInputs()
-
-apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
-  
-  apollo_attach(apollo_beta, apollo_inputs)
-  on.exit(apollo_detach(apollo_beta, apollo_inputs))
-  P = list()
-  op_settings1 = list(outcomeOrdered = Q13CurrentThreatToSelf, 
-                      V              = zeta_Q13*LV, 
-                      tau            = c(tau_Q13_1, tau_Q13_2, tau_Q13_3, tau_Q13_4),
-                      rows           = (Task==1),
-                      componentName  = "indic_Q13")
-  op_settings2 = list(outcomeOrdered = Q14FutureThreatToSelf, 
-                      V              = zeta_Q14*LV, 
-                      tau            = c(tau_Q14_1, tau_Q14_2, tau_Q14_3, tau_Q14_4), 
-                      rows           = (Task==1),
-                      componentName  = "indic_Q14")
-  op_settings3 = list(outcomeOrdered = Q15ThreatToEnvironment, 
-                      V              = zeta_Q15*LV, 
-                      tau            = c(tau_Q15_1, tau_Q15_2, tau_Q15_3, tau_Q15_4), 
-                      rows           = (Task==1),
-                      componentName  = "indic_Q15")
-  P[["indic_Q13"]]     = apollo_op(op_settings1, functionality)
-  P[["indic_Q14"]] = apollo_op(op_settings2, functionality)
-  P[["indic_Q15"]]      = apollo_op(op_settings3, functionality)
-  V = list()
-  V[['A']] = b_Price*(Price_A + b_Performance*Performance_A + b_Emission*Emission_A)
-  V[['B']] = b_Price*(Price_B + b_Performance*Performance_B + b_Emission*Emission_B+ lambda*LV )
-  mnl_settings = list(
-    alternatives = c(A=1, B=2),
-    avail        = list(A=1, B=1),
-    choiceVar    = Choice,
-    V            = V,
-    componentName= "choice")
-  P[["choice"]] = apollo_mnl(mnl_settings, functionality)
-  P = apollo_combineModels(P, apollo_inputs, functionality)
-  P = apollo_panelProd(P, apollo_inputs, functionality)
-  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
-  P = apollo_prepareProb(P, apollo_inputs, functionality)
-  return(P)
-}
-
-# # Starting value search:
-# apollo_beta = apollo_searchStart(apollo_beta,
-#                                  apollo_fixed,
-#                                  apollo_probabilities,
-#                                  apollo_inputs,
-#                                  searchStart_settings=list(nCandidates=20))
-# apollo_llCalc(apollo_beta, apollo_probabilities, apollo_inputs)
-
-CEmodel3 = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
-apollo_modelOutput(CEmodel3,modelOutput_settings = list(printPVal=TRUE))
-apollo_saveOutput(CEmodel3)
-saveRDS(CEmodel3, file="CE3.rds")
-# readRDS("CE3.rds")
-xtable::xtable(round(data.frame(apollo_modelOutput(CE3,modelOutput_settings = list(printPVal=TRUE))),3),digits=3)
-
-
-#### Section 6D: ICLV Q6 ####
-## http://www.apollochoicemodelling.com/files/Apollo_example_24.r
-
-library(apollo)
-library(stats)
-
-database = Test_Apollo
-apollo_initialise()
-
-apollo_control = list(
-  modelName  = "ICLVQ6",
-  modelDescr = "ICLV modelCVQ6",
-  indivID    = "ID",
-  mixing     = TRUE,
-  nCores     = 4)
-
-apollo_beta = c(b_bid    = 0,
-                lambda            = 1, 
-                gamma_Age       = 0, 
-                gamma_Gender    = 0,
-                gamma_Distance  = 0, 
-                gamma_Income =0,
-                gamma_Experts =0,
-                gamma_Cons =0,
-                gamma_BP =0,
-                gamma_Charity =0,
-                gamma_Certainty =0,
-                zeta_Q13   = 1, 
-                zeta_Q14   = 1, 
-                zeta_Q15   = 1, 
-                tau_Q13_1  =-2, 
-                tau_Q13_2  =-1, 
-                tau_Q13_3  = 1, 
-                tau_Q13_4  = 2, 
-                tau_Q14_1  =-2, 
-                tau_Q14_2  =-1, 
-                tau_Q14_3  = 1, 
-                tau_Q14_4  = 2, 
-                tau_Q15_1  =-2, 
-                tau_Q15_2  =-1, 
-                tau_Q15_3  = 1, 
-                tau_Q15_4  = 2)
-
-apollo_fixed = c()
-
-apollo_draws = list(
-  interDrawsType="halton", 
-  interNDraws=1000,          
-  interUnifDraws=c(),      
-  interNormDraws=c("eta"), 
-  intraDrawsType='',
-  intraNDraws=0,          
-  intraUnifDraws=c(),     
-  intraNormDraws=c()      
-)
-
-apollo_randCoeff=function(apollo_beta, apollo_inputs){
-  randcoeff = list()
-  randcoeff[["LV"]] = gamma_Age*Age +gamma_Gender*Q1Gender + gamma_Distance*Distance + gamma_Income*Income + gamma_Experts*Experts + gamma_Cons*Consequentiality + gamma_BP*BP + gamma_Charity*Charity + gamma_Certainty*Q6ResearchCertainty + eta
-  return(randcoeff)
-}
-
-apollo_inputs = apollo_validateInputs()
-
-apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
-  apollo_attach(apollo_beta, apollo_inputs)
-  on.exit(apollo_detach(apollo_beta, apollo_inputs))
-  P = list()
-  op_settings1 = list(outcomeOrdered = Q13CurrentThreatToSelf, 
-                      V              = zeta_Q13*LV, 
-                      tau            = c(tau_Q13_1, tau_Q13_2, tau_Q13_3, tau_Q13_4),
-                      rows           = (Task==1),
-                      componentName  = "indic_Q13")
-  op_settings2 = list(outcomeOrdered = Q14FutureThreatToSelf, 
-                      V              = zeta_Q14*LV, 
-                      tau            = c(tau_Q14_1, tau_Q14_2, tau_Q14_3, tau_Q14_4), 
-                      rows           = (Task==1),
-                      componentName  = "indic_Q14")
-  op_settings3 = list(outcomeOrdered = Q15ThreatToEnvironment, 
-                      V              = zeta_Q15*LV, 
-                      tau            = c(tau_Q15_1, tau_Q15_2, tau_Q15_3, tau_Q15_4), 
-                      rows           = (Task==1),
-                      componentName  = "indic_Q15")
-  P[["indic_Q13"]]     = apollo_op(op_settings1, functionality)
-  P[["indic_Q14"]] = apollo_op(op_settings2, functionality)
-  P[["indic_Q15"]]      = apollo_op(op_settings3, functionality)
-  V = list()
-  V[['A']]  = (b_bid*(Bid_Alt))
-  V[['B']]  = (b_bid*(Q6Bid))+ lambda*LV 
-  mnl_settings = list(
-    alternatives = c(A=1, B=2),
-    avail        = list(A=1, B=1),
-    choiceVar    = Q6ResearchResponse,
-    V            = V,
-    componentName= "choice")
-  P[["choice"]] = apollo_mnl(mnl_settings, functionality)
-  P = apollo_combineModels(P, apollo_inputs, functionality)
-  P = apollo_panelProd(P, apollo_inputs, functionality)
-  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
-  P = apollo_prepareProb(P, apollo_inputs, functionality)
-  return(P)
-}
-
-# Starting value search:
-apollo_beta = apollo_searchStart(apollo_beta,
-                                 apollo_fixed,
-                                 apollo_probabilities,
-                                 apollo_inputs,
-                                 searchStart_settings=list(nCandidates=20))
-
-### Estimate model
-CVModel = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
-
-apollo_modelOutput(CVModel,modelOutput_settings = list(printPVal=TRUE))
-
-## Model prediction accuracy
-ICLV_CVQ6_Predictions <- data.frame(CVModel$avgCP) ## Getting probabilities of choosing each option from the model
-ICLV_CVQ6_Predictions[ICLV_CVQ6_Predictions$CVModel.avgCP < 0.5,] <- 0
-ICLV_CVQ6_Predictions[ICLV_CVQ6_Predictions$CVModel.avgCP >= 0.5,] <- 1
-ICLV_CVQ6_Predictions <- cbind("Actual"=Fulls$Choice,"Predicted"=slice(data.frame(ICLV_CVQ6_Predictions$CVModel.avgCP),rep(1:n(), each = 4)))
-ICLV_CVQ6_Predictions$Match <- ICLV_CVQ6_Predictions$Actual==ICLV_CVQ6_Predictions$ICLV_CVQ6_Predictions.CVModel.avgCP
-ICLV_CVQ6_Predictions$Match[ICLV_CVQ6_Predictions$Match==TRUE] <- 1
-ICLV_CVQ6_Predictions$Match[ICLV_CVQ6_Predictions$Match==FALSE] <- 0
-round(100/length(ICLV_CVQ6_Predictions$Match)*length(ICLV_CVQ6_Predictions$Match[ICLV_CVQ6_Predictions$Match==0]),3)
-# 56.567
-round(100/length(ICLV_CVQ6_Predictions$Match)*length(ICLV_CVQ6_Predictions$Match[ICLV_CVQ6_Predictions$Match==1]),3)
-# 43.433
-
-
-
-
-#### Section 6D: ICLV Q6 Truncated####
-## http://www.apollochoicemodelling.com/files/Apollo_example_24.r
-
-library(apollo)
-library(stats)
-
-Test_Truncated =Test_Apollo[ (Test_Apollo$ID) %in% c(AllCriteria),] 
-database = Test_Truncated
-
-apollo_initialise()
-
-apollo_control = list(
-  modelName  = "ICLV",
-  modelDescr = "ICLV model: CV Q6",
-  indivID    = "ID",
-  mixing     = TRUE,
-  nCores     = 4)
-apollo_beta = c(b_bid     = 0, 
-                b_bid_Alt = 0,
-                lambda            = 1, 
-                gamma_Age       = 0, 
-                gamma_Gender    = 0,
-                gamma_Distance  = 0, 
-                gamma_Income =0,
-                gamma_Experts =0,
-                gamma_Cons =0,
-                gamma_BP =0,
-                gamma_Charity =0,
-                gamma_Certainty =0,
-                zeta_Q13   = 1, 
-                zeta_Q14   = 1, 
-                zeta_Q15   = 1, 
-                tau_Q13_1  =-2, 
-                tau_Q13_2  =-1, 
-                tau_Q13_3  = 1, 
-                tau_Q13_4  = 2, 
-                tau_Q14_1  =-2, 
-                tau_Q14_2  =-1, 
-                tau_Q14_3  = 1, 
-                tau_Q14_4  = 2, 
-                tau_Q15_1  =-2, 
-                tau_Q15_2  =-1, 
-                tau_Q15_3  = 1, 
-                tau_Q15_4  = 2)
-
-apollo_fixed = c()
-
-apollo_draws = list(
-  interDrawsType="halton", 
-  interNDraws=1000,          
-  interUnifDraws=c(),      
-  interNormDraws=c("eta"), 
-  intraDrawsType='',
-  intraNDraws=0,          
-  intraUnifDraws=c(),     
-  intraNormDraws=c()      
-)
-
-apollo_randCoeff=function(apollo_beta, apollo_inputs){
-  randcoeff = list()
-  randcoeff[["LV"]] = gamma_Age*Age +gamma_Gender*Q1Gender + gamma_Distance*Distance + gamma_Income*Income + gamma_Experts*Experts + gamma_Cons*Consequentiality + gamma_BP*BP + gamma_Charity*Charity + gamma_Certainty*Q6ResearchCertainty + eta
-  return(randcoeff)
-}
-
-apollo_inputs = apollo_validateInputs()
-
-apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
-  apollo_attach(apollo_beta, apollo_inputs)
-  on.exit(apollo_detach(apollo_beta, apollo_inputs))
-  P = list()
-  op_settings1 = list(outcomeOrdered = Q13CurrentThreatToSelf, 
-                      V              = zeta_Q13*LV, 
-                      tau            = c(tau_Q13_1, tau_Q13_2, tau_Q13_3, tau_Q13_4),
-                      rows           = (Task==1),
-                      componentName  = "indic_Q13")
-  op_settings2 = list(outcomeOrdered = Q14FutureThreatToSelf, 
-                      V              = zeta_Q14*LV, 
-                      tau            = c(tau_Q14_1, tau_Q14_2, tau_Q14_3, tau_Q14_4), 
-                      rows           = (Task==1),
-                      componentName  = "indic_Q14")
-  op_settings3 = list(outcomeOrdered = Q15ThreatToEnvironment, 
-                      V              = zeta_Q15*LV, 
-                      tau            = c(tau_Q15_1, tau_Q15_2, tau_Q15_3, tau_Q15_4), 
-                      rows           = (Task==1),
-                      componentName  = "indic_Q15")
-  P[["indic_Q13"]]     = apollo_op(op_settings1, functionality)
-  P[["indic_Q14"]] = apollo_op(op_settings2, functionality)
-  P[["indic_Q15"]]      = apollo_op(op_settings3, functionality)
-  V = list()
-  V[['A']] = ( b_bid_Alt*(Bid_Alt==0) )
-  V[['B']] = ( b_bid*(Q6Bid)+ lambda*LV )
-  mnl_settings = list(
-    alternatives = c(A=1, B=2),
-    avail        = list(A=1, B=1),
-    choiceVar    = Q6ResearchResponse,
-    V            = V,
-    componentName= "choice"
-  )
-  
-  ### Compute probabilities for MNL model component
-  P[["choice"]] = apollo_mnl(mnl_settings, functionality)
-  P = apollo_combineModels(P, apollo_inputs, functionality)
-  P = apollo_panelProd(P, apollo_inputs, functionality)
-  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
-  P = apollo_prepareProb(P, apollo_inputs, functionality)
-  return(P)
-}
-
-CVmodel2 = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
-
-apollo_modelOutput(CVmodel2,modelOutput_settings = list(printPVal=TRUE))
-
-
-#### Section 6D: ICLV Q7 ####
-## http://www.apollochoicemodelling.com/files/Apollo_example_24.r
-
-Test_Apollo$Q7TreatmentResponse <- Test_Apollo$Q7TreatmentResponse+1
-database = Test_Apollo
-
-library(apollo)
-library(stats)
-
-database = Test_Apollo
-apollo_initialise()
-
-apollo_control = list(
-  modelName  = "ICLVQ7",
-  modelDescr = "ICLV modelCVQ7",
-  indivID    = "ID",
-  mixing     = TRUE,
-  nCores     = 4)
-
-apollo_beta = c(b_bid    = 0,
-                intercept_b=0,
-                intercept_a=0,
-                lambda            = 1, 
-                gamma_Age       = 0, 
-                gamma_Gender    = 0,
-                gamma_Distance  = 0, 
-                gamma_Income =0,
-                gamma_Experts =0,
-                gamma_Cons =0,
-                gamma_BP =0,
-                gamma_Charity =0,
-                gamma_Certainty =0,
-                zeta_Q13   = 1, 
-                zeta_Q14   = 1, 
-                zeta_Q15   = 1, 
-                tau_Q13_1  =-2, 
-                tau_Q13_2  =-1, 
-                tau_Q13_3  = 1, 
-                tau_Q13_4  = 2, 
-                tau_Q14_1  =-2, 
-                tau_Q14_2  =-1, 
-                tau_Q14_3  = 1, 
-                tau_Q14_4  = 2, 
-                tau_Q15_1  =-2, 
-                tau_Q15_2  =-1, 
-                tau_Q15_3  = 1, 
-                tau_Q15_4  = 2)
-
-apollo_fixed = c("intercept_a")
-
-apollo_draws = list(
-  interDrawsType="halton", 
-  interNDraws=1000,          
-  interUnifDraws=c(),      
-  interNormDraws=c("eta"), 
-  intraDrawsType='',
-  intraNDraws=0,          
-  intraUnifDraws=c(),     
-  intraNormDraws=c()      
-)
-
-apollo_randCoeff=function(apollo_beta, apollo_inputs){
-  randcoeff = list()
-  randcoeff[["LV"]] = gamma_Age*Age +gamma_Gender*Q1Gender + gamma_Distance*Distance + gamma_Income*Income + gamma_Experts*Experts + gamma_Cons*Consequentiality + gamma_BP*BP + gamma_Charity*Charity + gamma_Certainty*Q6ResearchCertainty + eta
-  return(randcoeff)
-}
-
-apollo_inputs = apollo_validateInputs()
-
-apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
-  apollo_attach(apollo_beta, apollo_inputs)
-  on.exit(apollo_detach(apollo_beta, apollo_inputs))
-  P = list()
-  op_settings1 = list(outcomeOrdered = Q13CurrentThreatToSelf, 
-                      V              = zeta_Q13*LV, 
-                      tau            = c(tau_Q13_1, tau_Q13_2, tau_Q13_3, tau_Q13_4),
-                      rows           = (Task==1),
-                      componentName  = "indic_Q13")
-  op_settings2 = list(outcomeOrdered = Q14FutureThreatToSelf, 
-                      V              = zeta_Q14*LV, 
-                      tau            = c(tau_Q14_1, tau_Q14_2, tau_Q14_3, tau_Q14_4), 
-                      rows           = (Task==1),
-                      componentName  = "indic_Q14")
-  op_settings3 = list(outcomeOrdered = Q15ThreatToEnvironment, 
-                      V              = zeta_Q15*LV, 
-                      tau            = c(tau_Q15_1, tau_Q15_2, tau_Q15_3, tau_Q15_4), 
-                      rows           = (Task==1),
-                      componentName  = "indic_Q15")
-  P[["indic_Q13"]]     = apollo_op(op_settings1, functionality)
-  P[["indic_Q14"]] = apollo_op(op_settings2, functionality)
-  P[["indic_Q15"]]      = apollo_op(op_settings3, functionality)
-  V = list()
-  V[['A']]  = (intercept_a+ b_bid*(Bid_Alt))
-  V[['B']]  = (intercept_b+ b_bid*(Q7Bid)+ lambda*LV )
-  mnl_settings = list(
-    alternatives = c(A=1, B=2),
-    avail        = list(A=1, B=1),
-    choiceVar    = Q7TreatmentResponse,
-    V            = V,
-    componentName= "choice")
-  P[["choice"]] = apollo_mnl(mnl_settings, functionality)
-  P = apollo_combineModels(P, apollo_inputs, functionality)
-  P = apollo_panelProd(P, apollo_inputs, functionality)
-  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
-  P = apollo_prepareProb(P, apollo_inputs, functionality)
-  return(P)
-}
-
-# Starting value search:
-# apollo_beta = apollo_searchStart(apollo_beta,
-#                                  apollo_fixed,
-#                                  apollo_probabilities,
-#                                  apollo_inputs,
-#                                  searchStart_settings=list(nCandidates=20))
-
-CVmodel7 = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
-
-apollo_modelOutput(CVmodel7,modelOutput_settings = list(printPVal=TRUE))
-
-
-## Model prediction accuracy
-ICLV_CVQ7_Predictions <- data.frame(CVModel7$avgCP) ## Getting probabilities of choosing each option from the model
-ICLV_CVQ7_Predictions[ICLV_CVQ7_Predictions$CVModel7.avgCP < 0.5,] <- 0
-ICLV_CVQ7_Predictions[ICLV_CVQ7_Predictions$CVModel7.avgCP >= 0.5,] <- 1
-ICLV_CVQ7_Predictions <- cbind("Actual"=Fulls$Choice,"Predicted"=slice(data.frame(ICLV_CVQ7_Predictions$CVModel7.avgCP),rep(1:n(), each = 4)))
-ICLV_CVQ7_Predictions$Match <- ICLV_CVQ7_Predictions$Actual==ICLV_CVQ7_Predictions$ICLV_CVQ7_Predictions.CVModel7.avgCP
-ICLV_CVQ7_Predictions$Match[ICLV_CVQ7_Predictions$Match==TRUE] <- 1
-ICLV_CVQ7_Predictions$Match[ICLV_CVQ7_Predictions$Match==FALSE] <- 0
-round(100/length(ICLV_CVQ7_Predictions$Match)*length(ICLV_CVQ7_Predictions$Match[ICLV_CVQ7_Predictions$Match==0]),3)
-# 44.524
-round(100/length(ICLV_CVQ7_Predictions$Match)*length(ICLV_CVQ7_Predictions$Match[ICLV_CVQ7_Predictions$Match==1]),3)
-# 55.746
-
-
-#### Section 6D: ICLV Q7 Truncated####
-## http://www.apollochoicemodelling.com/files/Apollo_example_24.r
-
-library(apollo)
-library(stats)
-
-Test_Truncated =Test_Apollo[ (Test_Apollo$ID) %in% c(AllCriteria),] 
-database = Test_Truncated
-
-apollo_initialise()
-
-apollo_control = list(
-  modelName  = "ICLV",
-  modelDescr = "ICLV modelCVQ7T",
-  indivID    = "ID",
-  mixing     = TRUE,
-  nCores     = 4)
-apollo_beta = c(b_bid     = 0, 
-                b_bid_Alt = 0,
-                lambda            = 1, 
-                gamma_Age       = 0, 
-                gamma_Gender    = 0,
-                gamma_Distance  = 0, 
-                gamma_Income =0,
-                gamma_Experts =0,
-                gamma_Cons =0,
-                gamma_BP =0,
-                gamma_Charity =0,
-                gamma_Certainty =0,
-                zeta_Q13   = 1, 
-                zeta_Q14   = 1, 
-                zeta_Q15   = 1, 
-                tau_Q13_1  =-2, 
-                tau_Q13_2  =-1, 
-                tau_Q13_3  = 1, 
-                tau_Q13_4  = 2, 
-                tau_Q14_1  =-2, 
-                tau_Q14_2  =-1, 
-                tau_Q14_3  = 1, 
-                tau_Q14_4  = 2, 
-                tau_Q15_1  =-2, 
-                tau_Q15_2  =-1, 
-                tau_Q15_3  = 1, 
-                tau_Q15_4  = 2)
-
-apollo_fixed = c()
-
-apollo_draws = list(
-  interDrawsType="halton", 
-  interNDraws=1000,          
-  interUnifDraws=c(),      
-  interNormDraws=c("eta"), 
-  intraDrawsType='',
-  intraNDraws=0,          
-  intraUnifDraws=c(),     
-  intraNormDraws=c()      
-)
-
-apollo_randCoeff=function(apollo_beta, apollo_inputs){
-  randcoeff = list()
-  randcoeff[["LV"]] = gamma_Age*Age +gamma_Gender*Q1Gender + gamma_Distance*Distance + gamma_Income*Income + gamma_Experts*Experts + gamma_Cons*Consequentiality + gamma_BP*BP + gamma_Charity*Charity + gamma_Certainty*Q6ResearchCertainty + eta
-  return(randcoeff)
-}
-
-apollo_inputs = apollo_validateInputs()
-
-apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
-  apollo_attach(apollo_beta, apollo_inputs)
-  on.exit(apollo_detach(apollo_beta, apollo_inputs))
-  P = list()
-  op_settings1 = list(outcomeOrdered = Q13CurrentThreatToSelf, 
-                      V              = zeta_Q13*LV, 
-                      tau            = c(tau_Q13_1, tau_Q13_2, tau_Q13_3, tau_Q13_4),
-                      rows           = (Task==1),
-                      componentName  = "indic_Q13")
-  op_settings2 = list(outcomeOrdered = Q14FutureThreatToSelf, 
-                      V              = zeta_Q14*LV, 
-                      tau            = c(tau_Q14_1, tau_Q14_2, tau_Q14_3, tau_Q14_4), 
-                      rows           = (Task==1),
-                      componentName  = "indic_Q14")
-  op_settings3 = list(outcomeOrdered = Q15ThreatToEnvironment, 
-                      V              = zeta_Q15*LV, 
-                      tau            = c(tau_Q15_1, tau_Q15_2, tau_Q15_3, tau_Q15_4), 
-                      rows           = (Task==1),
-                      componentName  = "indic_Q15")
-  P[["indic_Q13"]]     = apollo_op(op_settings1, functionality)
-  P[["indic_Q14"]] = apollo_op(op_settings2, functionality)
-  P[["indic_Q15"]]      = apollo_op(op_settings3, functionality)
-  V = list()
-  V[['A']] = ( b_bid_Alt*(Bid_Alt==0) )
-  V[['B']] = ( b_bid*(Q7Bid)+ lambda*LV )
-  mnl_settings = list(
-    alternatives = c(A=1, B=2),
-    avail        = list(A=1, B=1),
-    choiceVar    = Q7TreatmentResponse,
-    V            = V,
-    componentName= "choice"
-  )
-  
-  ### Compute probabilities for MNL model component
-  P[["choice"]] = apollo_mnl(mnl_settings, functionality)
-  P = apollo_combineModels(P, apollo_inputs, functionality)
-  P = apollo_panelProd(P, apollo_inputs, functionality)
-  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
-  P = apollo_prepareProb(P, apollo_inputs, functionality)
-  return(P)
-}
-
-CVmodel7T = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
-
-apollo_modelOutput(CVmodel7T,modelOutput_settings = list(printPVal=TRUE))
-
+#### CV LOGIT MODELS ####
 
 
 #### Q6Bid-only logistic ####
@@ -1016,12 +86,10 @@ apollo_modelOutput(SB2,modelOutput_settings = list(printPVal=TRUE))
 
 database$Q7Response2 <- database$Q7Response2
 
-#### Q7Bid-only bivariate ####
+#### Q7Bid-only bivariate FAILED ####
 apollo_initialise()
 apollo_control = list(modelName  ="Q7Bid-Only bivariate", indivID    ="ID")
-apollo_beta=c(b_bid    = 0,
-              intercept_b=0,
-              intercept_a=0)
+apollo_beta=c(b_bid    = 0,intercept_b=0,intercept_a=0)
 apollo_fixed = c("intercept_a")
 apollo_inputs = apollo_validateInputs()
 apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
@@ -1032,7 +100,7 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
   V[['A']]  = (intercept_a+ b_bid*(Bid_Alt))
   V[['B']]  = (intercept_b+ b_bid*(Q7Bid))
   mnl_settings = list(
-    alternatives = c(A=1, B=2),
+    alternatives = c(A=0, B=1),
     avail        = list(A=1, B=1),
     choiceVar    = Q7TreatmentResponse,
     V            = V)
@@ -1041,7 +109,7 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
   X[['A']]  = (intercept_a+ b_bid*Bid_Alt)
   X[['B']]  = (intercept_b+ b_bid*Q7Bid2)
   mnl_settings2 = list(
-    alternatives = c(A=1, B=2),
+    alternatives = c(A=0, B=1),
     avail        = list(A=1, B=1),
     choiceVar    = Q7Response2,
     V            = X)
@@ -1054,16 +122,15 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
 
 SB3 = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
 apollo_modelOutput(SB3,modelOutput_settings = list(printPVal=TRUE))
--SB3$estimate["intercept_b"]/SB3$estimate["b_bid"]
--SB3$estimate["intercept_b"]/SB3$estimate["b_bid2"]
+SB3$estimate
+summary((dbchoice(Q7TreatmentResponse + Q7Response2 ~ 1  |Q7Bid + Q7Bid2 , data = database,dist="normal")))$coefficients
 
 
-#### Q7Bid-only bivariate V2 ####
+
+#### Q7Bid-only bivariate V2 FAILED ####
 apollo_initialise()
 apollo_control = list(modelName  ="Q7Bid-Only bivariate2", indivID    ="ID")
-apollo_beta=c(b_bid    = 0,
-              intercept_b=0,
-              intercept_a=0)
+apollo_beta=c(b_bid    = 0,intercept_b=0,intercept_a=0)
 apollo_fixed = c("intercept_a")
 apollo_inputs = apollo_validateInputs()
 apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
@@ -1071,12 +138,14 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
   on.exit(apollo_detach(apollo_beta, apollo_inputs))
   P = list()
   V = list()
-  V[['A']]  = (intercept_a+ b_bid*(Bid_Alt))
-  V[['B']]  = (intercept_b+ b_bid*(Q7Bid2))
-  mnl_settings = list(
-    alternatives = c(A=1, B=2),
-    avail        = list(A=1, B=1),
-    choiceVar    = Q7Response2,
+  V[['A']]  = (intercept_a+ b_bid*(Q7Bid))
+  V[['B']]  = (intercept_b+ b_bid*(Q7Bid))
+  V[['C']]  = (intercept_b+ b_bid*(Q7Bid))
+  V[['D']]  = (intercept_b+ b_bid*(Q7Bid2))
+    mnl_settings = list(
+    alternatives = c(A=0, B=1,C=2,D=3),
+    avail        = list(A=1, B=1,C=1,D=1),
+    choiceVar    = Q7R,
     V            = V)
   P[["model"]] = apollo_mnl(mnl_settings, functionality)
   P = apollo_panelProd(P, apollo_inputs, functionality)
@@ -1085,6 +154,12 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
 }
 
 SB3 = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+SB3$estimate
+summary((dbchoice(Q7TreatmentResponse + Q7Response2 ~ 1  |Q7Bid + Q7Bid2 , data = database,dist="logistic")))$coefficients
+summary((dbchoice(Q7TreatmentResponse + Q7Response2 ~ 1  |Q7Bid + Q7Bid2 , data = database,dist="normal")))$coefficients
+
+
+
 apollo_modelOutput(SB3,modelOutput_settings = list(printPVal=TRUE))
 summary(Treatment_BidOnly2)$coefficients[2]
 SB3$estimate["b_bid"]
@@ -1197,12 +272,15 @@ SB_CovariatesQ7 = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilitie
 apollo_modelOutput(SB_CovariatesQ7,modelOutput_settings = list(printPVal=TRUE))
 
 
+#### CV PROBIT MODELS ####
+
+
 #### Thijs Dekker suggestion: ####
 
 library(data.table)
 Database <- as.data.table(database)
-apollo_beta=c(intercept_a=0, intercept_b = 0,
-              b_bid   = 0)
+Database <- as.data.table(FullSurvey2)
+apollo_beta=c(intercept_a=0, intercept_b = 0,b_bid   = 0)
 apollo_fixed = c("intercept_a")
 apollo_inputs = apollo_validateInputs()
 apollo_attach(apollo_beta, apollo_inputs)
@@ -1213,10 +291,12 @@ loglike=function(apollo_beta)
   beta1=as.list(apollo_beta)
   attach(beta1)
   # define utility functions
-  Database[,U1:=0 + -0.0095790 *Bid_Alt]
-  Database[,U2:= 0.5126083  + -0.0095790*Q6Bid]
-  Database[,U:=U2-U1] # work in utiliy differences
-  LL <- Database[, .(out_LL = sum(log((1-pnorm(-U)))*(Q6ResearchResponse==1)+log(pnorm(-U))*(Q6ResearchResponse==2))), by = ID][["out_LL"]] # log of likelihood function as defined in slide 31
+  Database[,U1:=0 + -0.0095790 *0]
+  Database[,U2:=0 + -0.0095790 *Q7Bid2Lower]
+  Database[,U3:=0 + -0.0095790 *Q7Bid]
+  Database[,U4:=0 + -0.0095790 *Q7Bid2Upper]
+  Database[,U:=U4-U3-U2-U1] # work in utiliy differences
+  LL <- Database[, .(out_LL = sum(log((1-pnorm(-U)))*(Q7R==4)+log(pnorm(-U))*(Q7R==3))), by = ID][["out_LL"]] # log of likelihood function as defined in slide 31
   # remove beta names from memory so as to avoid double attachment of names in next iteration
   detach(beta1)
   return(LL)
@@ -1310,7 +390,7 @@ model$estimate
 ## Validation:
 summary(sbchoice(Q6ResearchResponse ~ 1  |Q6Bid , data = database,dist="normal"))$coefficients
 
-
+database$Q6Bid <- database$Q6Bid/100
 #### Q6-Covariates-Normal Probit ####
 
 apollo_initialise()
@@ -1540,39 +620,29 @@ Validation4 <-sbchoice(Q7TreatmentResponse  ~   Order + Q1Gender + Age + Distanc
 summary(Validation4)$coefficients
 
 
-#### Q7-BidOnly-Normal DOUBLE #### 
+#### FAILED: Q7-BidOnly-Normal bivariate #### 
+
+
 library(apollo)
 
 apollo_initialise()
 apollo_control = list(
   modelName  ="Q7Bid",
   modelDescr ="Binary probit using ordered probit",
-  indivID    ="ID",
-  noValidation=TRUE)
-
-apollo_beta=c(intercept =0,
-              BID     = 0)
+  indivID    ="ID",noValidation=TRUE)
+apollo_beta=c(intercept =0,BID     = 0)
 apollo_fixed = c()
 apollo_inputs = apollo_validateInputs()
-
 apollo_probabilities=function(apollo_beta, apollo_inputs, 
                               functionality="estimate"){
   apollo_attach(apollo_beta, apollo_inputs)
   on.exit(apollo_detach(apollo_beta, apollo_inputs))
   P = list()
-  op_settings = list(outcomeOrdered= Q7TreatmentResponse,
-                     V      = intercept + BID *Q7Bid,
-                     tau    = list(-100,0),
-                     coding = c(-1,0,1),
-                     componentName= "choice")
-  op_settings2 = list(outcomeOrdered= Q7Response2,
-                     V      = intercept + BID *Q7Bid2,
-                     tau    = list(-100,0),
-                     coding = c(-1,0,1),
-                     componentName= "choice2")
-  P[['choice']] = apollo_op(op_settings, functionality)
-  P[['choice2']] = apollo_op(op_settings2, functionality)
-  P = apollo_combineModels(P, apollo_inputs, functionality)
+  op_settings = list(outcomeOrdered= Q7R,
+                     V      = intercept + BID *Q7OKBR,
+                     tau    = list(0,1,2),
+                     coding = c(0,1,2,3))
+  P[['model']] = apollo_op(op_settings, functionality)
   P = apollo_panelProd(P, apollo_inputs, functionality)
   P = apollo_prepareProb(P, apollo_inputs, functionality)
   return(P)
@@ -1585,8 +655,609 @@ model3C$estimate
 summary((dbchoice(Q7TreatmentResponse + Q7Response2 ~ 1  |Q7Bid + Q7Bid2 , data = database,dist="normal")))$coefficients
 
 
+#### ICLV Models: Logistic Distribution (Logits) ####
 
-#### Q6 Normal ICLV ####
+
+#### ICLV Q6 Full Sample ####
+## http://www.apollochoicemodelling.com/files/Apollo_example_24.r
+
+library(apollo)
+library(stats)
+
+database = Test_Apollo
+apollo_initialise()
+
+apollo_control = list(
+  modelName  = "ICLVQ6",
+  modelDescr = "ICLV modelCVQ6",
+  indivID    = "ID",
+  mixing     = TRUE,
+  nCores     = 4)
+
+apollo_beta = c(b_bid    = 0,
+                lambda            = 1, 
+                gamma_Age       = 0, 
+                gamma_Gender    = 0,
+                gamma_Distance  = 0, 
+                gamma_Income =0,
+                gamma_Experts =0,
+                gamma_Cons =0,
+                gamma_BP =0,
+                gamma_Charity =0,
+                gamma_Certainty =0,
+                zeta_Q13   = 1, 
+                zeta_Q14   = 1, 
+                zeta_Q15   = 1, 
+                tau_Q13_1  =-2, 
+                tau_Q13_2  =-1, 
+                tau_Q13_3  = 1, 
+                tau_Q13_4  = 2, 
+                tau_Q14_1  =-2, 
+                tau_Q14_2  =-1, 
+                tau_Q14_3  = 1, 
+                tau_Q14_4  = 2, 
+                tau_Q15_1  =-2, 
+                tau_Q15_2  =-1, 
+                tau_Q15_3  = 1, 
+                tau_Q15_4  = 2)
+
+apollo_fixed = c()
+
+apollo_draws = list(
+  interDrawsType="halton", 
+  interNDraws=1000,          
+  interUnifDraws=c(),      
+  interNormDraws=c("eta"), 
+  intraDrawsType='',
+  intraNDraws=0,          
+  intraUnifDraws=c(),     
+  intraNormDraws=c()      
+)
+
+apollo_randCoeff=function(apollo_beta, apollo_inputs){
+  randcoeff = list()
+  randcoeff[["LV"]] = gamma_Age*Age +gamma_Gender*Q1Gender + gamma_Distance*Distance + gamma_Income*Income + gamma_Experts*Experts + gamma_Cons*Consequentiality + gamma_BP*BP + gamma_Charity*Charity + gamma_Certainty*Q6ResearchCertainty + eta
+  return(randcoeff)
+}
+
+apollo_inputs = apollo_validateInputs()
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  P = list()
+  op_settings1 = list(outcomeOrdered = Q13CurrentThreatToSelf, 
+                      V              = zeta_Q13*LV, 
+                      tau            = c(tau_Q13_1, tau_Q13_2, tau_Q13_3, tau_Q13_4),
+                      rows           = (Task==1),
+                      componentName  = "indic_Q13")
+  op_settings2 = list(outcomeOrdered = Q14FutureThreatToSelf, 
+                      V              = zeta_Q14*LV, 
+                      tau            = c(tau_Q14_1, tau_Q14_2, tau_Q14_3, tau_Q14_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q14")
+  op_settings3 = list(outcomeOrdered = Q15ThreatToEnvironment, 
+                      V              = zeta_Q15*LV, 
+                      tau            = c(tau_Q15_1, tau_Q15_2, tau_Q15_3, tau_Q15_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q15")
+  P[["indic_Q13"]]     = apollo_op(op_settings1, functionality)
+  P[["indic_Q14"]] = apollo_op(op_settings2, functionality)
+  P[["indic_Q15"]]      = apollo_op(op_settings3, functionality)
+  V = list()
+  V[['A']]  = (b_bid*(Bid_Alt))
+  V[['B']]  = (b_bid*(Q6Bid))+ lambda*LV 
+  mnl_settings = list(
+    alternatives = c(A=1, B=2),
+    avail        = list(A=1, B=1),
+    choiceVar    = Q6ResearchResponse,
+    V            = V,
+    componentName= "choice")
+  P[["choice"]] = apollo_mnl(mnl_settings, functionality)
+  P = apollo_combineModels(P, apollo_inputs, functionality)
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+# Starting value search:
+apollo_beta = apollo_searchStart(apollo_beta,
+                                 apollo_fixed,
+                                 apollo_probabilities,
+                                 apollo_inputs,
+                                 searchStart_settings=list(nCandidates=20))
+
+### Estimate model
+CVModel = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+
+apollo_modelOutput(CVModel,modelOutput_settings = list(printPVal=TRUE))
+
+
+## Model prediction accuracy
+ICLV_CVQ6_Predictions <- data.frame(CVModel$avgCP) ## Getting probabilities of choosing each option from the model
+ICLV_CVQ6_Predictions[ICLV_CVQ6_Predictions$CVModel.avgCP < 0.5,] <- 0
+ICLV_CVQ6_Predictions[ICLV_CVQ6_Predictions$CVModel.avgCP >= 0.5,] <- 1
+ICLV_CVQ6_Predictions <- cbind("Actual"=Fulls$Choice,"Predicted"=slice(data.frame(ICLV_CVQ6_Predictions$CVModel.avgCP),rep(1:n(), each = 4)))
+ICLV_CVQ6_Predictions$Match <- ICLV_CVQ6_Predictions$Actual==ICLV_CVQ6_Predictions$ICLV_CVQ6_Predictions.CVModel.avgCP
+ICLV_CVQ6_Predictions$Match[ICLV_CVQ6_Predictions$Match==TRUE] <- 1
+ICLV_CVQ6_Predictions$Match[ICLV_CVQ6_Predictions$Match==FALSE] <- 0
+round(100/length(ICLV_CVQ6_Predictions$Match)*length(ICLV_CVQ6_Predictions$Match[ICLV_CVQ6_Predictions$Match==0]),3)
+# 56.567
+round(100/length(ICLV_CVQ6_Predictions$Match)*length(ICLV_CVQ6_Predictions$Match[ICLV_CVQ6_Predictions$Match==1]),3)
+# 43.433
+
+
+
+
+#### ICLV Q6 Truncated ####
+## http://www.apollochoicemodelling.com/files/Apollo_example_24.r
+
+library(apollo)
+library(stats)
+
+Test_Truncated =Test_Apollo[ (Test_Apollo$ID) %in% c(AllCriteria),] 
+database = Test_Truncated
+
+apollo_initialise()
+
+apollo_control = list(
+  modelName  = "ICLV",
+  modelDescr = "ICLV model: CV Q6",
+  indivID    = "ID",
+  mixing     = TRUE,
+  nCores     = 4)
+apollo_beta = c(b_bid     = 0, 
+                b_bid_Alt = 0,
+                lambda            = 1, 
+                gamma_Age       = 0, 
+                gamma_Gender    = 0,
+                gamma_Distance  = 0, 
+                gamma_Income =0,
+                gamma_Experts =0,
+                gamma_Cons =0,
+                gamma_BP =0,
+                gamma_Charity =0,
+                gamma_Certainty =0,
+                zeta_Q13   = 1, 
+                zeta_Q14   = 1, 
+                zeta_Q15   = 1, 
+                tau_Q13_1  =-2, 
+                tau_Q13_2  =-1, 
+                tau_Q13_3  = 1, 
+                tau_Q13_4  = 2, 
+                tau_Q14_1  =-2, 
+                tau_Q14_2  =-1, 
+                tau_Q14_3  = 1, 
+                tau_Q14_4  = 2, 
+                tau_Q15_1  =-2, 
+                tau_Q15_2  =-1, 
+                tau_Q15_3  = 1, 
+                tau_Q15_4  = 2)
+
+apollo_fixed = c()
+
+apollo_draws = list(
+  interDrawsType="halton", 
+  interNDraws=1000,          
+  interUnifDraws=c(),      
+  interNormDraws=c("eta"), 
+  intraDrawsType='',
+  intraNDraws=0,          
+  intraUnifDraws=c(),     
+  intraNormDraws=c()      
+)
+
+apollo_randCoeff=function(apollo_beta, apollo_inputs){
+  randcoeff = list()
+  randcoeff[["LV"]] = gamma_Age*Age +gamma_Gender*Q1Gender + gamma_Distance*Distance + gamma_Income*Income + gamma_Experts*Experts + gamma_Cons*Consequentiality + gamma_BP*BP + gamma_Charity*Charity + gamma_Certainty*Q6ResearchCertainty + eta
+  return(randcoeff)
+}
+
+apollo_inputs = apollo_validateInputs()
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  P = list()
+  op_settings1 = list(outcomeOrdered = Q13CurrentThreatToSelf, 
+                      V              = zeta_Q13*LV, 
+                      tau            = c(tau_Q13_1, tau_Q13_2, tau_Q13_3, tau_Q13_4),
+                      rows           = (Task==1),
+                      componentName  = "indic_Q13")
+  op_settings2 = list(outcomeOrdered = Q14FutureThreatToSelf, 
+                      V              = zeta_Q14*LV, 
+                      tau            = c(tau_Q14_1, tau_Q14_2, tau_Q14_3, tau_Q14_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q14")
+  op_settings3 = list(outcomeOrdered = Q15ThreatToEnvironment, 
+                      V              = zeta_Q15*LV, 
+                      tau            = c(tau_Q15_1, tau_Q15_2, tau_Q15_3, tau_Q15_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q15")
+  P[["indic_Q13"]]     = apollo_op(op_settings1, functionality)
+  P[["indic_Q14"]] = apollo_op(op_settings2, functionality)
+  P[["indic_Q15"]]      = apollo_op(op_settings3, functionality)
+  V = list()
+  V[['A']] = ( b_bid_Alt*(Bid_Alt==0) )
+  V[['B']] = ( b_bid*(Q6Bid)+ lambda*LV )
+  mnl_settings = list(
+    alternatives = c(A=1, B=2),
+    avail        = list(A=1, B=1),
+    choiceVar    = Q6ResearchResponse,
+    V            = V,
+    componentName= "choice"
+  )
+  
+  ### Compute probabilities for MNL model component
+  P[["choice"]] = apollo_mnl(mnl_settings, functionality)
+  P = apollo_combineModels(P, apollo_inputs, functionality)
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+CVmodel2 = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+
+apollo_modelOutput(CVmodel2,modelOutput_settings = list(printPVal=TRUE))
+
+
+#### ICLV Q7 SB Full Sample ####
+## http://www.apollochoicemodelling.com/files/Apollo_example_24.r
+
+Test_Apollo$Q7TreatmentResponse <- Test_Apollo$Q7TreatmentResponse+1
+database = Test_Apollo
+
+library(apollo)
+library(stats)
+
+database = Test_Apollo
+apollo_initialise()
+
+apollo_control = list(
+  modelName  = "ICLVQ7",
+  modelDescr = "ICLV modelCVQ7",
+  indivID    = "ID",
+  mixing     = TRUE,
+  nCores     = 4)
+
+apollo_beta = c(b_bid    = 0,
+                intercept_b=0,
+                intercept_a=0,
+                lambda            = 1, 
+                gamma_Age       = 0, 
+                gamma_Gender    = 0,
+                gamma_Distance  = 0, 
+                gamma_Income =0,
+                gamma_Experts =0,
+                gamma_Cons =0,
+                gamma_BP =0,
+                gamma_Charity =0,
+                gamma_Certainty =0,
+                zeta_Q13   = 1, 
+                zeta_Q14   = 1, 
+                zeta_Q15   = 1, 
+                tau_Q13_1  =-2, 
+                tau_Q13_2  =-1, 
+                tau_Q13_3  = 1, 
+                tau_Q13_4  = 2, 
+                tau_Q14_1  =-2, 
+                tau_Q14_2  =-1, 
+                tau_Q14_3  = 1, 
+                tau_Q14_4  = 2, 
+                tau_Q15_1  =-2, 
+                tau_Q15_2  =-1, 
+                tau_Q15_3  = 1, 
+                tau_Q15_4  = 2)
+
+apollo_fixed = c("intercept_a")
+
+apollo_draws = list(
+  interDrawsType="halton", 
+  interNDraws=1000,          
+  interUnifDraws=c(),      
+  interNormDraws=c("eta"), 
+  intraDrawsType='',
+  intraNDraws=0,          
+  intraUnifDraws=c(),     
+  intraNormDraws=c()      
+)
+
+apollo_randCoeff=function(apollo_beta, apollo_inputs){
+  randcoeff = list()
+  randcoeff[["LV"]] = gamma_Age*Age +gamma_Gender*Q1Gender + gamma_Distance*Distance + gamma_Income*Income + gamma_Experts*Experts + gamma_Cons*Consequentiality + gamma_BP*BP + gamma_Charity*Charity + gamma_Certainty*Q6ResearchCertainty + eta
+  return(randcoeff)
+}
+
+apollo_inputs = apollo_validateInputs()
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  P = list()
+  op_settings1 = list(outcomeOrdered = Q13CurrentThreatToSelf, 
+                      V              = zeta_Q13*LV, 
+                      tau            = c(tau_Q13_1, tau_Q13_2, tau_Q13_3, tau_Q13_4),
+                      rows           = (Task==1),
+                      componentName  = "indic_Q13")
+  op_settings2 = list(outcomeOrdered = Q14FutureThreatToSelf, 
+                      V              = zeta_Q14*LV, 
+                      tau            = c(tau_Q14_1, tau_Q14_2, tau_Q14_3, tau_Q14_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q14")
+  op_settings3 = list(outcomeOrdered = Q15ThreatToEnvironment, 
+                      V              = zeta_Q15*LV, 
+                      tau            = c(tau_Q15_1, tau_Q15_2, tau_Q15_3, tau_Q15_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q15")
+  P[["indic_Q13"]]     = apollo_op(op_settings1, functionality)
+  P[["indic_Q14"]] = apollo_op(op_settings2, functionality)
+  P[["indic_Q15"]]      = apollo_op(op_settings3, functionality)
+  V = list()
+  V[['A']]  = (intercept_a+ b_bid*(Bid_Alt))
+  V[['B']]  = (intercept_b+ b_bid*(Q7Bid)+ lambda*LV )
+  mnl_settings = list(
+    alternatives = c(A=1, B=2),
+    avail        = list(A=1, B=1),
+    choiceVar    = Q7TreatmentResponse,
+    V            = V,
+    componentName= "choice")
+  P[["choice"]] = apollo_mnl(mnl_settings, functionality)
+  P = apollo_combineModels(P, apollo_inputs, functionality)
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+# Starting value search:
+# apollo_beta = apollo_searchStart(apollo_beta,
+#                                  apollo_fixed,
+#                                  apollo_probabilities,
+#                                  apollo_inputs,
+#                                  searchStart_settings=list(nCandidates=20))
+
+CVmodel7 = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+
+apollo_modelOutput(CVmodel7,modelOutput_settings = list(printPVal=TRUE))
+
+
+## Model prediction accuracy
+ICLV_CVQ7_Predictions <- data.frame(CVModel7$avgCP) ## Getting probabilities of choosing each option from the model
+ICLV_CVQ7_Predictions[ICLV_CVQ7_Predictions$CVModel7.avgCP < 0.5,] <- 0
+ICLV_CVQ7_Predictions[ICLV_CVQ7_Predictions$CVModel7.avgCP >= 0.5,] <- 1
+ICLV_CVQ7_Predictions <- cbind("Actual"=Fulls$Choice,"Predicted"=slice(data.frame(ICLV_CVQ7_Predictions$CVModel7.avgCP),rep(1:n(), each = 4)))
+ICLV_CVQ7_Predictions$Match <- ICLV_CVQ7_Predictions$Actual==ICLV_CVQ7_Predictions$ICLV_CVQ7_Predictions.CVModel7.avgCP
+ICLV_CVQ7_Predictions$Match[ICLV_CVQ7_Predictions$Match==TRUE] <- 1
+ICLV_CVQ7_Predictions$Match[ICLV_CVQ7_Predictions$Match==FALSE] <- 0
+round(100/length(ICLV_CVQ7_Predictions$Match)*length(ICLV_CVQ7_Predictions$Match[ICLV_CVQ7_Predictions$Match==0]),3)
+# 44.524
+round(100/length(ICLV_CVQ7_Predictions$Match)*length(ICLV_CVQ7_Predictions$Match[ICLV_CVQ7_Predictions$Match==1]),3)
+# 55.746
+
+
+#### ICLV Q7 SB Truncated ####
+## http://www.apollochoicemodelling.com/files/Apollo_example_24.r
+
+library(apollo)
+library(stats)
+
+Test_Truncated =Test_Apollo[ (Test_Apollo$ID) %in% c(AllCriteria),] 
+database = Test_Truncated
+
+apollo_initialise()
+
+apollo_control = list(
+  modelName  = "ICLV",
+  modelDescr = "ICLV modelCVQ7T",
+  indivID    = "ID",
+  mixing     = TRUE,
+  nCores     = 4)
+apollo_beta = c(b_bid     = 0, 
+                b_bid_Alt = 0,
+                lambda            = 1, 
+                gamma_Age       = 0, 
+                gamma_Gender    = 0,
+                gamma_Distance  = 0, 
+                gamma_Income =0,
+                gamma_Experts =0,
+                gamma_Cons =0,
+                gamma_BP =0,
+                gamma_Charity =0,
+                gamma_Certainty =0,
+                zeta_Q13   = 1, 
+                zeta_Q14   = 1, 
+                zeta_Q15   = 1, 
+                tau_Q13_1  =-2, 
+                tau_Q13_2  =-1, 
+                tau_Q13_3  = 1, 
+                tau_Q13_4  = 2, 
+                tau_Q14_1  =-2, 
+                tau_Q14_2  =-1, 
+                tau_Q14_3  = 1, 
+                tau_Q14_4  = 2, 
+                tau_Q15_1  =-2, 
+                tau_Q15_2  =-1, 
+                tau_Q15_3  = 1, 
+                tau_Q15_4  = 2)
+
+apollo_fixed = c()
+
+apollo_draws = list(
+  interDrawsType="halton", 
+  interNDraws=1000,          
+  interUnifDraws=c(),      
+  interNormDraws=c("eta"), 
+  intraDrawsType='',
+  intraNDraws=0,          
+  intraUnifDraws=c(),     
+  intraNormDraws=c()      
+)
+
+apollo_randCoeff=function(apollo_beta, apollo_inputs){
+  randcoeff = list()
+  randcoeff[["LV"]] = gamma_Age*Age +gamma_Gender*Q1Gender + gamma_Distance*Distance + gamma_Income*Income + gamma_Experts*Experts + gamma_Cons*Consequentiality + gamma_BP*BP + gamma_Charity*Charity + gamma_Certainty*Q6ResearchCertainty + eta
+  return(randcoeff)
+}
+
+apollo_inputs = apollo_validateInputs()
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  P = list()
+  op_settings1 = list(outcomeOrdered = Q13CurrentThreatToSelf, 
+                      V              = zeta_Q13*LV, 
+                      tau            = c(tau_Q13_1, tau_Q13_2, tau_Q13_3, tau_Q13_4),
+                      rows           = (Task==1),
+                      componentName  = "indic_Q13")
+  op_settings2 = list(outcomeOrdered = Q14FutureThreatToSelf, 
+                      V              = zeta_Q14*LV, 
+                      tau            = c(tau_Q14_1, tau_Q14_2, tau_Q14_3, tau_Q14_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q14")
+  op_settings3 = list(outcomeOrdered = Q15ThreatToEnvironment, 
+                      V              = zeta_Q15*LV, 
+                      tau            = c(tau_Q15_1, tau_Q15_2, tau_Q15_3, tau_Q15_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q15")
+  P[["indic_Q13"]]     = apollo_op(op_settings1, functionality)
+  P[["indic_Q14"]] = apollo_op(op_settings2, functionality)
+  P[["indic_Q15"]]      = apollo_op(op_settings3, functionality)
+  V = list()
+  V[['A']] = ( b_bid_Alt*(Bid_Alt==0) )
+  V[['B']] = ( b_bid*(Q7Bid)+ lambda*LV )
+  mnl_settings = list(
+    alternatives = c(A=1, B=2),
+    avail        = list(A=1, B=1),
+    choiceVar    = Q7TreatmentResponse,
+    V            = V,
+    componentName= "choice"
+  )
+  
+  ### Compute probabilities for MNL model component
+  P[["choice"]] = apollo_mnl(mnl_settings, functionality)
+  P = apollo_combineModels(P, apollo_inputs, functionality)
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+CVmodel7T = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+
+apollo_modelOutput(CVmodel7T,modelOutput_settings = list(printPVal=TRUE))
+
+
+
+#### ICLV: Experimental Random bid parameter ####
+
+
+database <- Test_Truncated
+database$Q6Bid <- database$Q6Bid/100
+database$Q7Bid <- database$Q7Bid/100
+database$Q6ResearchResponse <-database$Q6ResearchResponse-1
+database$Q7TreatmentResponse <-database$Q7TreatmentResponse-1
+
+apollo_control = list(
+  modelName  = "ICLVQ6T",
+  modelDescr = "ICLV modelCVQ6T",
+  indivID    = "ID",
+  mixing     = TRUE,
+  nCores     = 4,
+  noValidation=TRUE)
+
+
+apollo_beta = c(intercept =0,mu_bid    = 0,sig_bid=0,
+                lambda            = 1, 
+                gamma_Age       = 0, 
+                gamma_Gender    = 0,
+                gamma_Distance  = 0, 
+                gamma_Income =0,
+                gamma_Experts =0,
+                gamma_Cons =0,
+                gamma_BP =0,
+                gamma_Charity =0,
+                gamma_Certainty =0,
+                zeta_Q13   = 1, 
+                zeta_Q14   = 1, 
+                zeta_Q15   = 1, 
+                tau_Q13_1  =-2, 
+                tau_Q13_2  =-1, 
+                tau_Q13_3  = 1, 
+                tau_Q13_4  = 2, 
+                tau_Q14_1  =-2, 
+                tau_Q14_2  =-1, 
+                tau_Q14_3  = 1, 
+                tau_Q14_4  = 2, 
+                tau_Q15_1  =-2, 
+                tau_Q15_2  =-1, 
+                tau_Q15_3  = 1, 
+                tau_Q15_4  = 2)
+
+apollo_fixed = c()
+
+apollo_draws = list(
+  interDrawsType="halton",interNDraws=1000,          
+  interUnifDraws=c(),interNormDraws=c("eta","draws_price"))
+
+apollo_randCoeff=function(apollo_beta, apollo_inputs){
+  randcoeff = list()
+  randcoeff[["LV"]] = gamma_Age*Age +gamma_Gender*Q1Gender + gamma_Distance*Distance + gamma_Income*Income + gamma_Experts*Experts + gamma_Cons*Consequentiality + gamma_BP*BP + gamma_Charity*Charity + gamma_Certainty*Q6ResearchCertainty + eta
+  randcoeff[["b_bid"]] = -exp(mu_bid+sig_bid* draws_price)
+  return(randcoeff)
+}
+
+apollo_inputs = apollo_validateInputs()
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  P = list()
+  op_settings1 = list(outcomeOrdered = Q13CurrentThreatToSelf, 
+                      V              = zeta_Q13*LV, 
+                      tau            = c(tau_Q13_1, tau_Q13_2, tau_Q13_3, tau_Q13_4),
+                      rows           = (Task==1),
+                      componentName  = "indic_Q13")
+  op_settings2 = list(outcomeOrdered = Q14FutureThreatToSelf, 
+                      V              = zeta_Q14*LV, 
+                      tau            = c(tau_Q14_1, tau_Q14_2, tau_Q14_3, tau_Q14_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q14")
+  op_settings3 = list(outcomeOrdered = Q15ThreatToEnvironment, 
+                      V              = zeta_Q15*LV, 
+                      tau            = c(tau_Q15_1, tau_Q15_2, tau_Q15_3, tau_Q15_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q15")
+  P[["indic_Q13"]] = apollo_op(op_settings1, functionality)
+  P[["indic_Q14"]] = apollo_op(op_settings2, functionality)
+  P[["indic_Q15"]] = apollo_op(op_settings3, functionality)
+  op_settings = list(outcomeOrdered= Q6ResearchResponse,
+                     V      = intercept + b_bid*Q6Bid+lambda*LV,
+                     tau    = list(-100,0),
+                     coding = c(-1,0,1))
+  P[['choice']] = apollo_op(op_settings, functionality)
+  # P = apollo_panelProd(P, apollo_inputs, functionality)
+  # P = apollo_prepareProb(P, apollo_inputs, functionality)
+  P = apollo_combineModels(P, apollo_inputs, functionality)
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+CVmodel6NTrial = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+
+apollo_modelOutput(CVmodel6NTrial,modelOutput_settings = list(printPVal=TRUE))
+
+
+#### ICLV Models: Normal Distribution (Probits) ####
+
+
+#### CHOSEN: Q6 Normal ICLV: CVmodel6N ####
+
+
 database$Q6Bid <- database$Q6Bid/100
 apollo_control = list(
   modelName  = "ICLVQ6",
@@ -1661,7 +1332,7 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
   P[["indic_Q14"]] = apollo_op(op_settings2, functionality)
   P[["indic_Q15"]] = apollo_op(op_settings3, functionality)
   op_settings = list(outcomeOrdered= Q6ResearchResponse,
-                     V      = intercept + b_bid*Q6Bid,
+                     V      = intercept + b_bid*Q6Bid+lambda*LV,
                      tau    = list(-100,0),
                      coding = c(-1,0,1))
   P[['choice']] = apollo_op(op_settings, functionality)
@@ -1677,10 +1348,15 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
 CVmodel6N = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
 
 apollo_modelOutput(CVmodel6N,modelOutput_settings = list(printPVal=TRUE))
+saveRDS(CVmodel6N,"CVmodel6N.rds")
 
+#### CHOSEN: Q7 Normal SBDC ICLV CVmodel6NT ####
 
-#### Q7 Normal SBDC ICLV ####
+# Setup:
 database$Q7Bid <- database$Q7Bid/100
+database$Q7TreatmentResponse <- database$Q7TreatmentResponse-1
+
+
 apollo_control = list(
   modelName  = "ICLVQ7",
   modelDescr = "ICLV modelCVQ7",
@@ -1725,7 +1401,7 @@ apollo_draws = list(
 
 apollo_randCoeff=function(apollo_beta, apollo_inputs){
   randcoeff = list()
-  randcoeff[["LV"]] = gamma_Certainty*Q7TreatmentCertainty + eta
+  randcoeff[["LV"]] = gamma_Age*Age +gamma_Gender*Q1Gender + gamma_Distance*Distance + gamma_Income*Income + gamma_Experts*Experts + gamma_Cons*Consequentiality + gamma_BP*BP + gamma_Charity*Charity + gamma_Certainty*Q7TreatmentCertainty + eta
   return(randcoeff)
 }
 
@@ -1754,7 +1430,7 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
   P[["indic_Q14"]] = apollo_op(op_settings2, functionality)
   P[["indic_Q15"]] = apollo_op(op_settings3, functionality)
   op_settings = list(outcomeOrdered= Q7TreatmentResponse,
-                     V      = intercept + b_bid*Q7Bid,
+                     V      = intercept + b_bid*Q7Bid+lambda*LV,
                      tau    = list(-100,0),
                      coding = c(-1,0,1))
   P[['choice']] = apollo_op(op_settings, functionality)
@@ -1770,3 +1446,287 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
 CVmodel7N = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
 
 apollo_modelOutput(CVmodel7N,modelOutput_settings = list(printPVal=TRUE))
+saveRDS(CVmodel7N,"CVmodel7N.rds")
+
+
+####  CHOSEN: Q6 Normal ICLV Truncated CVmodel7N ####
+
+
+# Setup the data for all truncated models:
+database <- Test_Truncated
+database$Q6Bid <- database$Q6Bid/100
+database$Q7Bid <- database$Q7Bid/100
+database$Q6ResearchResponse <-database$Q6ResearchResponse-1
+database$Q7TreatmentResponse <-database$Q7TreatmentResponse-1
+
+
+# Estimate model:
+apollo_control = list(
+  modelName  = "ICLVQ6T",
+  modelDescr = "ICLV modelCVQ6T",
+  indivID    = "ID",
+  mixing     = TRUE,
+  nCores     = 4,
+  noValidation=TRUE)
+
+
+apollo_beta = c(intercept =0,b_bid    = 0,
+                lambda            = 1, 
+                gamma_Age       = 0, 
+                gamma_Gender    = 0,
+                gamma_Distance  = 0, 
+                gamma_Income =0,
+                gamma_Experts =0,
+                gamma_Cons =0,
+                gamma_BP =0,
+                gamma_Charity =0,
+                gamma_Certainty =0,
+                zeta_Q13   = 1, 
+                zeta_Q14   = 1, 
+                zeta_Q15   = 1, 
+                tau_Q13_1  =-2, 
+                tau_Q13_2  =-1, 
+                tau_Q13_3  = 1, 
+                tau_Q13_4  = 2, 
+                tau_Q14_1  =-2, 
+                tau_Q14_2  =-1, 
+                tau_Q14_3  = 1, 
+                tau_Q14_4  = 2, 
+                tau_Q15_1  =-2, 
+                tau_Q15_2  =-1, 
+                tau_Q15_3  = 1, 
+                tau_Q15_4  = 2)
+apollo_fixed = c()
+
+
+apollo_draws = list(
+  interDrawsType="halton",interNDraws=1000,          
+  interUnifDraws=c(),interNormDraws=c("eta"))
+
+
+apollo_randCoeff=function(apollo_beta, apollo_inputs){
+  randcoeff = list()
+  randcoeff[["LV"]] = gamma_Age*Age +gamma_Gender*Q1Gender + gamma_Distance*Distance + gamma_Income*Income + gamma_Experts*Experts + gamma_Cons*Consequentiality + gamma_BP*BP + gamma_Charity*Charity + gamma_Certainty*Q6ResearchCertainty + eta
+  return(randcoeff)}
+apollo_inputs = apollo_validateInputs()
+
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  P = list()
+  op_settings1 = list(outcomeOrdered = Q13CurrentThreatToSelf, 
+                      V              = zeta_Q13*LV, 
+                      tau            = c(tau_Q13_1, tau_Q13_2, tau_Q13_3, tau_Q13_4),
+                      rows           = (Task==1),
+                      componentName  = "indic_Q13")
+  op_settings2 = list(outcomeOrdered = Q14FutureThreatToSelf, 
+                      V              = zeta_Q14*LV, 
+                      tau            = c(tau_Q14_1, tau_Q14_2, tau_Q14_3, tau_Q14_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q14")
+  op_settings3 = list(outcomeOrdered = Q15ThreatToEnvironment, 
+                      V              = zeta_Q15*LV, 
+                      tau            = c(tau_Q15_1, tau_Q15_2, tau_Q15_3, tau_Q15_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q15")
+  P[["indic_Q13"]] = apollo_op(op_settings1, functionality)
+  P[["indic_Q14"]] = apollo_op(op_settings2, functionality)
+  P[["indic_Q15"]] = apollo_op(op_settings3, functionality)
+  op_settings = list(outcomeOrdered= Q6ResearchResponse,
+                     V      = intercept + b_bid*Q6Bid+lambda*LV,
+                     tau    = list(-100,0),
+                     coding = c(-1,0,1))
+  P[['choice']] = apollo_op(op_settings, functionality)
+  # P = apollo_panelProd(P, apollo_inputs, functionality)
+  # P = apollo_prepareProb(P, apollo_inputs, functionality)
+  P = apollo_combineModels(P, apollo_inputs, functionality)
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+CVmodel6NT = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+
+apollo_modelOutput(CVmodel6NT,modelOutput_settings = list(printPVal=TRUE))
+saveRDS(CVmodel6NT,"CVmodel6NT.rds")
+
+
+#### CHOSEN: Q7 Normal SBDC ICLV Truncated CVmodel7NT ####
+
+
+apollo_control = list(
+  modelName  = "ICLVQ7",
+  modelDescr = "ICLV modelCVQ7T",
+  indivID    = "ID",
+  mixing     = TRUE,
+  nCores     = 4,
+  noValidation=TRUE)
+
+
+apollo_beta = c(intercept =0,b_bid    = 0,
+                lambda            = 1, 
+                gamma_Age       = 0, 
+                gamma_Gender    = 0,
+                gamma_Distance  = 0, 
+                gamma_Income =0,
+                gamma_Experts =0,
+                gamma_Cons =0,
+                gamma_BP =0,
+                gamma_Charity =0,
+                gamma_Certainty =0,
+                zeta_Q13   = 1, 
+                zeta_Q14   = 1, 
+                zeta_Q15   = 1, 
+                tau_Q13_1  =-2, 
+                tau_Q13_2  =-1, 
+                tau_Q13_3  = 1, 
+                tau_Q13_4  = 2, 
+                tau_Q14_1  =-2, 
+                tau_Q14_2  =-1, 
+                tau_Q14_3  = 1, 
+                tau_Q14_4  = 2, 
+                tau_Q15_1  =-2, 
+                tau_Q15_2  =-1, 
+                tau_Q15_3  = 1, 
+                tau_Q15_4  = 2)
+
+apollo_fixed = c()
+
+apollo_draws = list(
+  interDrawsType="halton",interNDraws=1000,          
+  interUnifDraws=c(),interNormDraws=c("eta"))
+
+apollo_randCoeff=function(apollo_beta, apollo_inputs){
+  randcoeff = list()
+  randcoeff[["LV"]] = gamma_Age*Age +gamma_Gender*Q1Gender + gamma_Distance*Distance + gamma_Income*Income + gamma_Experts*Experts + gamma_Cons*Consequentiality + gamma_BP*BP + gamma_Charity*Charity + gamma_Certainty*Q7TreatmentCertainty + eta
+  return(randcoeff)
+}
+
+
+apollo_inputs = apollo_validateInputs()
+
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  P = list()
+  op_settings1 = list(outcomeOrdered = Q13CurrentThreatToSelf, 
+                      V              = zeta_Q13*LV, 
+                      tau            = c(tau_Q13_1, tau_Q13_2, tau_Q13_3, tau_Q13_4),
+                      rows           = (Task==1),
+                      componentName  = "indic_Q13")
+  op_settings2 = list(outcomeOrdered = Q14FutureThreatToSelf, 
+                      V              = zeta_Q14*LV, 
+                      tau            = c(tau_Q14_1, tau_Q14_2, tau_Q14_3, tau_Q14_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q14")
+  op_settings3 = list(outcomeOrdered = Q15ThreatToEnvironment, 
+                      V              = zeta_Q15*LV, 
+                      tau            = c(tau_Q15_1, tau_Q15_2, tau_Q15_3, tau_Q15_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q15")
+  P[["indic_Q13"]] = apollo_op(op_settings1, functionality)
+  P[["indic_Q14"]] = apollo_op(op_settings2, functionality)
+  P[["indic_Q15"]] = apollo_op(op_settings3, functionality)
+  op_settings = list(outcomeOrdered= Q7TreatmentResponse,
+                     V      = intercept + b_bid*Q7Bid+lambda*LV,
+                     tau    = list(-100,0),
+                     coding = c(-1,0,1))
+  P[['choice']] = apollo_op(op_settings, functionality)
+  # P = apollo_panelProd(P, apollo_inputs, functionality)
+  # P = apollo_prepareProb(P, apollo_inputs, functionality)
+  P = apollo_combineModels(P, apollo_inputs, functionality)
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+CVmodel7NT = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+
+apollo_modelOutput(CVmodel7NT,modelOutput_settings = list(printPVal=TRUE))
+saveRDS(CVmodel7NT,"CVmodel7NT.rds")
+
+
+#### Prediction Accuracy #### 
+
+
+# Q6 ICLV TRUNCATED Prediction accuracy
+CE1_Predictions <- data.frame(CE3$avgCP) ## Getting probabilities of choosing each option from the model
+CE1_Predictions[CE1_Predictions$CE3.avgCP < 0.5,] <- 0
+CE1_Predictions[CE1_Predictions$CE3.avgCP >= 0.5,] <- 1
+CE1_Predictions <- cbind("Actual"=data.frame(Fulls2$Choice),"Predicted"=slice(data.frame(CE1_Predictions$CE3.avgCP),rep(1:n(),each=4)))
+CE1_Predictions$Match <- ifelse(CE1_Predictions$Fulls2.Choice==CE1_Predictions$CE1_Predictions.CE3.avgCP,1,0)
+round(100/length(CE1_Predictions$Match)*length(CE1_Predictions$Match[CE1_Predictions$Match==0]),3)
+# 54.035
+round(100/length(CE1_Predictions$Match)*length(CE1_Predictions$Match[CE1_Predictions$Match==1]),3)
+# 45.965
+
+
+# Q6 ICLV FULL Prediction accuracy
+CVQ61_Predictions <- data.frame(CVmodel6N$avgCP) ## Getting probabilities of choosing each option from the model
+CVQ61_Predictions[CVQ61_Predictions$CVmodel6N.avgCP < 0.5,] <- 0
+CVQ61_Predictions[CVQ61_Predictions$CVmodel6N.avgCP >= 0.5,] <- 1
+CVQ61_Predictions <- cbind("Actual"=data.frame(Fulls$Choice),"Predicted"=slice(data.frame(CVQ61_Predictions$CVmodel6N.avgCP),rep(1:n(),each=4)))
+CVQ61_Predictions$Match <- ifelse(CVQ61_Predictions$Fulls.Choice==CVQ61_Predictions$CVQ61_Predictions.CVmodel6N.avgCP,1,0)
+round(100/length(CVQ61_Predictions$Match)*length(CVQ61_Predictions$Match[CVQ61_Predictions$Match==0]),3)
+# 55.522
+round(100/length(CVQ61_Predictions$Match)*length(CVQ61_Predictions$Match[CVQ61_Predictions$Match==1]),3)
+# 44.478
+
+
+# Q6 ICLV TRUNCATED Prediction accuracy
+CVQ6_Predictions <- data.frame(CVmodel6NT$avgCP) ## Getting probabilities of choosing each option from the model
+CVQ6_Predictions[CVQ6_Predictions$CVmodel6NT.avgCP < 0.5,] <- 0
+CVQ6_Predictions[CVQ6_Predictions$CVmodel6NT.avgCP >= 0.5,] <- 1
+CVQ6_Predictions <- cbind("Actual"=data.frame(Fulls2$Choice),"Predicted"=slice(data.frame(CVQ6_Predictions$CVmodel6NT.avgCP),rep(1:n(),each=4)))
+CVQ6_Predictions$Match <- ifelse(CVQ6_Predictions$Fulls2.Choice==CVQ6_Predictions$CVQ6_Predictions.CVmodel6NT.avgCP,1,0)
+round(100/length(CVQ6_Predictions$Match)*length(CVQ6_Predictions$Match[CVQ6_Predictions$Match==0]),3)
+# 54.035
+round(100/length(CVQ6_Predictions$Match)*length(CVQ6_Predictions$Match[CVQ6_Predictions$Match==1]),3)
+# 45.965
+
+
+# Q7 SB ICLV FULL Prediction accuracy
+CVQ71_Predictions <- data.frame(CVmodel7N$avgCP) ## Getting probabilities of choosing each option from the model
+CVQ71_Predictions[CVQ71_Predictions$CVmodel7N.avgCP < 0.5,] <- 0
+CVQ71_Predictions[CVQ71_Predictions$CVmodel7N.avgCP >= 0.5,] <- 1
+CVQ71_Predictions <- cbind("Actual"=data.frame(Fulls$Choice),"Predicted"=slice(data.frame(CVQ71_Predictions$CVmodel7N.avgCP),rep(1:n(),each=4)))
+CVQ71_Predictions$Match <- ifelse(CVQ71_Predictions$Fulls.Choice==CVQ71_Predictions$CVQ71_Predictions,1,0)
+round(100/length(CVQ71_Predictions$Match)*length(CVQ71_Predictions$Match[CVQ71_Predictions$Match==0]),3)
+# 52.985
+round(100/length(CVQ71_Predictions$Match)*length(CVQ71_Predictions$Match[CVQ71_Predictions$Match==1]),3)
+# 47.015
+
+
+# Q7 SB ICLV TRUNCATED Prediction accuracy
+CVQ7_Predictions <- data.frame(CVmodel7NT$avgCP) ## Getting probabilities of choosing each option from the model
+CVQ7_Predictions[CVQ7_Predictions$CVmodel7NT.avgCP < 0.5,] <- 0
+CVQ7_Predictions[CVQ7_Predictions$CVmodel7NT.avgCP >= 0.5,] <- 1
+CVQ7_Predictions <- cbind("Actual"=data.frame(Fulls2$Choice),"Predicted"=slice(data.frame(CVQ7_Predictions$CVmodel7NT.avgCP),rep(1:n(),each=4)))
+CVQ7_Predictions$Match <- ifelse(CVQ7_Predictions$Fulls2.Choice==CVQ7_Predictions$CVQ7_Predictions.CVmodel7NT.avgCP,1,0)
+round(100/length(CVQ7_Predictions$Match)*length(CVQ7_Predictions$Match[CVQ7_Predictions$Match==0]),3)
+# 52.281
+round(100/length(CVQ7_Predictions$Match)*length(CVQ7_Predictions$Match[CVQ7_Predictions$Match==1]),3)
+# 47.719
+
+
+#### CV WTP:  ####
+
+## Get the unconditional/conditional values of parameters: 
+CVunconditionals <- apollo_unconditionals(CVmodel6NT,apollo_probabilities,apollo_inputs)
+CVconditionals <- apollo_conditionals(CVmodel6NT,apollo_probabilities,apollo_inputs)
+
+
+median((CVmodel6NT$estimate["intercept"]+CVunconditionals$LV/CVunconditionals$b_bid))
+
+# This approach works for the CE so maybe for the CV:
+median(-CVmodel6NT$estimate["intercept"]+(CVunconditionals$LV)/CVmodel6NT$estimate["b_bid"])
+median((CVunconditionals$b_Performance+CVunconditionals$LV/CVunconditionals$b_Price))
+median((CVunconditionals$b_Emission+CVunconditionals$LV/CVunconditionals$b_Price))
+
+
+# To validate with DCchoice package:
+summary(sbchoice(Q6ResearchResponse ~ 1  |Q6Bid , data = database,dist="normal"))

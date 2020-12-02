@@ -2,6 +2,9 @@
 # Project author: Peter King (p.m.king@bath.ac.uk)
 # Project title: Economic valuation of benefits from the proposed REACH restriction of intentionally-added microplastics.
 # Code description: This script contains all MXL specification searches here ####
+# Note: This code is extremely repetitive and to save time many Apollo-specific things are not commented as they are the standard approach 
+# Note: MXL19,MXL20,MXL21 are the adopted specifications
+
 
 
 # Setup:
@@ -11,30 +14,34 @@ apollo_initialise()
 
 
 #### MXL1: Pref-space Normal ####
+
+
 apollo_control = list(
   modelName ="MXL1",  indivID   ="ID",  
   mixing    = TRUE, nCores    = 4)
-apollo_beta = c(asc_A      = 0,
-                asc_B      = 0,
-                mu_b_Price    =0,
-                sig_b_Price    =0,
-                b_Performance = 0,
-                b_Emission = 0)
+
+
+apollo_beta = c(asc_A      = 0, asc_B      = 0,
+                mu_b_Price    =0, sig_b_Price    =0,
+                b_Performance = 0, b_Emission = 0)
+
+
 apollo_fixed = c("asc_A")
+
 apollo_draws = list(
-  interDrawsType = "halton",
-  interNDraws    = 1000,
-  interUnifDraws = c(),
-  interNormDraws = c("draws_Price"),
-  intraDrawsType = "halton",
-  intraNDraws    = 0,
-  intraUnifDraws = c(),
-  intraNormDraws = c())
+  interDrawsType = "halton", interNDraws = 1000,interUnifDraws = c(),
+  interNormDraws = c("draws_Price"), intraDrawsType = "halton", intraNDraws    = 0)
+
+
 apollo_randCoeff = function(apollo_beta, apollo_inputs){
   randcoeff = list()
   randcoeff[["b_Price"]] =  (mu_b_Price + sig_b_Price * draws_Price )
   return(randcoeff)}
+
+
 apollo_inputs = apollo_validateInputs()
+
+
 apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
   apollo_attach(apollo_beta, apollo_inputs)
   on.exit(apollo_detach(apollo_beta, apollo_inputs))
@@ -54,40 +61,54 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
   return(P)
 }
 
+
+# Estimate model, can add in bootstrapping here
 MXLmodel = apollo_estimate(apollo_beta, apollo_fixed,
                            apollo_probabilities, apollo_inputs)
 
+
+# Report model with P-values
 apollo_modelOutput(MXLmodel,modelOutput_settings = list(printPVal=TRUE))
 
+# Report WTP:
 apollo_deltaMethod(MXLmodel, deltaMethod_settings=list(operation="ratio", parName1="b_Emission", parName2="mu_b_Price"))
 apollo_deltaMethod(MXLmodel, deltaMethod_settings=list(operation="ratio", parName1="b_Performance", parName2="mu_b_Price"))
 
 
 #### MXL2: WTP-space Normal ####
+
+
 apollo_control = list(
   modelName ="MXL2",  indivID   ="ID",  
   mixing    = TRUE, nCores    = 4)
-apollo_beta = c(asc_A      = 0,
-                asc_B      = 0,
-                mu_b_Price    =0,
-                sig_b_Price    =0,
-                b_Performance    =0,
-                b_Emission = 0)
+
+
+apollo_beta = c(asc_A      = 0, asc_B      = 0,
+                mu_b_Price    =0, sig_b_Price    =0,
+                b_Performance    =0, b_Emission = 0)
+
+
 apollo_fixed = c("asc_A")
+
+
 apollo_draws = list(
   interDrawsType = "halton",
   interNDraws    = 1000,
   interUnifDraws = c(),
   interNormDraws = c("draws_Price"),
   intraDrawsType = "halton",
-  intraNDraws    = 0,
-  intraUnifDraws = c(),
-  intraNormDraws = c())
+  intraNDraws    = 0)
+
+
 apollo_randCoeff = function(apollo_beta, apollo_inputs){
   randcoeff = list()
   randcoeff[["b_Price"]] =  (mu_b_Price + sig_b_Price * draws_Price )
   return(randcoeff)}
+
+
 apollo_inputs = apollo_validateInputs()
+
+
 apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
   apollo_attach(apollo_beta, apollo_inputs)
   on.exit(apollo_detach(apollo_beta, apollo_inputs))
@@ -114,16 +135,21 @@ apollo_modelOutput(MXLmodel2,modelOutput_settings = list(printPVal=TRUE))
 
 
 #### MXL3: Pref-space Unif ####
+
+
 apollo_control = list(
   modelName ="MXL3",  indivID   ="ID",  
   mixing    = TRUE, nCores    = 4)
-apollo_beta = c(asc_A      = 0,
-                asc_B      = 0,
-                mu_b_Price    =0,
-                sig_b_Price    =0,
-                b_Performance = 0,
-                b_Emission = 0)
+
+
+apollo_beta = c(asc_A      = 0, asc_B      = 0,
+                mu_b_Price    =0, sig_b_Price    =0,
+                b_Performance = 0, b_Emission = 0)
+
+
 apollo_fixed = c("asc_A")
+
+
 apollo_draws = list(
   interDrawsType = "halton",
   interNDraws    = 1000,
@@ -133,10 +159,14 @@ apollo_draws = list(
   intraNDraws    = 0,
   intraUnifDraws = c(),
   intraNormDraws = c())
+
+
 apollo_randCoeff = function(apollo_beta, apollo_inputs){
   randcoeff = list()
   randcoeff[["b_Price"]] =  (mu_b_Price + sig_b_Price * draws_Price )
   return(randcoeff)}
+
+
 apollo_inputs = apollo_validateInputs()
 apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
   apollo_attach(apollo_beta, apollo_inputs)
@@ -162,6 +192,8 @@ MXLmodel3 = apollo_estimate(apollo_beta, apollo_fixed,
 
 apollo_modelOutput(MXLmodel3,modelOutput_settings = list(printPVal=TRUE))
 
+
+# Two types of WTP methds here but both equivalent:
 MXLmodel3$estimate["b_Emission"]/MXLmodel3$estimate["mu_b_Price"]
 MXLmodel3$estimate["b_Performance"]/MXLmodel3$estimate["mu_b_Price"]
 
@@ -169,16 +201,18 @@ apollo_deltaMethod(MXLmodel3, deltaMethod_settings=list(operation="ratio", parNa
 apollo_deltaMethod(MXLmodel3, deltaMethod_settings=list(operation="ratio", parName1="b_Performance", parName2="mu_b_Price"))
 
 
-#### MXL4: WTP-space Unif ####
+#### MXL4: WTP-space Uniform distribution ####
+
 apollo_control = list(
   modelName ="MXL4",  indivID   ="ID",  
   mixing    = TRUE, nCores    = 4)
-apollo_beta = c(asc_A      = 0,
-                asc_B      = 0,
-                mu_b_Price    =0,
-                sig_b_Price    =0,
-                b_Performance = 0,
-                b_Emission = 0)
+
+
+apollo_beta = c(asc_A      = 0, asc_B      = 0,
+                mu_b_Price    =0, sig_b_Price    =0,
+                b_Performance = 0, b_Emission = 0)
+
+
 apollo_fixed = c("asc_A")
 apollo_draws = list(
   interDrawsType = "halton",
@@ -189,11 +223,15 @@ apollo_draws = list(
   intraNDraws    = 0,
   intraUnifDraws = c(),
   intraNormDraws = c())
+
+
 apollo_randCoeff = function(apollo_beta, apollo_inputs){
   randcoeff = list()
   randcoeff[["b_Price"]] =  (mu_b_Price + sig_b_Price * draws_Price )
   return(randcoeff)}
 apollo_inputs = apollo_validateInputs()
+
+
 apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
   apollo_attach(apollo_beta, apollo_inputs)
   on.exit(apollo_detach(apollo_beta, apollo_inputs))
@@ -220,16 +258,18 @@ apollo_modelOutput(MXLmodel4,modelOutput_settings = list(printPVal=TRUE))
 
 
 #### MXL5: Pref-space  price fixed, others normal ####
+
+
 apollo_control = list(
   modelName ="MXL5",  indivID   ="ID",  
   mixing    = TRUE, nCores    = 4)
-apollo_beta = c(asc_A      = 0,
-                asc_B      = 0,
-                b_Price    =0,
-                mu_b_Performance = 0,
-                sig_b_Performance = 0,
-                mu_b_Emission = 0,
-                sig_b_Emission = 0)
+
+
+apollo_beta = c(asc_A      = 0, asc_B      = 0, b_Price    =0,
+                mu_b_Performance = 0, sig_b_Performance = 0,
+                mu_b_Emission = 0, sig_b_Emission = 0)
+
+
 apollo_fixed = c("asc_A")
 apollo_draws = list(
   interDrawsType = "halton",
@@ -240,12 +280,16 @@ apollo_draws = list(
   intraNDraws    = 0,
   intraUnifDraws = c(),
   intraNormDraws = c())
+
+
 apollo_randCoeff = function(apollo_beta, apollo_inputs){
   randcoeff = list()
   randcoeff[["b_Performance"]] =  (mu_b_Performance + sig_b_Performance * draws_Performance )
   randcoeff[["b_Emission"]] =  (mu_b_Emission + sig_b_Emission * draws_Emission )
   return(randcoeff)}
 apollo_inputs = apollo_validateInputs()
+
+
 apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
   apollo_attach(apollo_beta, apollo_inputs)
   on.exit(apollo_detach(apollo_beta, apollo_inputs))
@@ -270,6 +314,8 @@ MXLmodel5 = apollo_estimate(apollo_beta, apollo_fixed,
 
 apollo_modelOutput(MXLmodel5,modelOutput_settings = list(printPVal=TRUE))
 
+
+# Again checking the delta method and division method of WTP
 MXLmodel5$estimate["mu_b_Emission"]/MXLmodel5$estimate["b_Price"]
 MXLmodel5$estimate["mu_b_Performance"]/MXLmodel5$estimate["b_Price"]
 
@@ -278,16 +324,18 @@ apollo_deltaMethod(MXLmodel5, deltaMethod_settings=list(operation="ratio", parNa
 
 
 #### MXL6: WTP-space price fixed, others normal ####
+
+
 apollo_control = list(
   modelName ="MXL6",  indivID   ="ID",  
   mixing    = TRUE, nCores    = 4)
-apollo_beta = c(asc_A      = 0,
-                asc_B      = 0,
-                b_Price    =0,
-                mu_b_Performance = 0,
-                sig_b_Performance = 0,
-                mu_b_Emission = 0,
-                sig_b_Emission = 0)
+
+
+apollo_beta = c(asc_A      = 0, asc_B      = 0,b_Price    =0,
+                mu_b_Performance = 0, sig_b_Performance = 0,
+                mu_b_Emission = 0, sig_b_Emission = 0)
+
+
 apollo_fixed = c("asc_A")
 apollo_draws = list(
   interDrawsType = "halton",
@@ -298,12 +346,16 @@ apollo_draws = list(
   intraNDraws    = 0,
   intraUnifDraws = c(),
   intraNormDraws = c())
+
+
 apollo_randCoeff = function(apollo_beta, apollo_inputs){
   randcoeff = list()
   randcoeff[["b_Performance"]] =  (mu_b_Performance + sig_b_Performance * draws_Performance )
   randcoeff[["b_Emission"]] =  (mu_b_Emission + sig_b_Emission * draws_Emission )
   return(randcoeff)}
 apollo_inputs = apollo_validateInputs()
+
+
 apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
   apollo_attach(apollo_beta, apollo_inputs)
   on.exit(apollo_detach(apollo_beta, apollo_inputs))
@@ -331,17 +383,18 @@ apollo_modelOutput(MXLmodel6,modelOutput_settings = list(printPVal=TRUE))
 
 
 #### MXL7: Pref-space  price fixed, others unif ####
+
+
 apollo_control = list(
   modelName ="MXL7",  indivID   ="ID",  
   mixing    = TRUE, nCores    = 4)
-apollo_beta = c(asc_A      = 0,
-                asc_B      = 0,
-                b_Price    =0,
-                mu_b_Performance = 0,
-                sig_b_Performance = 0,
-                mu_b_Emission = 0,
-                sig_b_Emission = 0)
+
+
+apollo_beta = c(asc_A      = 0, asc_B      = 0, b_Price    =0,
+                mu_b_Performance = 0, sig_b_Performance = 0,
+                mu_b_Emission = 0, sig_b_Emission = 0)
 apollo_fixed = c("asc_A")
+
 apollo_draws = list(
   interDrawsType = "halton",
   interNDraws    = 1000,
@@ -351,12 +404,16 @@ apollo_draws = list(
   intraNDraws    = 0,
   intraUnifDraws = c(),
   intraNormDraws = c())
+
+
 apollo_randCoeff = function(apollo_beta, apollo_inputs){
   randcoeff = list()
   randcoeff[["b_Performance"]] =  (mu_b_Performance + sig_b_Performance * draws_Performance )
   randcoeff[["b_Emission"]] =  (mu_b_Emission + sig_b_Emission * draws_Emission )
   return(randcoeff)}
 apollo_inputs = apollo_validateInputs()
+
+
 apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
   apollo_attach(apollo_beta, apollo_inputs)
   on.exit(apollo_detach(apollo_beta, apollo_inputs))
@@ -389,17 +446,19 @@ apollo_deltaMethod(MXLmodel7, deltaMethod_settings=list(operation="ratio", parNa
 
 
 #### MXL8: WTP-space price fixed, others normal ####
+
+
 apollo_control = list(
   modelName ="MXL8",  indivID   ="ID",  
   mixing    = TRUE, nCores    = 4)
-apollo_beta = c(asc_A      = 0,
-                asc_B      = 0,
-                b_Price    =0,
-                mu_b_Performance = 0,
-                sig_b_Performance = 0,
-                mu_b_Emission = 0,
-                sig_b_Emission = 0)
+
+
+apollo_beta = c(asc_A      = 0, asc_B      = 0, b_Price    =0,
+                mu_b_Performance = 0, sig_b_Performance = 0,
+                mu_b_Emission = 0, sig_b_Emission = 0)
 apollo_fixed = c("asc_A")
+
+
 apollo_draws = list(
   interDrawsType = "halton",
   interNDraws    = 1000,
@@ -409,12 +468,16 @@ apollo_draws = list(
   intraNDraws    = 0,
   intraUnifDraws = c(),
   intraNormDraws = c())
+
+
 apollo_randCoeff = function(apollo_beta, apollo_inputs){
   randcoeff = list()
   randcoeff[["b_Performance"]] =  (mu_b_Performance + sig_b_Performance * draws_Performance )
   randcoeff[["b_Emission"]] =  (mu_b_Emission + sig_b_Emission * draws_Emission )
   return(randcoeff)}
 apollo_inputs = apollo_validateInputs()
+
+
 apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
   apollo_attach(apollo_beta, apollo_inputs)
   on.exit(apollo_detach(apollo_beta, apollo_inputs))
@@ -440,19 +503,20 @@ MXLmodel8 = apollo_estimate(apollo_beta, apollo_fixed,
 apollo_modelOutput(MXLmodel8,modelOutput_settings = list(printPVal=TRUE))
 
 
-
 #### MXL9: Pref-space  price fixed, perf unif, em normal ####
+
+
 apollo_control = list(
   modelName ="MXL9",  indivID   ="ID",  
   mixing    = TRUE, nCores    = 4)
-apollo_beta = c(asc_A      = 0,
-                asc_B      = 0,
-                b_Price    =0,
-                mu_b_Performance = 0,
-                sig_b_Performance = 0,
-                mu_b_Emission = 0,
-                sig_b_Emission = 0)
+
+
+apollo_beta = c(asc_A      = 0, asc_B      = 0,b_Price    =0,
+                mu_b_Performance = 0,sig_b_Performance = 0,
+                mu_b_Emission = 0,sig_b_Emission = 0)
 apollo_fixed = c("asc_A")
+
+
 apollo_draws = list(
   interDrawsType = "halton",
   interNDraws    = 1000,
@@ -462,12 +526,16 @@ apollo_draws = list(
   intraNDraws    = 0,
   intraUnifDraws = c(),
   intraNormDraws = c())
+
+
 apollo_randCoeff = function(apollo_beta, apollo_inputs){
   randcoeff = list()
   randcoeff[["b_Performance"]] =  (mu_b_Performance + sig_b_Performance * draws_Performance )
   randcoeff[["b_Emission"]] =  (mu_b_Emission + sig_b_Emission * draws_Emission )
   return(randcoeff)}
 apollo_inputs = apollo_validateInputs()
+
+
 apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
   apollo_attach(apollo_beta, apollo_inputs)
   on.exit(apollo_detach(apollo_beta, apollo_inputs))
@@ -497,17 +565,18 @@ apollo_deltaMethod(MXLmodel9, deltaMethod_settings=list(operation="ratio", parNa
 
 
 #### MXL10: WTP-space price fixed, perf unif, em normal ####
+
+
 apollo_control = list(
   modelName ="MXL10",  indivID   ="ID",  
   mixing    = TRUE, nCores    = 4)
-apollo_beta = c(asc_A      = 0,
-                asc_B      = 0,
-                b_Price    =0,
-                mu_b_Performance = 0,
-                sig_b_Performance = 0,
-                mu_b_Emission = 0,
-                sig_b_Emission = 0)
+
+apollo_beta = c(asc_A      = 0,asc_B      = 0, b_Price    =0,
+                mu_b_Performance = 0, sig_b_Performance = 0,
+                mu_b_Emission = 0, sig_b_Emission = 0)
 apollo_fixed = c("asc_A")
+
+
 apollo_draws = list(
   interDrawsType = "halton",
   interNDraws    = 1000,
@@ -517,12 +586,16 @@ apollo_draws = list(
   intraNDraws    = 0,
   intraUnifDraws = c(),
   intraNormDraws = c())
+
+
 apollo_randCoeff = function(apollo_beta, apollo_inputs){
   randcoeff = list()
   randcoeff[["b_Performance"]] =  (mu_b_Performance + sig_b_Performance * draws_Performance )
   randcoeff[["b_Emission"]] =  (mu_b_Emission + sig_b_Emission * draws_Emission )
   return(randcoeff)}
 apollo_inputs = apollo_validateInputs()
+
+
 apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
   apollo_attach(apollo_beta, apollo_inputs)
   on.exit(apollo_detach(apollo_beta, apollo_inputs))
@@ -552,9 +625,13 @@ MXLmodel10$estimate["mu_b_Performance"]
 
 
 #### MXL11: Pref-space  price fixed, perf normal, em unif ####
+
+
 apollo_control = list(
   modelName ="MXL11",  indivID   ="ID",  
   mixing    = TRUE, nCores    = 4)
+
+
 apollo_beta = c(asc_A      = 0,
                 asc_B      = 0,
                 b_Price    =0,
@@ -563,6 +640,8 @@ apollo_beta = c(asc_A      = 0,
                 mu_b_Emission = 0,
                 sig_b_Emission = 0)
 apollo_fixed = c("asc_A")
+
+
 apollo_draws = list(
   interDrawsType = "halton",
   interNDraws    = 1000,
@@ -572,12 +651,16 @@ apollo_draws = list(
   intraNDraws    = 0,
   intraUnifDraws = c(),
   intraNormDraws = c())
+
+
 apollo_randCoeff = function(apollo_beta, apollo_inputs){
   randcoeff = list()
   randcoeff[["b_Performance"]] =  (mu_b_Performance + sig_b_Performance * draws_Performance )
   randcoeff[["b_Emission"]] =  (mu_b_Emission + sig_b_Emission * draws_Emission )
   return(randcoeff)}
 apollo_inputs = apollo_validateInputs()
+
+
 apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
   apollo_attach(apollo_beta, apollo_inputs)
   on.exit(apollo_detach(apollo_beta, apollo_inputs))
@@ -607,9 +690,13 @@ apollo_deltaMethod(MXLmodel11, deltaMethod_settings=list(operation="ratio", parN
 
 
 #### MXL12: WTP-space price fixed, perf normal, em unif ####
+
+
 apollo_control = list(
   modelName ="MXL12",  indivID   ="ID",  
   mixing    = TRUE, nCores    = 4)
+
+
 apollo_beta = c(asc_A      = 0,
                 asc_B      = 0,
                 b_Price    =0,
@@ -618,6 +705,8 @@ apollo_beta = c(asc_A      = 0,
                 mu_b_Emission = 0,
                 sig_b_Emission = 0)
 apollo_fixed = c("asc_A")
+
+
 apollo_draws = list(
   interDrawsType = "halton",
   interNDraws    = 1000,
@@ -627,12 +716,16 @@ apollo_draws = list(
   intraNDraws    = 0,
   intraUnifDraws = c(),
   intraNormDraws = c())
+
+
 apollo_randCoeff = function(apollo_beta, apollo_inputs){
   randcoeff = list()
   randcoeff[["b_Performance"]] =  (mu_b_Performance + sig_b_Performance * draws_Performance )
   randcoeff[["b_Emission"]] =  (mu_b_Emission + sig_b_Emission * draws_Emission )
   return(randcoeff)}
 apollo_inputs = apollo_validateInputs()
+
+
 apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
   apollo_attach(apollo_beta, apollo_inputs)
   on.exit(apollo_detach(apollo_beta, apollo_inputs))
@@ -662,9 +755,13 @@ MXLmodel12$estimate["mu_b_Performance"]
 
 
 #### MXL13: Pref-space  price and perf normal, em unif ####
+
+
 apollo_control = list(
   modelName ="MXL13",  indivID   ="ID",  
   mixing    = TRUE, nCores    = 4)
+
+
 apollo_beta = c(asc_A      = 0,
                 asc_B      = 0,
                 mu_Price    =0,
@@ -674,6 +771,8 @@ apollo_beta = c(asc_A      = 0,
                 mu_b_Emission = 0,
                 sig_b_Emission = 0)
 apollo_fixed = c("asc_A")
+
+
 apollo_draws = list(
   interDrawsType = "halton",
   interNDraws    = 1000,
@@ -683,6 +782,8 @@ apollo_draws = list(
   intraNDraws    = 0,
   intraUnifDraws = c(),
   intraNormDraws = c())
+
+
 apollo_randCoeff = function(apollo_beta, apollo_inputs){
   randcoeff = list()
   randcoeff[["b_Price"]] =  (mu_Price + sig_Price * draws_Price )
@@ -690,6 +791,8 @@ apollo_randCoeff = function(apollo_beta, apollo_inputs){
   randcoeff[["b_Emission"]] =  (mu_b_Emission + sig_b_Emission * draws_Emission )
   return(randcoeff)}
 apollo_inputs = apollo_validateInputs()
+
+
 apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
   apollo_attach(apollo_beta, apollo_inputs)
   on.exit(apollo_detach(apollo_beta, apollo_inputs))
@@ -719,9 +822,13 @@ apollo_deltaMethod(MXLmodel13, deltaMethod_settings=list(operation="ratio", parN
 
 
 #### MXL14: WTP-space price fixed, perf normal, em unif ####
+
+
 apollo_control = list(
   modelName ="MXL14",  indivID   ="ID",  
   mixing    = TRUE, nCores    = 4)
+
+
 apollo_beta = c(asc_A      = 0,
                 asc_B      = 0,
                 mu_Price    =0,
@@ -731,6 +838,8 @@ apollo_beta = c(asc_A      = 0,
                 mu_b_Emission = 0,
                 sig_b_Emission = 0)
 apollo_fixed = c("asc_A")
+
+
 apollo_draws = list(
   interDrawsType = "halton",
   interNDraws    = 1000,
@@ -740,6 +849,8 @@ apollo_draws = list(
   intraNDraws    = 0,
   intraUnifDraws = c(),
   intraNormDraws = c())
+
+
 apollo_randCoeff = function(apollo_beta, apollo_inputs){
   randcoeff = list()
   randcoeff[["b_Price"]] =  (mu_Price + sig_Price * draws_Price )
@@ -747,6 +858,8 @@ apollo_randCoeff = function(apollo_beta, apollo_inputs){
   randcoeff[["b_Emission"]] =  (mu_b_Emission + sig_b_Emission * draws_Emission )
   return(randcoeff)}
 apollo_inputs = apollo_validateInputs()
+
+
 apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
   apollo_attach(apollo_beta, apollo_inputs)
   on.exit(apollo_detach(apollo_beta, apollo_inputs))
@@ -774,10 +887,15 @@ apollo_modelOutput(MXLmodel14,modelOutput_settings = list(printPVal=TRUE))
 MXLmodel14$estimate["mu_b_Emission"]
 MXLmodel14$estimate["mu_b_Performance"]
 
+
 #### MXL15: Pref-space  price unif, both normal ####
+
+
 apollo_control = list(
   modelName ="MXL15",  indivID   ="ID",  
   mixing    = TRUE, nCores    = 4)
+
+
 apollo_beta = c(asc_A      = 0,
                 asc_B      = 0,
                 mu_Price    =0,
@@ -787,6 +905,8 @@ apollo_beta = c(asc_A      = 0,
                 mu_b_Emission = 0,
                 sig_b_Emission = 0)
 apollo_fixed = c("asc_A")
+
+
 apollo_draws = list(
   interDrawsType = "halton",
   interNDraws    = 1000,
@@ -796,6 +916,8 @@ apollo_draws = list(
   intraNDraws    = 0,
   intraUnifDraws = c(),
   intraNormDraws = c())
+
+
 apollo_randCoeff = function(apollo_beta, apollo_inputs){
   randcoeff = list()
   randcoeff[["b_Price"]] =  (mu_Price + sig_Price * draws_Price )
@@ -803,6 +925,8 @@ apollo_randCoeff = function(apollo_beta, apollo_inputs){
   randcoeff[["b_Emission"]] =  (mu_b_Emission + sig_b_Emission * draws_Emission )
   return(randcoeff)}
 apollo_inputs = apollo_validateInputs()
+
+
 apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
   apollo_attach(apollo_beta, apollo_inputs)
   on.exit(apollo_detach(apollo_beta, apollo_inputs))
@@ -831,10 +955,14 @@ apollo_deltaMethod(MXLmodel15, deltaMethod_settings=list(operation="ratio", parN
 apollo_deltaMethod(MXLmodel15, deltaMethod_settings=list(operation="ratio", parName1="mu_b_Performance", parName2="mu_Price"))
 
 
-#### MXL16: WTP-space price unif, both normal ####
+#### MXL16: WTP-space price unif, others normally distributed ####
+
+
 apollo_control = list(
   modelName ="MXL16",  indivID   ="ID",  
   mixing    = TRUE, nCores    = 4)
+
+
 apollo_beta = c(asc_A      = 0,
                 asc_B      = 0,
                 mu_Price    =0,
@@ -844,6 +972,8 @@ apollo_beta = c(asc_A      = 0,
                 mu_b_Emission = 0,
                 sig_b_Emission = 0)
 apollo_fixed = c("asc_A")
+
+
 apollo_draws = list(
   interDrawsType = "halton",
   interNDraws    = 1000,
@@ -853,6 +983,8 @@ apollo_draws = list(
   intraNDraws    = 0,
   intraUnifDraws = c(),
   intraNormDraws = c())
+
+
 apollo_randCoeff = function(apollo_beta, apollo_inputs){
   randcoeff = list()
   randcoeff[["b_Price"]] =  -exp(mu_Price + sig_Price * draws_Price )
@@ -860,6 +992,8 @@ apollo_randCoeff = function(apollo_beta, apollo_inputs){
   randcoeff[["b_Emission"]] =  (mu_b_Emission + sig_b_Emission * draws_Emission )
   return(randcoeff)}
 apollo_inputs = apollo_validateInputs()
+
+
 apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
   apollo_attach(apollo_beta, apollo_inputs)
   on.exit(apollo_detach(apollo_beta, apollo_inputs))
@@ -888,17 +1022,21 @@ MXLmodel16$estimate["mu_b_Emission"]
 MXLmodel16$estimate["mu_b_Performance"]
 exp(MXLmodel16$estimate["mu_b_Emission"]+MXLmodel16$estimate["sig_b_Emission"]^2/2)
 
+
 #### MXL17: Pref-space  lognormal price ####
+
+
 apollo_control = list(
   modelName ="MXL17",  indivID   ="ID",  
   mixing    = TRUE, nCores    = 4)
-apollo_beta = c(asc_A      = 0,
-                asc_B      = 0,
-                mu_Price    =0,
-                sig_Price    =0,
-                b_Performance = 0,
-                b_Emission = 0)
+
+
+apollo_beta = c(asc_A      = 0,    asc_B      = 0,
+                mu_Price    =0,    sig_Price    =0,
+                b_Performance = 0, b_Emission = 0)
 apollo_fixed = c("asc_A")
+
+
 apollo_draws = list(
   interDrawsType = "halton",
   interNDraws    = 1000,
@@ -908,11 +1046,15 @@ apollo_draws = list(
   intraNDraws    = 0,
   intraUnifDraws = c(),
   intraNormDraws = c())
+
+
 apollo_randCoeff = function(apollo_beta, apollo_inputs){
   randcoeff = list()
   randcoeff[["b_Price"]] =  -exp(mu_Price + sig_Price * draws_Price )
   return(randcoeff)}
 apollo_inputs = apollo_validateInputs()
+
+
 apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
   apollo_attach(apollo_beta, apollo_inputs)
   on.exit(apollo_detach(apollo_beta, apollo_inputs))
@@ -942,16 +1084,19 @@ MXLmodel17$estimate["b_Performance"]/-exp(MXLmodel18$estimate["mu_Price"]+MXLmod
 
 
 #### MXL18: WTP-space price lognormals ####
+
+
 apollo_control = list(
   modelName ="MXL18",  indivID   ="ID",  
   mixing    = TRUE, nCores    = 4)
-apollo_beta = c(asc_A      = 0,
-                asc_B      = 0,
-                mu_Price    =0,
-                sig_Price    =0,
-                b_Performance = 0,
-                b_Emission = 0)
+
+
+apollo_beta = c(asc_A      = 0, asc_B      = 0,
+                mu_Price    =0, sig_Price    =0,
+                b_Performance = 0, b_Emission = 0)
 apollo_fixed = c("asc_A")
+
+
 apollo_draws = list(
   interDrawsType = "halton",
   interNDraws    = 1000,
@@ -961,11 +1106,15 @@ apollo_draws = list(
   intraNDraws    = 0,
   intraUnifDraws = c(),
   intraNormDraws = c())
+
+
 apollo_randCoeff = function(apollo_beta, apollo_inputs){
   randcoeff = list()
   randcoeff[["b_Price"]] =  -exp(mu_Price + sig_Price * draws_Price )
   return(randcoeff)}
 apollo_inputs = apollo_validateInputs()
+
+
 apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
   apollo_attach(apollo_beta, apollo_inputs)
   on.exit(apollo_detach(apollo_beta, apollo_inputs))
@@ -992,18 +1141,20 @@ apollo_modelOutput(MXLmodel18,modelOutput_settings = list(printPVal=TRUE))
 
 
 #### MXL19: WTP all lognormals #### 
+
+
 apollo_control = list(
   modelName ="MXL19",  indivID   ="ID",  
   mixing    = TRUE, nCores    = 4)
-apollo_beta = c(asc_A      = 0,
-                asc_B      = 0,
-                mu_Price    =-3,
-                sig_Price=0,
-                mu_Performance = -3,
-                sig_Performance = 0,
-                mu_Emission = -3,
-                sig_Emission = 0)
+
+
+apollo_beta = c(asc_A      = 0,      asc_B      = 0,
+                mu_Price    =-3,     sig_Price=0,
+                mu_Performance = -3, sig_Performance = 0,
+                mu_Emission = -3,    sig_Emission = 0)
 apollo_fixed = c("asc_A")
+
+
 apollo_draws = list(
   interDrawsType = "halton",
   interNDraws    = 1000,
@@ -1013,6 +1164,8 @@ apollo_draws = list(
   intraNDraws    = 0,
   intraUnifDraws = c(),
   intraNormDraws = c())
+
+
 apollo_randCoeff = function(apollo_beta, apollo_inputs){
   randcoeff = list()
   randcoeff[["b_Price"]] =  -exp(mu_Price + sig_Price * draws_Price )
@@ -1020,6 +1173,8 @@ apollo_randCoeff = function(apollo_beta, apollo_inputs){
   randcoeff[["b_Emission"]] =  -exp(mu_Emission + sig_Emission * draws_Emission )
   return(randcoeff)}
 apollo_inputs = apollo_validateInputs()
+
+
 apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
   apollo_attach(apollo_beta, apollo_inputs)
   on.exit(apollo_detach(apollo_beta, apollo_inputs))
@@ -1039,7 +1194,7 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
   return(P)
 }
 
-# Starting value search:
+# Starting value search (very long!):
 apollo_beta = apollo_searchStart(apollo_beta,
                                  apollo_fixed,
                                  apollo_probabilities,
@@ -1051,15 +1206,22 @@ MXLmodel19 = apollo_estimate(apollo_beta, apollo_fixed,
 
 apollo_modelOutput(MXLmodel19,modelOutput_settings = list(printPVal=TRUE))
 
+
+## This is the appropriate approach for negative lognormal parameters:
+# But actually it's estimated in WTP-space so this is unnecessary, provided for completeness
 -exp(MXLmodel19$estimate["mu_Performance"]+MXLmodel19$estimate["sig_Performance"]^2/2)
 -exp(MXLmodel19$estimate["mu_Emission"]+MXLmodel19$estimate["sig_Emission"]^2/2)
 -exp(MXLmodel19$estimate["mu_Price"]+MXLmodel19$estimate["sig_Price"]^2/2)
 
 
 #### MXL20: WTP all lognormals plus covariates #### 
+
+
 apollo_control = list(
   modelName ="MXL20",  indivID   ="ID",  
   mixing    = TRUE, nCores    = 4)
+
+
 apollo_beta = c(asc_A      = 0,
                 asc_BB      = 0,
                 mu_Price    =-3,
@@ -1084,6 +1246,8 @@ apollo_beta = c(asc_A      = 0,
                 b_Understanding =0,
                 b_Certainty=0)
 apollo_fixed = c("asc_A")
+
+
 apollo_draws = list(
   interDrawsType = "halton",
   interNDraws    = 1000,
@@ -1093,6 +1257,8 @@ apollo_draws = list(
   intraNDraws    = 0,
   intraUnifDraws = c(),
   intraNormDraws = c())
+
+
 apollo_randCoeff = function(apollo_beta, apollo_inputs){
   randcoeff = list()
   randcoeff[["b_Price"]] =  -exp(mu_Price + sig_Price * draws_Price )
@@ -1114,6 +1280,8 @@ apollo_randCoeff = function(apollo_beta, apollo_inputs){
     b_Certainty*Q12CECertainty
   return(randcoeff)}
 apollo_inputs = apollo_validateInputs()
+
+
 apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
   apollo_attach(apollo_beta, apollo_inputs)
   on.exit(apollo_detach(apollo_beta, apollo_inputs))
@@ -1147,35 +1315,29 @@ apollo_modelOutput(MXLmodel20,modelOutput_settings = list(printPVal=TRUE))
 
 
 #### MXL20: WTP all lognormals plus covariates TRUNCATED #### 
-Test_Truncated =Test_Apollo[ (Test_Apollo$ID) %in% c(AllCriteria),] 
+
+
 database <- Test_Truncated
 apollo_control = list(
   modelName ="MXL20",  indivID   ="ID",  
   mixing    = TRUE, nCores    = 4)
-apollo_beta = c(asc_A      = 0,
-                asc_BB      = 0,
-                mu_Price    =-3,
-                sig_Price=0,
-                mu_Performance = -3,
-                sig_Performance = 0,
-                mu_Emission = -3,
-                sig_Emission = 0,
-                b_Gender = 0,
-                b_Age      = 0,
-                b_Distance = 0,
-                b_Trips    = 0,
-                b_BP       = 0,
-                b_Charity  = 0,
-                b_Education  = 0,
-                b_Employment = 0,
-                b_Income     = 0,
-                b_Order      = 0,
-                b_Task       = 0,
-                b_Cons       = 0,
-                b_Experts    = 0,
-                b_Understanding =0,
+
+
+apollo_beta = c(asc_A      = 0,      asc_BB      = 0,
+                mu_Price    =-3,     sig_Price=0,
+                mu_Performance = -3, sig_Performance = 0,
+                mu_Emission = -3,    sig_Emission = 0,
+                b_Gender = 0,   b_Age      = 0,
+                b_Distance = 0, b_Trips    = 0,
+                b_BP       = 0, b_Charity  = 0,
+                b_Education  = 0, b_Employment = 0,
+                b_Income     = 0, b_Order      = 0,
+                b_Task       = 0, b_Cons       = 0,
+                b_Experts    = 0, b_Understanding =0,
                 b_Certainty=0)
 apollo_fixed = c("asc_A")
+
+
 apollo_draws = list(
   interDrawsType = "halton",
   interNDraws    = 1000,
@@ -1185,6 +1347,8 @@ apollo_draws = list(
   intraNDraws    = 0,
   intraUnifDraws = c(),
   intraNormDraws = c())
+
+
 apollo_randCoeff = function(apollo_beta, apollo_inputs){
   randcoeff = list()
   randcoeff[["b_Price"]] =  -exp(mu_Price + sig_Price * draws_Price )
@@ -1206,6 +1370,8 @@ apollo_randCoeff = function(apollo_beta, apollo_inputs){
     b_Certainty*Q12CECertainty
   return(randcoeff)}
 apollo_inputs = apollo_validateInputs()
+
+
 apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
   apollo_attach(apollo_beta, apollo_inputs)
   on.exit(apollo_detach(apollo_beta, apollo_inputs))
@@ -1237,6 +1403,8 @@ MXLmodel21 = apollo_estimate(apollo_beta, apollo_fixed,
 
 apollo_modelOutput(MXLmodel21,modelOutput_settings = list(printPVal=TRUE))
 
+
+## Exporting marginal effects straight to LaTeX code: 
 xtable::xtable(cbind(data.frame(rownames(MXL20)),round(ldply(MXL20$Estimate,.fun =function(b2) { (exp(-(MXL20$Estimate[2]+(b2*1)))/(1 +exp(-(MXL20$Estimate[2]+(b2*1))))^2)*b2  }),3)))
 xtable::xtable(cbind(data.frame(rownames(MXL21)),round(ldply(MXL21$Estimate,.fun =function(b2) { (exp(-(MXL20$Estimate[2]+(b2*1)))/(1 +exp(-(MXL21$Estimate[2]+(b2*1))))^2)*b2  }),3)))
 
@@ -1248,18 +1416,17 @@ xtable::xtable(round(data.frame(apollo_modelOutput(MXLmodel21,modelOutput_settin
 apollo_control = list(
   modelName ="MXL19",  indivID   ="ID",  
   mixing    = TRUE, nCores    = 4)
-apollo_beta = c(asc_A      = 0,
-                asc_B      = 0,
-                mu_Price    =-3,
-                sig_Price=0,
+
+
+apollo_beta = c(asc_A      = 0, asc_B      = 0,
+                mu_Price    =-3, sig_Price=0,
                 b_perf_price_sig=0,
-                emission_perf_sig=0,
-                emission_price_sig=0,
-                mu_Performance = -3,
-                sig_Performance = 0,
-                mu_Emission = -3,
-                sig_Emission = 0)
+                emission_perf_sig=0, emission_price_sig=0,
+                mu_Performance = -3, sig_Performance = 0,
+                mu_Emission = -3, sig_Emission = 0)
 apollo_fixed = c("asc_A")
+
+
 apollo_draws = list(
   interDrawsType = "halton",
   interNDraws    = 1000,
@@ -1269,6 +1436,8 @@ apollo_draws = list(
   intraNDraws    = 0,
   intraUnifDraws = c(),
   intraNormDraws = c())
+
+
 apollo_randCoeff = function(apollo_beta, apollo_inputs){
   randcoeff = list()
   randcoeff[["b_Price"]] =  -exp(mu_Price + sig_Price * draws_Price )
@@ -1276,6 +1445,8 @@ apollo_randCoeff = function(apollo_beta, apollo_inputs){
   randcoeff[["b_Emission"]] =  -exp(mu_Emission + emission_perf_sig*draws_Performance + emission_price_sig*draws_Price + sig_Emission * draws_Emission )
   return(randcoeff)}
 apollo_inputs = apollo_validateInputs()
+
+
 apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
   apollo_attach(apollo_beta, apollo_inputs)
   on.exit(apollo_detach(apollo_beta, apollo_inputs))
@@ -1302,6 +1473,7 @@ MXLmodel22 = apollo_estimate(apollo_beta, apollo_fixed,
 apollo_modelOutput(MXLmodel22,modelOutput_settings = list(printPVal=TRUE))
 
 
+## Here presenting WTP from all models in one go, probably not a good idea
 View(cbind(t(round(cbind("1"=data.frame(MXLmodel$estimate["b_Emission"]/MXLmodel$estimate["mu_b_Price"]),
       "2"=data.frame(MXLmodel2$estimate["b_Emission"]),
       "3"=data.frame(MXLmodel3$estimate["b_Emission"]/MXLmodel3$estimate["mu_b_Price"]),
