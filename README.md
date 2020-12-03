@@ -20,6 +20,6 @@ To replicate I have made standalone scripts for:
 These may be updated/appended later but for now that should enable replication. Any issues or comments let me know at: p.m.king@bath.ac.uk
 
 
-02/12 To-Do:
+03/12 To-Do:
 - Bivariate probit ICLV
-- Tidy up code
+- Finish Stata and Python replication attempts
