@@ -8,23 +8,24 @@
 #### CE Models ####
 
 
-#### CE ICLV 1 MNL Pref Space ####
+#### CEmodelMNL ####
 
 library(apollo)
 
 ### Initialise code
-database <- Test_Apollo_Truncated
+database <- Test_Apollo
 apollo_initialise()
 
 
 ### Set core controls
 apollo_control = list(
-  modelName  = "ICLV model: CE", modelDescr = "ICLV model: CE",
+  modelName  = "CEmodelMNL", modelDescr = "CEmodelMNL",
   indivID    = "ID", mixing     = TRUE, nCores     = 4)
 
 
 ### Vector of parameters, including any that are kept fixed in estimation
-apollo_beta = c(b_Emission     = 0, 
+apollo_beta = c(asc_A      = 0,
+                asc_BB      = 0,b_Emission     = 0, 
                 b_Performance       = 0, 
                 b_Price            = 0,  
                 lambda             = 1, 
@@ -32,7 +33,6 @@ apollo_beta = c(b_Emission     = 0,
                 gamma_Gender    = 0,
                 gamma_Distance  = 0, 
                 gamma_Income =0,
-                gamma_Employment =0,
                 gamma_Experts =0,
                 gamma_Cons =0,
                 gamma_BP =0,
@@ -55,8 +55,7 @@ apollo_beta = c(b_Emission     = 0,
                 tau_Q15_4  = 2)
 
 
-## Vector with names (in quotes) of parameters to be kept fixed at their starting value in apollo_beta, use apollo_beta_fixed = c() if none
-apollo_fixed = c()
+apollo_fixed = c("asc_A")
 
 ## DEFINE RANDOM COMPONENTS                                    
 
@@ -76,7 +75,8 @@ apollo_draws = list(
 apollo_randCoeff=function(apollo_beta, apollo_inputs){
   randcoeff = list()
   
-  randcoeff[["LV"]] = gamma_Age*Age +gamma_Gender*Q1Gender + gamma_Distance*Distance + gamma_Income*Income + gamma_Employment*Employment + gamma_Experts*Experts + gamma_Cons*Consequentiality + gamma_BP*BP + gamma_Charity*Charity + gamma_Certainty*Q12CECertainty + eta
+  randcoeff[["LV"]] = gamma_Age*Age +gamma_Gender*Q1Gender + gamma_Distance*Distance + gamma_Income*Income +  gamma_Experts*Experts + gamma_Cons*Consequentiality + gamma_BP*BP + gamma_Charity*Charity + gamma_Certainty*Q12CECertainty + eta
+  randcoeff[["asc_B"]] = asc_BB
   
   return(randcoeff)
 }
@@ -119,8 +119,8 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
   ### Likelihood of choices
   ### List of utilities: these must use the same names as in mnl_settings, order is irrelevant
   V = list()
-  V[['A']] = ( b_Emission*(Emission_A==0) + b_Performance*(Performance_A==0)+ b_Price*Price_A )
-  V[['B']] = ( b_Emission*(Emission_B)+ b_Performance*(Performance_B)+ b_Price*Price_B + lambda*LV )
+  V[['A']] = asc_A + ( b_Emission*(Emission_A==0) + b_Performance*(Performance_A==0)+ b_Price*Price_A )
+  V[['B']] = asc_B + ( b_Emission*(Emission_B)+ b_Performance*(Performance_B)+ b_Price*Price_B + lambda*LV )
   
   ### Define settings for MNL model component
   mnl_settings = list(
@@ -162,8 +162,163 @@ apollo_llCalc(apollo_beta, apollo_probabilities, apollo_inputs)
 
 
 ### Estimate model
-CEmodel = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
-apollo_modelOutput(CEmodel,modelOutput_settings = list(printPVal=TRUE))
+CEmodelMNL = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+apollo_modelOutput(CEmodelMNL,modelOutput_settings = list(printPVal=TRUE))
+saveRDS(CEmodelMNL, file="CEmodelMNL.rds")
+# Using the unconditional distributions of the parameters to calculate Performance and Emissions MWTP respectively
+CEmodelMNLunconditionals <- apollo_unconditionals(CEmodelMNL,apollo_probabilities,apollo_inputs)
+round(median((CEmodelMNL$estimate["b_Performance"]+CEmodelMNLunconditionals$LV/CEmodelMNL$estimate["b_Price"])),3)
+round(median((CEmodelMNL$estimate["b_Emission"]+CEmodelMNLunconditionals$LV/CEmodelMNL$estimate["b_Price"])),3)
+
+
+
+#### CEmodelMNLTrunc ####
+
+library(apollo)
+
+database <- Test_Truncated
+apollo_initialise()
+
+
+### Set core controls
+apollo_control = list(
+  modelName  = "CEmodelMNLTrunc", modelDescr = "CEmodelMNLTrunc",
+  indivID    = "ID", mixing     = TRUE, nCores     = 4)
+
+
+### Vector of parameters, including any that are kept fixed in estimation
+apollo_beta = c(asc_A      = 0,
+                asc_BB      = 0,b_Emission     = 0, 
+                b_Performance       = 0, 
+                b_Price            = 0,  
+                lambda             = 1, 
+                gamma_Age       = 0, 
+                gamma_Gender    = 0,
+                gamma_Distance  = 0, 
+                gamma_Income =0,
+                gamma_Experts =0,
+                gamma_Cons =0,
+                gamma_BP =0,
+                gamma_Charity =0,
+                gamma_Certainty=0,
+                zeta_Q13   = 1, 
+                zeta_Q14   = 1, 
+                zeta_Q15   = 1, 
+                tau_Q13_1  =-2, 
+                tau_Q13_2  =-1, 
+                tau_Q13_3  = 1, 
+                tau_Q13_4  = 2, 
+                tau_Q14_1  =-2, 
+                tau_Q14_2  =-1, 
+                tau_Q14_3  = 1, 
+                tau_Q14_4  = 2, 
+                tau_Q15_1  =-2, 
+                tau_Q15_2  =-1, 
+                tau_Q15_3  = 1, 
+                tau_Q15_4  = 2)
+
+apollo_fixed = c("asc_A")
+
+### Set parameters for generating draws
+apollo_draws = list(
+  interDrawsType="halton", 
+  interNDraws=1000,          
+  interUnifDraws=c(),      
+  interNormDraws=c("eta"), 
+  intraDrawsType='',
+  intraNDraws=0,          
+  intraUnifDraws=c(),     
+  intraNormDraws=c()      
+)
+
+### Create random parameters
+apollo_randCoeff=function(apollo_beta, apollo_inputs){
+  randcoeff = list()
+  
+  randcoeff[["LV"]] = gamma_Age*Age +gamma_Gender*Q1Gender + gamma_Distance*Distance + gamma_Income*Income +  gamma_Experts*Experts + gamma_Cons*Consequentiality + gamma_BP*BP + gamma_Charity*Charity + gamma_Certainty*Q12CECertainty + eta
+  randcoeff[["asc_B"]] = asc_BB
+  return(randcoeff)
+}
+
+
+## GROUP AND VALIDATE INPUTS
+apollo_inputs = apollo_validateInputs()
+
+
+## DEFINE MODEL AND LIKELIHOOD FUNCTION                        
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  
+  ### Attach inputs and detach after function exit
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  
+  ### Create list of probabilities P
+  P = list()
+  
+  ### Likelihood of indicators
+  op_settings1 = list(outcomeOrdered = Q13CurrentThreatToSelf, 
+                      V              = zeta_Q13*LV, 
+                      tau            = c(tau_Q13_1, tau_Q13_2, tau_Q13_3, tau_Q13_4),
+                      rows           = (Task==1),
+                      componentName  = "indic_Q13")
+  op_settings2 = list(outcomeOrdered = Q14FutureThreatToSelf, 
+                      V              = zeta_Q14*LV, 
+                      tau            = c(tau_Q14_1, tau_Q14_2, tau_Q14_3, tau_Q14_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q14")
+  op_settings3 = list(outcomeOrdered = Q15ThreatToEnvironment, 
+                      V              = zeta_Q15*LV, 
+                      tau            = c(tau_Q15_1, tau_Q15_2, tau_Q15_3, tau_Q15_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q15")
+  P[["indic_Q13"]]     = apollo_op(op_settings1, functionality)
+  P[["indic_Q14"]] = apollo_op(op_settings2, functionality)
+  P[["indic_Q15"]]      = apollo_op(op_settings3, functionality)
+  
+  ### Likelihood of choices
+  ### List of utilities: these must use the same names as in mnl_settings, order is irrelevant
+  V = list()
+  V[['A']] = asc_A + ( b_Emission*(Emission_A==0) + b_Performance*(Performance_A==0)+ b_Price*Price_A )
+  V[['B']] = asc_B + ( b_Emission*(Emission_B)+ b_Performance*(Performance_B)+ b_Price*Price_B + lambda*LV )
+  
+  ### Define settings for MNL model component
+  mnl_settings = list(
+    alternatives = c(A=1, B=2),
+    avail        = list(A=1, B=1),
+    choiceVar    = Choice,
+    V            = V,
+    componentName= "choice"
+  )
+  
+  ### Compute probabilities for MNL model component
+  P[["choice"]] = apollo_mnl(mnl_settings, functionality)
+  
+  ### Likelihood of the whole model
+  P = apollo_combineModels(P, apollo_inputs, functionality)
+  
+  ### Take product across observation for same individual
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  
+  ### Average across inter-individual draws
+  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
+  
+  ### Prepare and return outputs of function
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+### MODEL ESTIMATION
+
+
+### Estimate model
+CEmodelMNLTrunc = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+apollo_modelOutput(CEmodelMNLTrunc,modelOutput_settings = list(printPVal=TRUE))
+saveRDS(CEmodelMNLTrunc, file="CEmodelMNLTrunc.rds")
+# Using the unconditional distributions of the parameters to calculate Performance and Emissions MWTP respectively
+CEmodelMNLTruncLunconditionals <- apollo_unconditionals(CEmodelMNLTrunc,apollo_probabilities,apollo_inputs)
+round(median((CEmodelMNLTrunc$estimate["b_Performance"]+CEmodelMNLTruncLunconditionals$LV/CEmodelMNLTrunc$estimate["b_Price"])),3)
+round(median((CEmodelMNLTrunc$estimate["b_Emission"]+CEmodelMNLTruncLunconditionals$LV/CEmodelMNLTrunc$estimate["b_Price"])),3)
+
 
 
 #### CE ICLV 2 MXL WTP space: CHOSEN ICLVFULL ####
@@ -467,8 +622,8 @@ apollo_initialise()
 
 
 apollo_control = list(
-  modelName  = "ICLV model: CE2",
-  modelDescr = "ICLV model: CE2",
+  modelName  = "ICLVTrunc",
+  modelDescr = "ICLVTrunc",
   indivID    = "ID", mixing     = TRUE, nCores     = 4)
 
 apollo_beta = c(asc_A      = 0,
@@ -483,7 +638,6 @@ apollo_beta = c(asc_A      = 0,
                 gamma_Gender    = 0,
                 gamma_Distance  = 0, 
                 gamma_Income =0,
-                gamma_Employment =0,
                 gamma_Experts =0,
                 gamma_Cons =0,
                 gamma_BP =0,
@@ -515,7 +669,7 @@ apollo_draws = list(
 
 apollo_randCoeff=function(apollo_beta, apollo_inputs){
   randcoeff = list()
-  randcoeff[["LV"]] = gamma_Age*Age +gamma_Gender*Q1Gender + gamma_Distance*Distance + gamma_Income*Income + gamma_Employment*Employment + gamma_Experts*Experts + gamma_Cons*Consequentiality + gamma_BP*BP + gamma_Charity*Charity + gamma_Certainty*Q12CECertainty + eta
+  randcoeff[["LV"]] = gamma_Age*Age +gamma_Gender*Q1Gender + gamma_Distance*Distance + gamma_Income*Income+ gamma_Experts*Experts + gamma_Cons*Consequentiality + gamma_BP*BP + gamma_Charity*Charity + gamma_Certainty*Q12CECertainty + eta
   randcoeff[["b_Price"]] =  -exp(mu_Price + sig_Price * draws_Price )
   randcoeff[["b_Performance"]] =  -exp(mu_Performance + sig_Performance * draws_Performance )
   randcoeff[["b_Emission"]] =  -exp(mu_Emission + sig_Emission * draws_Emission )
@@ -595,6 +749,7 @@ median((unconditionals2$b_Emission+unconditionals2$LV/unconditionals2$b_Price))
 ## Here I copy and paste the working parts of the apollo_unconditionals code
 ## This is because it would not work normally for the new truncated model; it did not like adding in the ASC
 CEmodel4 <- readRDS("CEmodel4.rds")
+CEmodel4 <- ICLVTrunc
 apollo_beta = CEmodel4 $estimate
 apollo_fixed = CEmodel4 $apollo_fixed
 apollo_compareInputs(apollo_inputs)

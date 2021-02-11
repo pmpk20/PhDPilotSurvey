@@ -8,6 +8,7 @@
 options(scipen=50) # Makes presentation of tables nicer; changes from scientific notation
 setwd("H:/PhDPilotSurvey") ## Sets working directory. This is where my Github repo is cloned to.
 Full_Final <- data.frame(read.csv("FinalData.csv")) # Import the final data for ease
+Full_Full <- data.frame(read.csv("Full_Full.csv")) # Import the final data for ease
 
 
 #### Section 1: Importing ####
@@ -541,9 +542,22 @@ Predictions <- function(Model,data){
 }
 
 
+## Make a function to estimate model prediction accuracy from DCchoice objects
+PredictionsCV <- function(Model,data){
+  Pred <- data.frame(predict(Model,type = "probability")) ## Getting probabilities of choosing each option from the model
+  Pred[Pred$predict.Model..type....probability.. < 0.5,] <- 0
+  Pred[Pred$predict.Model..type....probability.. >= 0.5,] <- 1
+  Pred <- cbind("Actual"=data$Q6ResearchResponse,"Predicted"=(data.frame(Pred$predict.Model..type....probability..)))
+  Pred$Match <- ifelse(Pred$Actual==Pred$Pred.predict.Model..type....probability..,1,0)
+  print(paste0("Correct: ",(round(100/length(Pred$Match)*length(Pred$Match[Pred$Match==1]),2)),"%"))
+}
+
+
+
 ###### The rest of this is commented out code that may be useful for specific outputs:
 
 ## If you need all models prediction accuracy:
+## Full=Fulls, Truncated=Fulls2
 # Predictions(CLModel,Fulls)
 # Predictions(MNLFull,Fulls)
 # Predictions(MNLTrunc,Fulls2)

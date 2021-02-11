@@ -1140,7 +1140,7 @@ MXLmodel18 = apollo_estimate(apollo_beta, apollo_fixed,
 apollo_modelOutput(MXLmodel18,modelOutput_settings = list(printPVal=TRUE))
 
 
-#### MXL19: WTP all lognormals #### 
+#### MXL19: WTP all lognormals MXLAttributes#### 
 
 
 apollo_control = list(
@@ -1212,6 +1212,68 @@ apollo_modelOutput(MXLmodel19,modelOutput_settings = list(printPVal=TRUE))
 -exp(MXLmodel19$estimate["mu_Performance"]+MXLmodel19$estimate["sig_Performance"]^2/2)
 -exp(MXLmodel19$estimate["mu_Emission"]+MXLmodel19$estimate["sig_Emission"]^2/2)
 -exp(MXLmodel19$estimate["mu_Price"]+MXLmodel19$estimate["sig_Price"]^2/2)
+
+
+#### MXL19B: WTP all lognormals MXLAttributesTruncated #### 
+
+
+apollo_control = list(
+  modelName ="MXL19B",  indivID   ="ID",  
+  mixing    = TRUE, nCores    = 4)
+
+database <- Test_Truncated
+apollo_beta = c(asc_A      = 0,      asc_B      = 0,
+                mu_Price    =-3,     sig_Price=0,
+                mu_Performance = -3, sig_Performance = 0,
+                mu_Emission = -3,    sig_Emission = 0)
+apollo_fixed = c("asc_A")
+
+
+apollo_draws = list(
+  interDrawsType = "halton",
+  interNDraws    = 1000,
+  interUnifDraws = c(),
+  interNormDraws = c("draws_Price","draws_Performance","draws_Emission"),
+  intraDrawsType = "halton",
+  intraNDraws    = 0,
+  intraUnifDraws = c(),
+  intraNormDraws = c())
+
+
+apollo_randCoeff = function(apollo_beta, apollo_inputs){
+  randcoeff = list()
+  randcoeff[["b_Price"]] =  -exp(mu_Price + sig_Price * draws_Price )
+  randcoeff[["b_Performance"]] =  -exp(mu_Performance + sig_Performance * draws_Performance )
+  randcoeff[["b_Emission"]] =  -exp(mu_Emission + sig_Emission * draws_Emission )
+  return(randcoeff)}
+apollo_inputs = apollo_validateInputs()
+
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  P = list()
+  V = list()
+  V[['A']] = asc_A + b_Price*(Price_A + b_Performance*Performance_A + b_Emission*Emission_A)
+  V[['B']] = asc_B + b_Price*(Price_B + b_Performance*Performance_B + b_Emission*Emission_B)
+  mnl_settings = list(
+    alternatives  = c(A=1, B=2),
+    avail         = list(A=1, B=1),
+    choiceVar     = Choice,
+    V             = V)
+  P[['model']] = apollo_mnl(mnl_settings, functionality)
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+MXLAttributesT = apollo_estimate(apollo_beta, apollo_fixed,
+                             apollo_probabilities, apollo_inputs)
+
+apollo_modelOutput(MXLAttributesT,modelOutput_settings = list(printPVal=TRUE))
+saveRDS(MXLAttributesT, file="MXLAttributesT.rds")
+
 
 
 #### MXL20: WTP all lognormals plus covariates #### 
@@ -1412,12 +1474,12 @@ xtable::xtable(round(data.frame(apollo_modelOutput(MXLmodel20,modelOutput_settin
 xtable::xtable(round(data.frame(apollo_modelOutput(MXLmodel21,modelOutput_settings = list(printPVal=TRUE))),3),digits=3)
 
 
-#### MXL22: Correlated MXL19 #### 
+#### MXL22: Correlated MXL19 FULL #### 
 apollo_control = list(
-  modelName ="MXL19",  indivID   ="ID",  
+  modelName ="MXL22",  indivID   ="ID",  
   mixing    = TRUE, nCores    = 4)
 
-
+database <- Test_Apollo
 apollo_beta = c(asc_A      = 0, asc_B      = 0,
                 mu_Price    =-3, sig_Price=0,
                 b_perf_price_sig=0,
@@ -1467,10 +1529,71 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
 }
 
 
-MXLmodel22 = apollo_estimate(apollo_beta, apollo_fixed,
+MXLcorrF = apollo_estimate(apollo_beta, apollo_fixed,
+                           apollo_probabilities, apollo_inputs)
+
+apollo_modelOutput(MXLcorrF,modelOutput_settings = list(printPVal=TRUE))
+
+
+#### MXL23: Correlated MXL19 TRUNCATED #### 
+apollo_control = list(
+  modelName ="MXL23",  indivID   ="ID",  
+  mixing    = TRUE, nCores    = 4)
+
+database <- Test_Truncated
+apollo_beta = c(asc_A      = 0, asc_B      = 0,
+                mu_Price    =-3, sig_Price=0,
+                b_perf_price_sig=0,
+                emission_perf_sig=0, emission_price_sig=0,
+                mu_Performance = -3, sig_Performance = 0,
+                mu_Emission = -3, sig_Emission = 0)
+apollo_fixed = c("asc_A")
+
+
+apollo_draws = list(
+  interDrawsType = "halton",
+  interNDraws    = 1000,
+  interUnifDraws = c(),
+  interNormDraws = c("draws_Price","draws_Performance","draws_Emission"),
+  intraDrawsType = "halton",
+  intraNDraws    = 0,
+  intraUnifDraws = c(),
+  intraNormDraws = c())
+
+
+apollo_randCoeff = function(apollo_beta, apollo_inputs){
+  randcoeff = list()
+  randcoeff[["b_Price"]] =  -exp(mu_Price + sig_Price * draws_Price )
+  randcoeff[["b_Performance"]] =  -exp(mu_Performance +b_perf_price_sig *draws_Price + sig_Performance * draws_Performance )
+  randcoeff[["b_Emission"]] =  -exp(mu_Emission + emission_perf_sig*draws_Performance + emission_price_sig*draws_Price + sig_Emission * draws_Emission )
+  return(randcoeff)}
+apollo_inputs = apollo_validateInputs()
+
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  P = list()
+  V = list()
+  V[['A']] = asc_A + b_Price*(Price_A + b_Performance*Performance_A + b_Emission*Emission_A)
+  V[['B']] = asc_B + b_Price*(Price_B + b_Performance*Performance_B + b_Emission*Emission_B)
+  mnl_settings = list(
+    alternatives  = c(A=1, B=2),
+    avail         = list(A=1, B=1),
+    choiceVar     = Choice,
+    V             = V)
+  P[['model']] = apollo_mnl(mnl_settings, functionality)
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+
+MXLcorrT = apollo_estimate(apollo_beta, apollo_fixed,
                              apollo_probabilities, apollo_inputs)
 
-apollo_modelOutput(MXLmodel22,modelOutput_settings = list(printPVal=TRUE))
+apollo_modelOutput(MXLcorrT,modelOutput_settings = list(printPVal=TRUE))
 
 
 ## Here presenting WTP from all models in one go, probably not a good idea
@@ -1501,3 +1624,246 @@ View(cbind(t(round(cbind("1"=data.frame(MXLmodel$estimate["b_Emission"]/MXLmodel
               "12"=data.frame(MXLmodel12$estimate["mu_b_Performance"]),
               "13"=data.frame(MXLmodel13$estimate["mu_b_Performance"]/MXLmodel13$estimate["mu_Price"]),
               "14"=data.frame(MXLmodel14$estimate["mu_b_Performance"])),3))))
+
+
+#### Relaxing constant marginal utility of income ####
+
+## Conditional logit
+library(apollo)
+
+apollo_initialise()
+
+database$mean_income = mean(database$Income)
+
+apollo_control = list(
+  modelName  ="Replicating Full_MNL", indivID    ="ID")
+
+apollo_beta=c(asc_A      = 0,
+              asc_B      = 0,
+              b_Performance   = 0,
+              b_Emission      = 0,
+              b_Price                  = 0,
+              Price_income_elast       = 0)
+
+apollo_fixed = c("asc_A")
+
+apollo_inputs = apollo_validateInputs()
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  
+  P = list()
+  
+  b_Price_v    = ( b_Price ) * ( Income / mean_income ) ^ Price_income_elast
+  
+  V = list()
+  V[['A']]  = asc_A  + b_Price_v * (Price_A +  b_Performance  * Performance_A + b_Emission * Emission_A)
+  V[['B']]  = asc_B  + b_Price_v * (Price_B +  b_Performance  * Performance_B  + b_Emission * Emission_B)
+  
+  mnl_settings = list(
+    alternatives = c(A=1, B=2),
+    avail        = list(A=1, B=1),
+    choiceVar    = Choice,
+    V            = V)
+  
+  P[["model"]] = apollo_mnl(mnl_settings, functionality)
+  
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+CLModelincome = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+
+apollo_modelOutput(CLModelincome,modelOutput_settings = list(printPVal=TRUE))
+
+
+
+## MXL attempt:
+
+apollo_control = list(
+  modelName ="MXL19",  indivID   ="ID",  
+  mixing    = TRUE, nCores    = 4)
+
+
+apollo_beta = c(asc_A      = 0,      asc_B      = 0,
+                mu_Price    =-3,     sig_Price=0,Price_income_elast       = 0,
+                mu_Performance = -3, sig_Performance = 0,
+                mu_Emission = -3,    sig_Emission = 0)
+apollo_fixed = c("asc_A")
+
+
+apollo_draws = list(
+  interDrawsType = "halton",
+  interNDraws    = 1000,
+  interUnifDraws = c(),
+  interNormDraws = c("draws_Price","draws_Performance","draws_Emission"),
+  intraDrawsType = "halton",
+  intraNDraws    = 0,
+  intraUnifDraws = c(),
+  intraNormDraws = c())
+
+
+apollo_randCoeff = function(apollo_beta, apollo_inputs){
+  randcoeff = list()
+  randcoeff[["b_Price"]] =  -exp(mu_Price + sig_Price * draws_Price ) * ( Income / mean_income ) ^ Price_income_elast
+  randcoeff[["b_Performance"]] =  -exp(mu_Performance + sig_Performance * draws_Performance )
+  randcoeff[["b_Emission"]] =  -exp(mu_Emission + sig_Emission * draws_Emission )
+  return(randcoeff)}
+apollo_inputs = apollo_validateInputs()
+
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  P = list()
+  V = list()
+  V[['A']] = asc_A + b_Price*(Price_A + b_Performance*Performance_A + b_Emission*Emission_A)
+  V[['B']] = asc_B + b_Price*(Price_B + b_Performance*Performance_B + b_Emission*Emission_B)
+  mnl_settings = list(
+    alternatives  = c(A=1, B=2),
+    avail         = list(A=1, B=1),
+    choiceVar     = Choice,
+    V             = V)
+  P[['model']] = apollo_mnl(mnl_settings, functionality)
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+# Starting value search (very long!):
+# apollo_beta = apollo_searchStart(apollo_beta,
+#                                  apollo_fixed,
+#                                  apollo_probabilities,
+#                                  apollo_inputs,
+#                                  searchStart_settings=list(nCandidates=20))
+# 
+MXLmodelIncome1 = apollo_estimate(apollo_beta, apollo_fixed,
+                             apollo_probabilities, apollo_inputs)
+
+apollo_modelOutput(MXLmodelIncome1,modelOutput_settings = list(printPVal=TRUE))
+
+
+## Conditional logit truncated
+library(apollo) 
+
+apollo_initialise()
+
+database <- Test_Truncated
+database$mean_income = mean(database$Income)
+
+apollo_control = list(
+  modelName  ="Replicating Full_MNL", indivID    ="ID")
+
+apollo_beta=c(asc_A      = 0,
+              asc_B      = 0,
+              b_Performance   = 0,
+              b_Emission      = 0,
+              b_Price                  = 0,
+              Price_income_elast       = 0)
+
+apollo_fixed = c("asc_A")
+
+apollo_inputs = apollo_validateInputs()
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  
+  P = list()
+  
+  b_Price_v    = ( b_Price ) * ( Income / mean_income ) ^ Price_income_elast
+  
+  V = list()
+  V[['A']]  = asc_A  + b_Price_v * (Price_A +  b_Performance  * Performance_A + b_Emission * Emission_A)
+  V[['B']]  = asc_B  + b_Price_v * (Price_B +  b_Performance  * Performance_B  + b_Emission * Emission_B)
+  
+  mnl_settings = list(
+    alternatives = c(A=1, B=2),
+    avail        = list(A=1, B=1),
+    choiceVar    = Choice,
+    V            = V)
+  
+  P[["model"]] = apollo_mnl(mnl_settings, functionality)
+  
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+CLModelincomeT = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+
+apollo_modelOutput(CLModelincomeT,modelOutput_settings = list(printPVal=TRUE))
+
+
+## MXL income truncated:
+
+apollo_control = list(
+  modelName ="MXL19",  indivID   ="ID",  
+  mixing    = TRUE, nCores    = 4)
+
+
+apollo_beta = c(asc_A      = 0,      asc_B      = 0,
+                mu_Price    =-3,     sig_Price=0,Price_income_elast       = 0,
+                mu_Performance = -3, sig_Performance = 0,
+                mu_Emission = -3,    sig_Emission = 0)
+apollo_fixed = c("asc_A")
+
+
+apollo_draws = list(
+  interDrawsType = "halton",
+  interNDraws    = 1000,
+  interUnifDraws = c(),
+  interNormDraws = c("draws_Price","draws_Performance","draws_Emission"),
+  intraDrawsType = "halton",
+  intraNDraws    = 0,
+  intraUnifDraws = c(),
+  intraNormDraws = c())
+
+
+apollo_randCoeff = function(apollo_beta, apollo_inputs){
+  randcoeff = list()
+  randcoeff[["b_Price"]] =  -exp(mu_Price + sig_Price * draws_Price ) * ( Income / mean_income ) ^ Price_income_elast
+  randcoeff[["b_Performance"]] =  -exp(mu_Performance + sig_Performance * draws_Performance )
+  randcoeff[["b_Emission"]] =  -exp(mu_Emission + sig_Emission * draws_Emission )
+  return(randcoeff)}
+apollo_inputs = apollo_validateInputs()
+
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  P = list()
+  V = list()
+  V[['A']] = asc_A + b_Price*(Price_A + b_Performance*Performance_A + b_Emission*Emission_A)
+  V[['B']] = asc_B + b_Price*(Price_B + b_Performance*Performance_B + b_Emission*Emission_B)
+  mnl_settings = list(
+    alternatives  = c(A=1, B=2),
+    avail         = list(A=1, B=1),
+    choiceVar     = Choice,
+    V             = V)
+  P[['model']] = apollo_mnl(mnl_settings, functionality)
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+# Starting value search (very long!):
+# apollo_beta = apollo_searchStart(apollo_beta,
+#                                  apollo_fixed,
+#                                  apollo_probabilities,
+#                                  apollo_inputs,
+#                                  searchStart_settings=list(nCandidates=20))
+# 
+MXLmodelIncomeT = apollo_estimate(apollo_beta, apollo_fixed,
+                                  apollo_probabilities, apollo_inputs)
+
+apollo_modelOutput(MXLmodelIncomeT,modelOutput_settings = list(printPVal=TRUE))
+

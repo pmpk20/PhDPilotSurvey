@@ -10,8 +10,10 @@ library(reshape2)
 library(ggplot2)
 library(gridExtra)
 library(scales)
+library(heatmaply)
 
 ## Specifically for the spatial plotting: 
+install.packages("heatmaply")
 install.packages("rnaturalearth")
 install.packages("rnaturalearthdata")
 install.packages("rgeos")
@@ -259,6 +261,28 @@ ggheatmap <- ggplot(melted_cormat, aes(Variable2, Variable1, fill = Correlation)
 
 #### Section 4A: Certainty ####
 
+
+## CE Certainty: Do uncertain respondents choose the status quo more? Yes
+round(100/sum(table(Full_Final$cs[Full_Final$Q12CECertainty==0]))*(table(Full_Final$cs[Full_Final$Q12CECertainty==0])),2)
+round(100/sum(table(Full_Final$cs[Full_Final$Q12CECertainty==1]))*(table(Full_Final$cs[Full_Final$Q12CECertainty==1])),2)
+round(100/sum(table(Full_Final$cs[Full_Final$Q12CECertainty==2]))*(table(Full_Final$cs[Full_Final$Q12CECertainty==2])),2)
+
+## CE Certainty: Are uncertain respondents statistically more status quo biased?
+wilcox.test(x = (Full_Final$cs[Full_Final$Q12CECertainty==0]),y = (Full_Final$cs[Full_Final$Q12CECertainty==1]))
+wilcox.test(x = (Full_Final$cs[Full_Final$Q12CECertainty==0]),y = (Full_Final$cs[Full_Final$Q12CECertainty==2]))
+wilcox.test(x = (Full_Final$cs[Full_Final$Q12CECertainty==1]),y = (Full_Final$cs[Full_Final$Q12CECertainty==2]))
+
+## Are uncertain Q6 respondents more status quo biased? No - the opposite
+round(100/sum(table(Full_Final$Q6ResearchResponse[Full_Final$Q6ResearchCertainty==0]))*(table(Full_Final$Q6ResearchResponse[Full_Final$Q6ResearchCertainty==0])),2)
+round(100/sum(table(Full_Final$Q6ResearchResponse[Full_Final$Q6ResearchCertainty==1]))*(table(Full_Final$Q6ResearchResponse[Full_Final$Q6ResearchCertainty==1])),2)
+round(100/sum(table(Full_Final$Q6ResearchResponse[Full_Final$Q6ResearchCertainty==2]))*(table(Full_Final$Q6ResearchResponse[Full_Final$Q6ResearchCertainty==2])),2)
+
+## Are uncertain Q7 respondents more status quo biased? No effect
+round(100/sum(table(Full_Final$Q7TreatmentResponse[Full_Final$Q7TreatmentCertainty==0]))*(table(Full_Final$Q7TreatmentResponse[Full_Final$Q7TreatmentCertainty==0])),2)
+round(100/sum(table(Full_Final$Q7TreatmentResponse[Full_Final$Q7TreatmentCertainty==1]))*(table(Full_Final$Q7TreatmentResponse[Full_Final$Q7TreatmentCertainty==1])),2)
+round(100/sum(table(Full_Final$Q7TreatmentResponse[Full_Final$Q7TreatmentCertainty==2]))*(table(Full_Final$Q7TreatmentResponse[Full_Final$Q7TreatmentCertainty==2])),2)
+
+
 rbind(cbind("Q6o0C0"=length(Full_Final$Q6ResearchCertainty[(Full_Final$Order==0) & (Full_Final$Q6ResearchCertainty ==0)])/8,"Q6o1C0"=length(Full_Final$Q6ResearchCertainty[(Full_Final$Order==1) & (Full_Final$Q6ResearchCertainty ==0)])/8),
       cbind("Q6o0C1"=length(Full_Final$Q6ResearchCertainty[(Full_Final$Order==0) & (Full_Final$Q6ResearchCertainty ==1)])/8,"Q6o1C1"=length(Full_Final$Q6ResearchCertainty[(Full_Final$Order==1) & (Full_Final$Q6ResearchCertainty ==1)])/8),
       cbind("Q6o0C1"=length(Full_Final$Q6ResearchCertainty[(Full_Final$Order==0) & (Full_Final$Q6ResearchCertainty ==2)])/8,"Q6o1C1"=length(Full_Final$Q6ResearchCertainty[(Full_Final$Order==1) & (Full_Final$Q6ResearchCertainty ==2)])/8))
@@ -368,6 +392,8 @@ grid.arrange(Q20Q6,Q20Q7)
 
 
 #### Section 4C: Consequentiality ####
+Full_Final <- cbind(Full_Final,slice(.data = data.frame(FullSurvey2$Q7WTPSB),rep(1:n(), each = 8)))
+FF <- subset(Full_Final,subset = Full_Final$Q20Consequentiality != 2)
 
 
 ### Plotting Consequentiality effects on CV fitted WTP
@@ -549,9 +575,6 @@ Q20Graph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) +
                      limits=c(20,50),labels = function(x) paste0("£",x))+
   labs(x = "Income",y="Precaution")
 
-
-Full_Final <- cbind(Full_Final,slice(.data = data.frame(FullSurvey2$Q7WTPSB),rep(1:n(), each = 8)))
-FF <- subset(Full_Final,subset = Full_Final$Q20Consequentiality != 2)
 
 ### Plotting Consequentiality effects on CV fitted WTP
 Q20GraphB <- ggplot(FF, aes(x=as.numeric(Q20Consequentiality))) + 
@@ -1206,7 +1229,74 @@ Q22GraphC <- ggplot(Full_Final, aes(x=Q22Education)) +
   labs(x = "Education",y="Income")
 
 
-## Plotting CV WTP by employment type:
+## EducationBarQ6
+EducationBarQ6 <- ggplot(Full_Final, aes(x=as.numeric(Q22Education), y=as.numeric(Q6WTP))) + 
+  stat_summary(fun=mean, geom="col")+
+  scale_x_discrete(name="Education",limits = c(0,1,2,3,4),
+                   labels=c("Prefer not to say\n(N = 15)","GCSE\n(N = 147)","A level\n(N = 178)","Bachelor\n(N = 212)","Postgraduate\n(N = 118)"))+
+  scale_y_continuous(name="WTP",breaks = waiver(), n.breaks=10,
+                     limits=c(0,75),labels = function(x) paste0("£",x))+
+  geom_text(x = 0, y = 10, label = paste0("£",round(mean(Full_Final$Q6WTP[Full_Final$Q22Education==0]),2)), color="white")+
+  geom_text(x = 1, y = 10, label = paste0("£",round(mean(Full_Final$Q6WTP[Full_Final$Q22Education==1]),2)), color="white")+
+  geom_text(x = 2, y = 10, label = paste0("£",round(mean(Full_Final$Q6WTP[Full_Final$Q22Education==2]),2)), color="white")+
+  geom_text(x = 3, y = 10, label = paste0("£",round(mean(Full_Final$Q6WTP[Full_Final$Q22Education==3]),2)), color="white")+
+  geom_text(x = 4, y = 10, label = paste0("£",round(mean(Full_Final$Q6WTP[Full_Final$Q22Education==4]),2)), color="white")+
+  ggtitle("Mean Q6 WTP by Q22Education")
+
+## EducationBarQ6
+EducationBarQ7 <- ggplot(Full_Final, aes(x=as.numeric(Q22Education), y=as.numeric(Q7WTP))) + 
+  stat_summary(fun=mean, geom="col")+
+  scale_x_discrete(name="Education",limits = c(0,1,2,3,4),
+                   labels=c("Prefer not to say\n(N = 15)","GCSE\n(N = 147)","A level\n(N = 178)","Bachelor\n(N = 212)","Postgraduate\n(N = 118)"))+
+  scale_y_continuous(name="WTP",breaks = waiver(), n.breaks=10,
+                     limits=c(0,75),labels = function(x) paste0("£",x))+
+  geom_text(x = 0, y = 10, label = paste0("£",round(mean(Full_Final$Q7WTP[Full_Final$Q22Education==0]),2)), color="white")+
+  geom_text(x = 1, y = 10, label = paste0("£",round(mean(Full_Final$Q7WTP[Full_Final$Q22Education==1]),2)), color="white")+
+  geom_text(x = 2, y = 10, label = paste0("£",round(mean(Full_Final$Q7WTP[Full_Final$Q22Education==2]),2)), color="white")+
+  geom_text(x = 3, y = 10, label = paste0("£",round(mean(Full_Final$Q7WTP[Full_Final$Q22Education==3]),2)), color="white")+
+  geom_text(x = 4, y = 10, label = paste0("£",round(mean(Full_Final$Q7WTP[Full_Final$Q22Education==4]),2)), color="white")+
+  ggtitle("Mean Q7 WTP by Q22Education")
+
+## EducationBarQ6
+EducationBarPerf <- ggplot(Full_Final, aes(x=as.numeric(Q22Education), y=as.numeric(abs(PerformanceCoef)))) + 
+  stat_summary(fun=mean, geom="col")+
+  scale_x_discrete(name="Education",limits = c(0,1,2,3,4),
+                   labels=c("Prefer not to say\n(N = 15)","GCSE\n(N = 147)","A level\n(N = 178)","Bachelor\n(N = 212)","Postgraduate\n(N = 118)"))+
+  scale_y_continuous(name="MWTP",breaks = waiver(), n.breaks=10,
+                     limits=c(0,1),labels = function(x) paste0("£",x))+
+  geom_text(x = 0, y = 0.1, label = paste0("£",-1*round(mean(Full_Final$PerformanceCoef[Full_Final$Q22Education==0]),3)), color="black")+
+  geom_text(x = 1, y = 0.1, label = paste0("£",-1*round(mean(Full_Final$PerformanceCoef[Full_Final$Q22Education==1]),3)), color="black")+
+  geom_text(x = 2, y = 0.1, label = paste0("£",-1*round(mean(Full_Final$PerformanceCoef[Full_Final$Q22Education==2]),3)), color="black")+
+  geom_text(x = 3, y = 0.1, label = paste0("£",-1*round(mean(Full_Final$PerformanceCoef[Full_Final$Q22Education==3]),3)), color="black")+
+  geom_text(x = 4, y = 0.1, label = paste0("£",-1*round(mean(Full_Final$PerformanceCoef[Full_Final$Q22Education==4]),3)), color="black")+
+  ggtitle("Mean Performance | MWTP | by Q22Education")
+
+## EducationBarQ6
+EducationBarEmissions <- ggplot(Full_Final, aes(x=as.numeric(Q22Education), y=as.numeric(EmissionCoef))) + 
+  stat_summary(fun=mean, geom="col")+
+  scale_x_discrete(name="Education",limits = c(0,1,2,3,4),
+                   labels=c("Prefer not to say\n(N = 15)","GCSE\n(N = 147)","A level\n(N = 178)","Bachelor\n(N = 212)","Postgraduate\n(N = 118)"))+
+  scale_y_continuous(name="MWTP",breaks = waiver(), n.breaks=10,
+                     limits=c(0,1),labels = function(x) paste0("£",x))+
+  geom_text(x = 0, y = 0.1, label = paste0("£",round(mean(abs(Full_Final$EmissionCoef[Full_Final$Q22Education==0])),3)), color="black")+
+  geom_text(x = 1, y = 0.1, label = paste0("£",round(mean(abs(Full_Final$EmissionCoef[Full_Final$Q22Education==1])),3)), color="black")+
+  geom_text(x = 2, y = 0.1, label = paste0("£",round(mean(abs(Full_Final$EmissionCoef[Full_Final$Q22Education==2])),3)), color="black")+
+  geom_text(x = 3, y = 0.1, label = paste0("£",round(mean(abs(Full_Final$EmissionCoef[Full_Final$Q22Education==3])),3)), color="black")+
+  geom_text(x = 4, y = 0.1, label = paste0("£",round(mean(abs(Full_Final$EmissionCoef[Full_Final$Q22Education==4])),3)), color="black")+
+  ggtitle("Mean Emissions MWTP by Education Q22Education")
+
+grid.arrange(EducationBarQ6,EducationBarQ7,nrow=1)
+grid.arrange(EducationBarPerf,EducationBarEmissions,nrow=1)
+
+
+
+
+
+
+
+
+
+#### Plotting CV WTP by employment type: ####
 Q23Graph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) + 
   facet_grid( ~ Q23Employment, labeller = as_labeller(c(
     `0` = "Prefer not to say\n (N = 18)",
@@ -1288,7 +1378,120 @@ Q23GraphC <- ggplot(Full_Final, aes(x=Q23Employment)) +
   labs(x = "Employment",y="Income")
 
 
+## EmploymentBarQ6
+EmploymentBarQ6 <- ggplot(Full_Final, aes(x=as.numeric(Q23Employment), y=as.numeric(Q6WTP))) + 
+  stat_summary(fun=mean, geom="col")+
+  scale_x_discrete(name="Q23Employment",limits = c(0,1,2,3,4,5,6),
+                   labels=c("Prefer not to say\n (N = 18)","NEET\n (N = 76)",           "Retired\n (N = 52)",           "Student\n (N = 30)",           "Part-time\n (N = 100)",           "Self-employed\n (N = 46)",           "Full-time\n (N = 348)"))+
+  scale_y_continuous(name="WTP",breaks = waiver(), n.breaks=10,
+                     limits=c(0,75),labels = function(x) paste0("£",x))+
+  geom_text(x = 0, y = 10, label = paste0("£",round(mean(Full_Final$Q6WTP[Full_Final$Q23Employment==0]),2)), color="white")+
+  geom_text(x = 1, y = 10, label = paste0("£",round(mean(Full_Final$Q6WTP[Full_Final$Q23Employment==1]),2)), color="white")+
+  geom_text(x = 2, y = 10, label = paste0("£",round(mean(Full_Final$Q6WTP[Full_Final$Q23Employment==2]),2)), color="white")+
+  geom_text(x = 3, y = 10, label = paste0("£",round(mean(Full_Final$Q6WTP[Full_Final$Q23Employment==3]),2)), color="white")+
+  geom_text(x = 4, y = 10, label = paste0("£",round(mean(Full_Final$Q6WTP[Full_Final$Q23Employment==4]),2)), color="white")+
+  geom_text(x = 5, y = 10, label = paste0("£",round(mean(Full_Final$Q6WTP[Full_Final$Q23Employment==5]),2)), color="white")+
+  geom_text(x = 6, y = 10, label = paste0("£",round(mean(Full_Final$Q6WTP[Full_Final$Q23Employment==6]),2)), color="white")+
+  ggtitle("Mean Q6 WTP by Q23Employment")
+
+## EmploymentBarQ6
+EmploymentBarQ7 <- ggplot(Full_Final, aes(x=as.numeric(Q23Employment), y=as.numeric(Q7WTP))) + 
+  stat_summary(fun=mean, geom="col")+
+  scale_x_discrete(name="Education",limits = c(0,1,2,3,4,5,6),
+                   labels=c("Prefer not to say\n (N = 18)","NEET\n (N = 76)",           "Retired\n (N = 52)",           "Student\n (N = 30)",           "Part-time\n (N = 100)",           "Self-employed\n (N = 46)",           "Full-time\n (N = 348)"))+
+  scale_y_continuous(name="WTP",breaks = waiver(), n.breaks=10,
+                     limits=c(0,75),labels = function(x) paste0("£",x))+
+  geom_text(x = 0, y = 10, label = paste0("£",round(mean(Full_Final$Q7WTP[Full_Final$Q23Employment==0]),2)), color="white")+
+  geom_text(x = 1, y = 10, label = paste0("£",round(mean(Full_Final$Q7WTP[Full_Final$Q23Employment==1]),2)), color="white")+
+  geom_text(x = 2, y = 10, label = paste0("£",round(mean(Full_Final$Q7WTP[Full_Final$Q23Employment==2]),2)), color="white")+
+  geom_text(x = 3, y = 10, label = paste0("£",round(mean(Full_Final$Q7WTP[Full_Final$Q23Employment==3]),2)), color="white")+
+  geom_text(x = 4, y = 10, label = paste0("£",round(mean(Full_Final$Q7WTP[Full_Final$Q23Employment==4]),2)), color="white")+
+  geom_text(x = 5, y = 10, label = paste0("£",round(mean(Full_Final$Q7WTP[Full_Final$Q23Employment==5]),2)), color="white")+
+  geom_text(x = 6, y = 10, label = paste0("£",round(mean(Full_Final$Q7WTP[Full_Final$Q23Employment==6]),2)), color="white")+
+  ggtitle("Mean Q7 WTP by Q23Employment")
+
+## EmploymentBarQ6
+EmploymentBarPerf <- ggplot(Full_Final, aes(x=as.numeric(Q23Employment), y=as.numeric(abs(PerformanceCoef)))) + 
+  stat_summary(fun=mean, geom="col")+
+  scale_x_discrete(name="Education",limits = c(0,1,2,3,4,5,6),
+                   labels=c("Prefer not to say\n (N = 18)","NEET\n (N = 76)",           "Retired\n (N = 52)",           "Student\n (N = 30)",           "Part-time\n (N = 100)",           "Self-employed\n (N = 46)",           "Full-time\n (N = 348)"))+
+  scale_y_continuous(name="MWTP",breaks = waiver(), n.breaks=10,
+                     limits=c(0,1),labels = function(x) paste0("£",x))+
+  geom_text(x = 0, y = 0.1, label = paste0("£",-1*round(mean(Full_Final$PerformanceCoef[Full_Final$Q23Employment==0]),3)), color="black")+
+  geom_text(x = 1, y = 0.1, label = paste0("£",-1*round(mean(Full_Final$PerformanceCoef[Full_Final$Q23Employment==1]),3)), color="black")+
+  geom_text(x = 2, y = 0.1, label = paste0("£",-1*round(mean(Full_Final$PerformanceCoef[Full_Final$Q23Employment==2]),3)), color="black")+
+  geom_text(x = 3, y = 0.1, label = paste0("£",-1*round(mean(Full_Final$PerformanceCoef[Full_Final$Q23Employment==3]),3)), color="black")+
+  geom_text(x = 4, y = 0.1, label = paste0("£",-1*round(mean(Full_Final$PerformanceCoef[Full_Final$Q23Employment==4]),3)), color="black")+
+  geom_text(x = 5, y = 0.1, label = paste0("£",-1*round(mean(Full_Final$PerformanceCoef[Full_Final$Q23Employment==5]),3)), color="black")+
+  geom_text(x = 6, y = 0.1, label = paste0("£",-1*round(mean(Full_Final$PerformanceCoef[Full_Final$Q23Employment==6]),3)), color="black")+
+  ggtitle("Mean Performance | MWTP | by Q23Employment")
+
+## EmploymentBarQ6
+EmploymentBarEmissions <- ggplot(Full_Final, aes(x=as.numeric(Q23Employment), y=as.numeric(EmissionCoef))) + 
+  stat_summary(fun=mean, geom="col")+
+  scale_x_discrete(name="Education",limits = c(0,1,2,3,4,5,6),
+                   labels=c("Prefer not to say\n (N = 18)","NEET\n (N = 76)",           "Retired\n (N = 52)",           "Student\n (N = 30)",           "Part-time\n (N = 100)",           "Self-employed\n (N = 46)",           "Full-time\n (N = 348)"))+
+  scale_y_continuous(name="MWTP",breaks = waiver(), n.breaks=10,
+                     limits=c(0,1),labels = function(x) paste0("£",x))+
+  geom_text(x = 0, y = 0.1, label = paste0("£",round(mean(abs(Full_Final$EmissionCoef[Full_Final$Q23Employment==0])),3)), color="black")+
+  geom_text(x = 1, y = 0.1, label = paste0("£",round(mean(abs(Full_Final$EmissionCoef[Full_Final$Q23Employment==1])),3)), color="black")+
+  geom_text(x = 2, y = 0.1, label = paste0("£",round(mean(abs(Full_Final$EmissionCoef[Full_Final$Q23Employment==2])),3)), color="black")+
+  geom_text(x = 3, y = 0.1, label = paste0("£",round(mean(abs(Full_Final$EmissionCoef[Full_Final$Q23Employment==3])),3)), color="black")+
+  geom_text(x = 4, y = 0.1, label = paste0("£",round(mean(abs(Full_Final$EmissionCoef[Full_Final$Q23Employment==4])),3)), color="black")+
+  geom_text(x = 5, y = 0.1, label = paste0("£",round(mean(abs(Full_Final$EmissionCoef[Full_Final$Q23Employment==5])),3)), color="black")+
+  geom_text(x = 6, y = 0.1, label = paste0("£",round(mean(abs(Full_Final$EmissionCoef[Full_Final$Q23Employment==6])),3)), color="black")+
+  ggtitle("Mean Emissions MWTP by Q23Employment")
+
+grid.arrange(EmploymentBarQ6,EmploymentBarQ7,nrow=1)
+grid.arrange(EmploymentBarPerf,EmploymentBarEmissions,nrow=1)
+
+
+## Q5Knowledge Precaution BarGraph
+Q5PrecautionBar <- ggplot(Full_Final, aes(x=as.numeric(Q5Knowledge), y=as.numeric(Precaution))) + 
+  stat_summary(fun=mean, geom="col")+
+  scale_x_continuous(name="Likert scale levels",breaks = 1:5, 
+                     labels=c("1\n (N = 71)","2\n (N = 187)","3\n (N = 252)","4\n (N = 113)","5\n (N = 47)"))+
+  scale_y_continuous(name="Precaution in £",
+                     breaks=waiver(),limits = c(0,50),
+                     n.breaks = 10, labels = function(x) paste0("£",x))+
+  geom_text(x = 1, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Precaution[Full_Final$Q5Knowledge==1]),2)), color="white")+
+  geom_text(x = 2, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Precaution[Full_Final$Q5Knowledge==2]),2)), color="white")+
+  geom_text(x = 3, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Precaution[Full_Final$Q5Knowledge==3]),2)), color="white")+ 
+  geom_text(x = 4, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Precaution[Full_Final$Q5Knowledge==4]),2)), color="white")+
+  geom_text(x = 5, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Precaution[Full_Final$Q5Knowledge==5]),2)), color="white")+ 
+  ggtitle("Mean premium by Q5 Knowledge")
+
+## Q19Knowledge Precaution BarGraph
+Q19PrecautionBar <- ggplot(Full_Final, aes(x=as.numeric(Q19Knowledge), y=as.numeric(Precaution))) + 
+  stat_summary(fun=mean, geom="col")+
+  scale_x_continuous(name="Likert scale levels",breaks = 1:5, 
+                     labels=c("1\n (N = 71)","2\n (N = 187)","3\n (N = 252)","4\n (N = 113)","5\n (N = 47)"))+
+  scale_y_continuous(name="Precaution in £",
+                     breaks=waiver(),limits = c(0,50),
+                     n.breaks = 10, labels = function(x) paste0("£",x))+
+  geom_text(x = 1, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Precaution[Full_Final$Q19Knowledge==1]),2)), color="white")+
+  geom_text(x = 2, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Precaution[Full_Final$Q19Knowledge==2]),2)), color="white")+
+  geom_text(x = 3, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Precaution[Full_Final$Q19Knowledge==3]),2)), color="white")+ 
+  geom_text(x = 4, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Precaution[Full_Final$Q19Knowledge==4]),2)), color="white")+
+  geom_text(x = 5, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Precaution[Full_Final$Q19Knowledge==5]),2)), color="white")+ 
+  ggtitle("Mean premium by Q19 Knowledge")
+
+
+
+
+
+
+
+
+
+
+
+
 #### Section 13: Knowledge #### 
+
+
+round(mean(Full_Full$Q15ThreatToEnvironment[Full_Full$Q19Knowledge <= median(Full_Full$Q19Knowledge)]),2)
+round(mean(Full_Full$Q15ThreatToEnvironment[Full_Full$Q19Knowledge > median(Full_Full$Q19Knowledge)]),2)
 
 
 ## Plotting Q5 knowledge vs concern about microplastics
@@ -1376,8 +1579,8 @@ Q19Graph <- ggplot(Full_Final) +
 #### Section 14: Environmental Concern #### 
 
 
-## Plotting the effect of health concern on WTP
-Q13Graph <- ggplot(FS) + 
+## Plotting the effect of Q13 concern on CV WTP
+Q13Graph <- ggplot(Full_Final) + 
   geom_smooth(aes(x=Q13CurrentThreatToSelf,y=Q7WTP,color="red"),method="lm",se=T) +
   geom_smooth(aes(x=Q13CurrentThreatToSelf,y=Q6WTP,color="blue"),method="lm",se=T) +
   scale_color_discrete(name = "Lines", 
@@ -1386,15 +1589,15 @@ Q13Graph <- ggplot(FS) +
   scale_x_continuous(name="Likert scale levels",breaks = 1:5, 
                      labels=c(1,2,3,4,5))+
   scale_y_continuous(name="WTP",
-                     breaks=waiver(),limits = c(10,60),
+                     breaks=waiver(),limits = c(0,75),
                      n.breaks = 10, labels = function(x) paste0("£",x))+
   theme(plot.title = element_text(hjust = 0.5),
         axis.title.y = element_text(size = 10)) +
   labs(x = "Likert scale levels",y="Precautionary premium WTP")
 
 
-## Plotting the effect of future concerns on WTP
-Q14Graph <- ggplot(FS) + 
+## Plotting the effect of Q14 concerns on CV WTP
+Q14Graph <- ggplot(Full_Final) + 
   geom_smooth(aes(x=Q14FutureThreatToSelf,y=Q7WTP,color="red"),method="lm",se=T) +
   geom_smooth(aes(x=Q14FutureThreatToSelf,y=Q6WTP,color="blue"),method="lm",se=T) +
   scale_color_discrete(name = "Lines", 
@@ -1403,15 +1606,15 @@ Q14Graph <- ggplot(FS) +
   scale_x_continuous(name="Likert scale levels",breaks = 1:5, 
                      labels=c(1,2,3,4,5))+
   scale_y_continuous(name="WTP in £",
-                     breaks=waiver(),limits = c(10,60),
+                     breaks=waiver(),limits = c(0,75),
                      n.breaks = 10, labels = function(x) paste0("£",x))+
   theme(plot.title = element_text(hjust = 0.5),
         axis.title.y = element_text(size = 10)) +
   labs(x = "Likert scale levels",y="Precautionary premium WTP")
 
 
-## Plotting the effect of environmental concern on WTP
-Q15Graph <- ggplot(FS) + 
+## Plotting the effect of Q15 concern on CV WTP
+Q15Graph <- ggplot(Full_Final) + 
   geom_smooth(aes(x=Q15ThreatToEnvironment,y=Q7WTP,color="red"),method="lm",se=T) +
   geom_smooth(aes(x=Q15ThreatToEnvironment,y=Q6WTP,color="blue"),method="lm",se=T) +
   scale_color_discrete(name = "Lines", 
@@ -1420,11 +1623,129 @@ Q15Graph <- ggplot(FS) +
   scale_x_continuous(name="Likert scale levels",breaks = 1:5, 
                      labels=c(1,2,3,4,5))+
   scale_y_continuous(name="WTP in £",
-                     breaks=waiver(),limits = c(10,60),
+                     breaks=waiver(),limits = c(0,75),
                      n.breaks = 10, labels = function(x) paste0("£",x))+
   theme(plot.title = element_text(hjust = 0.5),
         axis.title.y = element_text(size = 10)) +
   labs(x = "Likert scale levels",y="Precautionary premium WTP")
+
+grid.arrange(Q13Graph,Q14Graph,Q15Graph,nrow=1)
+
+
+## Plotting the effect of Q13 concern on CV WTP
+Q13GraphCE <- ggplot(Full_Final) + 
+  geom_smooth(aes(x=Q13CurrentThreatToSelf,y=abs(PerformanceCoef),color="red"),method="lm",se=T) +
+  geom_smooth(aes(x=Q13CurrentThreatToSelf,y=EmissionCoef,color="blue"),method="lm",se=T) +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("Emissions", "Performance"))+
+  ggtitle("|MWTP| by Q13: Current Threat To Self") +
+  scale_x_continuous(name="Likert scale levels",breaks = 1:5, 
+                     labels=c(1,2,3,4,5))+
+  scale_y_continuous(name="WTP",
+                     breaks=waiver(),limits = c(0,1),
+                     n.breaks = 10, labels = function(x) paste0("£",x))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 10)) +
+  labs(x = "Likert scale levels",y="CE MWTP")
+
+
+## Plotting the effect of Q14 concerns on CV WTP
+Q14GraphCE <- ggplot(Full_Final) + 
+  geom_smooth(aes(x=Q14FutureThreatToSelf,y=abs(PerformanceCoef),color="red"),method="lm",se=T) +
+  geom_smooth(aes(x=Q14FutureThreatToSelf,y=EmissionCoef,color="blue"),method="lm",se=T) +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("Emissions", "Performance"))+
+  ggtitle("|MWTP| by Q14: Future Threat To Self") +
+  scale_x_continuous(name="Likert scale levels",breaks = 1:5, 
+                     labels=c(1,2,3,4,5))+
+  scale_y_continuous(name="WTP in £",
+                     breaks=waiver(),limits = c(0,1),
+                     n.breaks = 10, labels = function(x) paste0("£",x))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 10)) +
+  labs(x = "Likert scale levels",y="CE MWTP")
+
+
+## Plotting the effect of Q15 concern on CV WTP
+Q15GraphCE <- ggplot(Full_Final) + 
+  geom_smooth(aes(x=Q15ThreatToEnvironment,y=abs(PerformanceCoef),color="red"),method="lm",se=T) +
+  geom_smooth(aes(x=Q15ThreatToEnvironment,y=EmissionCoef,color="blue"),method="lm",se=T) +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("Emissions", "Performance"))+
+  ggtitle("|MWTP| by Q15: Threat To Environment") +
+  scale_x_continuous(name="Likert scale levels",breaks = 1:5, 
+                     labels=c(1,2,3,4,5))+
+  scale_y_continuous(name="WTP in £",
+                     breaks=waiver(),limits = c(0,1),
+                     n.breaks = 10, labels = function(x) paste0("£",x))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 10)) +
+  labs(x = "Likert scale levels",y="CE MWTP")
+
+grid.arrange(Q13GraphCE,Q14GraphCE,Q15GraphCE,nrow=1)
+
+
+
+## Q5Knowledge BarGraph
+ggplot(Full_Final, aes(x=as.numeric(Q5Knowledge), y=as.numeric(Q6WTP))) + 
+  stat_summary(fun=mean, geom="col")+
+  scale_x_continuous(name="Likert scale levels",breaks = 1:5, 
+                     labels=c("1\n (N = 71)","2\n (N = 187)","3\n (N = 252)","4\n (N = 113)","5\n (N = 47)"))+
+  scale_y_continuous(name="WTP in £",
+                     breaks=waiver(),limits = c(0,75),
+                     n.breaks = 10, labels = function(x) paste0("£",x))+
+  geom_text(x = 1, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Q6WTP[Full_Final$Q5Knowledge==1]),2)), color="white")+
+  geom_text(x = 2, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Q6WTP[Full_Final$Q5Knowledge==2]),2)), color="white")+
+  geom_text(x = 3, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Q6WTP[Full_Final$Q5Knowledge==3]),2)), color="white")+ 
+  geom_text(x = 4, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Q6WTP[Full_Final$Q5Knowledge==4]),2)), color="white")+
+  geom_text(x = 5, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Q6WTP[Full_Final$Q5Knowledge==5]),2)), color="white")+ 
+  ggtitle("Mean WTP by Q5 Knowledge")
+
+## Q5Knowledge Precaution BarGraph
+Q13PrecautionBar <- ggplot(Full_Final, aes(x=as.numeric(Q13CurrentThreatToSelf), y=as.numeric(Precaution))) + 
+  stat_summary(fun=mean, geom="col")+
+  scale_x_continuous(name="Likert scale levels",breaks = 1:5, 
+                     labels=c("1\n (N = 32)","2\n (N = 55)","3\n (N = 290)","4\n (N = 184)","5\n (N = 109)"))+
+  scale_y_continuous(name="Precaution in £",
+                     breaks=waiver(),limits = c(0,50),
+                     n.breaks = 10, labels = function(x) paste0("£",x))+
+  geom_text(x = 1, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Precaution[Full_Final$Q13CurrentThreatToSelf==1]),2)), color="white")+
+  geom_text(x = 2, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Precaution[Full_Final$Q13CurrentThreatToSelf==2]),2)), color="white")+
+  geom_text(x = 3, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Precaution[Full_Final$Q13CurrentThreatToSelf==3]),2)), color="white")+ 
+  geom_text(x = 4, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Precaution[Full_Final$Q13CurrentThreatToSelf==4]),2)), color="white")+
+  geom_text(x = 5, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Precaution[Full_Final$Q13CurrentThreatToSelf==5]),2)), color="white")+ 
+  ggtitle("Mean premium by Q13CurrentThreatToSelf")
+
+## Q19Knowledge Precaution BarGraph
+Q14PrecautionBar <- ggplot(Full_Final, aes(x=as.numeric(Q14FutureThreatToSelf), y=as.numeric(Precaution))) + 
+  stat_summary(fun=mean, geom="col")+
+  scale_x_continuous(name="Likert scale levels",breaks = 1:5, 
+                     labels=c("1\n (N = 20)","2\n (N = 37)","3\n (N = 204)","4\n (N = 243)","5\n (N = 166)"))+
+  scale_y_continuous(name="Precaution in £",
+                     breaks=waiver(),limits = c(0,50),
+                     n.breaks = 10, labels = function(x) paste0("£",x))+
+  geom_text(x = 1, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Precaution[Full_Final$Q14FutureThreatToSelf==1]),2)), color="white")+
+  geom_text(x = 2, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Precaution[Full_Final$Q14FutureThreatToSelf==2]),2)), color="white")+
+  geom_text(x = 3, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Precaution[Full_Final$Q14FutureThreatToSelf==3]),2)), color="white")+ 
+  geom_text(x = 4, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Precaution[Full_Final$Q14FutureThreatToSelf==4]),2)), color="white")+
+  geom_text(x = 5, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Precaution[Full_Final$Q14FutureThreatToSelf==5]),2)), color="white")+ 
+  ggtitle("Mean premium by Q14FutureThreatToSelf")
+
+Q15PrecautionBar <- ggplot(Full_Final, aes(x=as.numeric(Q15ThreatToEnvironment), y=as.numeric(Precaution))) + 
+  stat_summary(fun=mean, geom="col")+
+  scale_x_continuous(name="Likert scale levels",breaks = 1:5, 
+                     labels=c("1\n (N = 12)","2\n (N = 30)","3\n (N = 154)","4\n (N = 216)","5\n (N = 258)"))+
+  scale_y_continuous(name="Precaution in £",
+                     breaks=waiver(),limits = c(0,50),
+                     n.breaks = 10, labels = function(x) paste0("£",x))+
+  geom_text(x = 1, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Precaution[Full_Final$Q15ThreatToEnvironment==1]),2)), color="white")+
+  geom_text(x = 2, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Precaution[Full_Final$Q15ThreatToEnvironment==2]),2)), color="white")+
+  geom_text(x = 3, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Precaution[Full_Final$Q15ThreatToEnvironment==3]),2)), color="white")+ 
+  geom_text(x = 4, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Precaution[Full_Final$Q15ThreatToEnvironment==4]),2)), color="white")+
+  geom_text(x = 5, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Precaution[Full_Final$Q15ThreatToEnvironment==5]),2)), color="white")+ 
+  ggtitle("Mean premium by Q15ThreatToEnvironment")
+
+grid.arrange(Q13PrecautionBar,Q14PrecautionBar,Q15PrecautionBar)
 
 
 #### Section 15: Charity #### 
@@ -1480,6 +1801,72 @@ Q18GraphC <- ggplot(Full_Final, aes(x=as.numeric(Q18Charity))) +
   scale_y_continuous(name="WTP",breaks = waiver(), n.breaks=10,
                      limits=c(0.00,0.1),labels = function(x) paste0("£",x))+
   labs(x = "Charity",y="WTP")
+
+
+
+
+ggplot(Full_Final, aes(x=as.numeric(Q18Charity))) + 
+  geom_smooth(aes(y=abs(PerformanceCoef),color="blue"),method="lm",se=F) +
+  geom_smooth(aes(y=EmissionCoef,color="red"),method="lm",se=F) +
+  ggtitle("Relationship between WTP and charity involvement.") +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("|Performance MWTP|", "Emission MWTP"))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_x_continuous(name="Charity involvement",breaks = waiver(),limits = c(0,1),
+                     n.breaks = 2,labels=c("No involvement\n (N = 451)", "Donated or member\n (N = 219)"))+
+  scale_y_continuous(name="WTP",breaks = waiver(), n.breaks=10,
+                     limits=c(0.00,0.1),labels = function(x) paste0("£",x))+
+  labs(x = "Charity",y="WTP")
+
+
+## CharityBarQ6
+CharityBarQ6 <- ggplot(Full_Final, aes(x=as.numeric(Q18Charity), y=as.numeric(Q6WTP))) + 
+  stat_summary(fun=mean, geom="col")+
+  scale_x_discrete(name="Q18Charity",limits = c(0,1),
+                   labels=c("No involvement\n (N = 451)", "Donated or member\n (N = 219)"))+
+  scale_y_continuous(name="WTP",breaks = waiver(), n.breaks=10,
+                     limits=c(0,75),labels = function(x) paste0("£",x))+
+  geom_text(x = 0, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Q6WTP[Full_Final$Q18Charity==0]),2)), color="white")+
+  geom_text(x = 1, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Q6WTP[Full_Final$Q18Charity==1]),2)), color="white")+
+  ggtitle("Mean Q6 WTP by Q18Charity")
+
+## CharityBarQ6
+CharityBarQ7 <- ggplot(Full_Final, aes(x=as.numeric(Q18Charity), y=as.numeric(Q7WTP))) + 
+  stat_summary(fun=mean, geom="col")+
+  scale_x_discrete(name="Q18Charity",limits = c(0,1,2),
+                   labels=c("No involvement\n (N = 451)", "Donated or member\n (N = 219)"))+
+  scale_y_continuous(name="WTP",breaks = waiver(), n.breaks=10,
+                     limits=c(0,75),labels = function(x) paste0("£",x))+
+  geom_text(x = 0, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Q7WTP[Full_Final$Q18Charity==0]),2)), color="white")+
+  geom_text(x = 1, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Q7WTP[Full_Final$Q18Charity==1]),2)), color="white")+
+  ggtitle("Mean Q7 WTP by Q18Charity")
+
+## CharityBarQ6
+CharityBarPerf <- ggplot(Full_Final, aes(x=as.numeric(Q18Charity), y=as.numeric(abs(PerformanceCoef)))) + 
+  stat_summary(fun=mean, geom="col")+
+  scale_x_discrete(name="Q18Charity",limits = c(0,1,2),
+                   labels=c("No involvement\n (N = 451)", "Donated or member\n (N = 219)"))+
+  scale_y_continuous(name="MWTP",breaks = waiver(), n.breaks=10,
+                     limits=c(0,1),labels = function(x) paste0("£",x))+
+  geom_text(x = 0, y = 0.1, label = paste0("Mean: £",-1*round(mean(Full_Final$PerformanceCoef[Full_Final$Q18Charity==0]),3)), color="black")+
+  geom_text(x = 1, y = 0.1, label = paste0("Mean: £",-1*round(mean(Full_Final$PerformanceCoef[Full_Final$Q18Charity==1]),3)), color="black")+
+  ggtitle("Mean Performance | MWTP | by Q18Charity")
+
+## CharityBarQ6
+CharityBarEmissions <- ggplot(Full_Final, aes(x=as.numeric(Q18Charity), y=as.numeric(EmissionCoef))) + 
+  stat_summary(fun=mean, geom="col")+
+  scale_x_discrete(name="Q18Charity",limits = c(0,1),
+                   labels=c("No involvement\n (N = 451)", "Donated or member\n (N = 219)"))+
+  scale_y_continuous(name="MWTP",breaks = waiver(), n.breaks=10,
+                     limits=c(0,1),labels = function(x) paste0("£",x))+
+  geom_text(x = 0, y = 0.1, label = paste0("Mean: £",round(mean(abs(Full_Final$EmissionCoef[Full_Final$Q18Charity==0])),3)), color="black")+
+  geom_text(x = 1, y = 0.1, label = paste0("Mean: £",round(mean(abs(Full_Final$EmissionCoef[Full_Final$Q18Charity==1])),3)), color="black")+
+  ggtitle("Mean Emissions MWTP by Charity Q18Charity")
+
+grid.arrange(CharityBarQ6,CharityBarQ7,nrow=1)
+grid.arrange(CharityBarPerf,CharityBarEmissions,nrow=1)
+
 
 
 #### Section 16: Blue-Planet #### 
@@ -1581,6 +1968,61 @@ Q16GraphC <- ggplot(Full_Final, aes(x=Q16BP)) +
   labs(x = "Income",y="WTP")
 
 
+
+
+## BPBarQ6
+BPBarQ6 <- ggplot(Full_Final, aes(x=as.numeric(Q16BP), y=as.numeric(Q6WTP))) + 
+  stat_summary(fun=mean, geom="col")+
+  scale_x_discrete(name="Amount of BPII viewed.",limits = c(0,1,2),
+                     labels = c("None","Some","All"))+
+  scale_y_continuous(name="WTP",breaks = waiver(), n.breaks=10,
+                     limits=c(0,75),labels = function(x) paste0("£",x))+
+  geom_text(x = 0, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Q6WTP[Full_Final$Q16BP==0]),2)), color="white")+
+  geom_text(x = 1, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Q6WTP[Full_Final$Q16BP==1]),2)), color="white")+
+  geom_text(x = 2, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Q6WTP[Full_Final$Q16BP==2]),2)), color="white")+ 
+  ggtitle("Mean Q6 WTP by BP Viewership")
+
+## BPBarQ6
+BPBarQ7 <- ggplot(Full_Final, aes(x=as.numeric(Q16BP), y=as.numeric(Q7WTP))) + 
+  stat_summary(fun=mean, geom="col")+
+  scale_x_discrete(name="Amount of BPII viewed.",limits = c(0,1,2),
+                   labels = c("None","Some","All"))+
+  scale_y_continuous(name="WTP",breaks = waiver(), n.breaks=10,
+                     limits=c(0,75),labels = function(x) paste0("£",x))+
+  geom_text(x = 0, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Q7WTP[Full_Final$Q16BP==0]),2)), color="white")+
+  geom_text(x = 1, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Q7WTP[Full_Final$Q16BP==1]),2)), color="white")+
+  geom_text(x = 2, y = 10, label = paste0("Mean: £",round(mean(Full_Final$Q7WTP[Full_Final$Q16BP==2]),2)), color="white")+ 
+  ggtitle("Mean Q7 WTP by BP Viewership")
+
+## BPBarQ6
+BPBarPerf <- ggplot(Full_Final, aes(x=as.numeric(Q16BP), y=as.numeric(abs(PerformanceCoef)))) + 
+  stat_summary(fun=mean, geom="col")+
+  scale_x_discrete(name="Amount of BPII viewed.",limits = c(0,1,2),
+                   labels = c("None","Some","All"))+
+  scale_y_continuous(name="MWTP",breaks = waiver(), n.breaks=10,
+                     limits=c(0,1),labels = function(x) paste0("£",x))+
+  geom_text(x = 0, y = 0.1, label = paste0("Mean: £",-1*round(mean(Full_Final$PerformanceCoef[Full_Final$Q16BP==0]),3)), color="black")+
+  geom_text(x = 1, y = 0.1, label = paste0("Mean: £",-1*round(mean(Full_Final$PerformanceCoef[Full_Final$Q16BP==1]),3)), color="black")+
+  geom_text(x = 2, y = 0.1, label = paste0("Mean: £",-1*round(mean(Full_Final$PerformanceCoef[Full_Final$Q16BP==2]),3)), color="black")+ 
+  ggtitle("Mean Performance | MWTP | by BP Viewership")
+
+## BPBarQ6
+BPBarEmissions <- ggplot(Full_Final, aes(x=as.numeric(Q16BP), y=as.numeric(EmissionCoef))) + 
+  stat_summary(fun=mean, geom="col")+
+  scale_x_discrete(name="Amount of BPII viewed.",limits = c(0,1,2),
+                   labels = c("None","Some","All"))+
+  scale_y_continuous(name="MWTP",breaks = waiver(), n.breaks=10,
+                     limits=c(0,1),labels = function(x) paste0("£",x))+
+  geom_text(x = 0, y = 0.1, label = paste0("Mean: £",round(mean(abs(Full_Final$EmissionCoef[Full_Final$Q16BP==0])),3)), color="black")+
+  geom_text(x = 1, y = 0.1, label = paste0("Mean: £",round(mean(abs(Full_Final$EmissionCoef[Full_Final$Q16BP==1])),3)), color="black")+
+  geom_text(x = 2, y = 0.1, label = paste0("Mean: £",round(mean(abs(Full_Final$EmissionCoef[Full_Final$Q16BP==2])),3)), color="black")+ 
+  ggtitle("Mean Emissions MWTP by BP Viewership")
+
+grid.arrange(BPBarQ6,BPBarQ7,nrow=1)
+grid.arrange(BPBarPerf,BPBarEmissions,nrow=1)
+
+
+
 #### Section 17: Experts #### 
 
 
@@ -1622,6 +2064,33 @@ Q21GraphB <- ggplot(Full_Final, aes(x=as.numeric(Q21Experts))) +
   labs(x = "Experts",y="WTP")
 
 
+### Plotting belief in experts versus consequentiality beliefs
+Q21GraphCons <- ggplot(Full_Final, aes(y=as.numeric(Q21Experts))) + 
+  geom_smooth(aes(x=Q20Consequentiality,color="blue"),method="lm",se=F) +
+  ggtitle("Relationship between confidence in experts and consequentiality.") +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("WTP for research"))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 12)) +
+  scale_y_continuous(name="Experts",breaks = waiver(),limits = c(1,5),
+                     n.breaks = 5, labels = c("1: Unconfident\n (N = 16)","2\n (N = 46)","3\n (N = 251)","4\n (N = 237)","5: Confident\n (N = 120)"))+
+  scale_x_continuous(name="Consequentiality",breaks = waiver(),limits = c(0,1,2),
+                     n.breaks = 3, labels = c("Inconsequential","Don't Know","Consequential"))+
+    labs(y = "Experts",x="Consequentiality")
+
+ConsExpertsBars <- ggplot(Full_Final, aes(x=as.numeric(Q20Consequentiality), y=as.numeric(Q21Experts-1))) + 
+  stat_summary(fun=mean, geom="col")+
+  scale_x_discrete(name="Q20Consequentiality",limits=c(0,1, 2),
+                   labels=c("Not Consequential\n (N = 110)","Don't Know\n (N = 202)","Yes\n (N = 358)"))+
+  scale_y_discrete(name="Q21Experts",limits=c(0,1,2,3,4),
+                   labels = c("1: Unconfident\n (N = 16)","2\n (N = 46)","3\n (N = 251)","4\n (N = 237)","5: Confident\n (N = 120)"))+
+  geom_text(x = 0, y = 1, label = paste0("Mean: ",round(mean(Full_Final$Q21Experts[Full_Final$Q20Consequentiality==0]),2)), color="white")+
+  geom_text(x = 1, y = 1, label = paste0("Mean: ",round(mean(Full_Final$Q21Experts[Full_Final$Q20Consequentiality==1]),2)), color="white")+
+  geom_text(x = 2, y = 1, label = paste0("Mean: ",round(mean(Full_Final$Q21Experts[Full_Final$Q20Consequentiality==2]),2)), color="white")+ 
+  ggtitle("Mean belief in experts by consequentiality beliefs.\n Pearon's Product-Moment Correlation: 0.017 (P=0.208)")+
+  coord_cartesian(ylim=c(0,4))
+
+
 ### Plotting the relationship between confidence in experts and WTP (lm fitting).
 Q21GraphC <- ggplot(Full_Final, aes(x=as.numeric(Q21Experts))) + 
   geom_smooth(aes(y=Q5Knowledge,color="blue"),method="lm",se=F) +
@@ -1655,6 +2124,69 @@ Q21GraphD <- ggplot(Full_Final, aes(x=as.numeric(Q21Experts))) +
   scale_y_continuous(name="MWTP",breaks = waiver(), n.breaks=10,
                      limits=c(-0.5,0.5),labels = function(x) paste0("£",x))+
   labs(x = "Experts",y="WTP")
+
+
+## ExpertsBarQ6
+ExpertsBarQ6 <- ggplot(Full_Final, aes(x=as.numeric(Q21Experts), y=as.numeric(Q6WTP))) + 
+  stat_summary(fun=mean, geom="col")+
+  scale_x_discrete(name="Q21Experts",limits = c(1,2,3,4,5),
+                   labels = c("1: Unconfident\n (N = 16)","2\n (N = 46)","3\n (N = 251)","4\n (N = 237)","5: Confident\n (N = 120)"))+
+  scale_y_continuous(name="WTP",breaks = waiver(), n.breaks=10,
+                     limits=c(0,75),labels = function(x) paste0("£",x))+
+  geom_text(x = 1, y = 10, label = paste0("£",round(mean(Full_Final$Q6WTP[Full_Final$Q21Experts==1]),2)), color="white")+
+  geom_text(x = 2, y = 10, label = paste0("£",round(mean(Full_Final$Q6WTP[Full_Final$Q21Experts==2]),2)), color="white")+
+  geom_text(x = 3, y = 10, label = paste0("£",round(mean(Full_Final$Q6WTP[Full_Final$Q21Experts==3]),2)), color="white")+
+  geom_text(x = 4, y = 10, label = paste0("£",round(mean(Full_Final$Q6WTP[Full_Final$Q21Experts==4]),2)), color="white")+
+  geom_text(x = 5, y = 10, label = paste0("£",round(mean(Full_Final$Q6WTP[Full_Final$Q21Experts==5]),2)), color="white")+
+  ggtitle("Mean Q6 WTP by Q21Experts")
+
+## ExpertsBarQ6
+ExpertsBarQ7 <- ggplot(Full_Final, aes(x=as.numeric(Q21Experts), y=as.numeric(Q7WTP))) + 
+  stat_summary(fun=mean, geom="col")+
+  scale_x_discrete(name="Q21Experts",limits = c(1,2,3,4,5),
+                   labels = c("1: Unconfident\n (N = 16)","2\n (N = 46)","3\n (N = 251)","4\n (N = 237)","5: Confident\n (N = 120)"))+
+  scale_y_continuous(name="WTP",breaks = waiver(), n.breaks=10,
+                     limits=c(0,75),labels = function(x) paste0("£",x))+
+  geom_text(x = 1, y = 10, label = paste0("£",round(mean(Full_Final$Q7WTP[Full_Final$Q21Experts==1]),2)), color="white")+
+  geom_text(x = 2, y = 10, label = paste0("£",round(mean(Full_Final$Q7WTP[Full_Final$Q21Experts==2]),2)), color="white")+
+  geom_text(x = 3, y = 10, label = paste0("£",round(mean(Full_Final$Q7WTP[Full_Final$Q21Experts==3]),2)), color="white")+
+  geom_text(x = 4, y = 10, label = paste0("£",round(mean(Full_Final$Q7WTP[Full_Final$Q21Experts==4]),2)), color="white")+
+  geom_text(x = 5, y = 10, label = paste0("£",round(mean(Full_Final$Q7WTP[Full_Final$Q21Experts==5]),2)), color="white")+
+  ggtitle("Mean Q7 WTP by Q21Experts")
+
+## ExpertsBarQ6
+ExpertsBarPerf <- ggplot(Full_Final, aes(x=as.numeric(Q21Experts), y=as.numeric(abs(PerformanceCoef)))) + 
+  stat_summary(fun=mean, geom="col")+
+  scale_x_discrete(name="Q21Experts",limits = c(1,2,3,4,5),
+                   labels = c("1: Unconfident\n (N = 16)","2\n (N = 46)","3\n (N = 251)","4\n (N = 237)","5: Confident\n (N = 120)"))+
+  scale_y_continuous(name="MWTP",breaks = waiver(), n.breaks=10,
+                     limits=c(0,1),labels = function(x) paste0("£",x))+
+  geom_text(x = 1, y = 0.1, label = paste0("£",-1*round(mean(Full_Final$PerformanceCoef[Full_Final$Q21Experts==1]),2)), color="black")+
+  geom_text(x = 2, y = 0.1, label = paste0("£",-1*round(mean(Full_Final$PerformanceCoef[Full_Final$Q21Experts==2]),2)), color="black")+
+  geom_text(x = 3, y = 0.1, label = paste0("£",-1*round(mean(Full_Final$PerformanceCoef[Full_Final$Q21Experts==3]),2)), color="black")+
+  geom_text(x = 4, y = 0.1, label = paste0("£",-1*round(mean(Full_Final$PerformanceCoef[Full_Final$Q21Experts==4]),2)), color="black")+
+  geom_text(x = 5, y = 0.1, label = paste0("£",-1*round(mean(Full_Final$PerformanceCoef[Full_Final$Q21Experts==5]),2)), color="black")+
+  ggtitle("Mean Performance | MWTP | by Q21Experts")
+
+## ExpertsBarQ6
+ExpertsBarEmissions <- ggplot(Full_Final, aes(x=as.numeric(Q21Experts), y=as.numeric(EmissionCoef))) + 
+  stat_summary(fun=mean, geom="col")+
+  scale_x_discrete(name="Q21Experts",limits = c(1,2,3,4,5),
+                   labels = c("1: Unconfident\n (N = 16)","2\n (N = 46)","3\n (N = 251)","4\n (N = 237)","5: Confident\n (N = 120)"))+
+  scale_y_continuous(name="MWTP",breaks = waiver(), n.breaks=10,
+                     limits=c(0,1),labels = function(x) paste0("£",x))+
+  geom_text(x = 1, y = 0.1, label = paste0("£",round(mean(Full_Final$EmissionCoef[Full_Final$Q21Experts==1]),2)), color="black")+
+  geom_text(x = 2, y = 0.1, label = paste0("£",round(mean(Full_Final$EmissionCoef[Full_Final$Q21Experts==2]),2)), color="black")+
+  geom_text(x = 3, y = 0.1, label = paste0("£",round(mean(Full_Final$EmissionCoef[Full_Final$Q21Experts==3]),2)), color="black")+
+  geom_text(x = 4, y = 0.1, label = paste0("£",round(mean(Full_Final$EmissionCoef[Full_Final$Q21Experts==4]),2)), color="black")+
+  geom_text(x = 5, y = 0.1, label = paste0("£",round(mean(Full_Final$EmissionCoef[Full_Final$Q21Experts==5]),2)), color="black")+
+  ggtitle("Mean Emissions MWTP by Charity Q21Experts")
+
+grid.arrange(ExpertsBarQ6,ExpertsBarQ7,nrow=1)
+grid.arrange(ExpertsBarPerf,ExpertsBarEmissions,nrow=1)
+
+
+
 
 
 #### Section 18: Mixed categories ####
@@ -1852,6 +2384,77 @@ Q3GraphB <- ggplot(Full_Final, aes(x=as.numeric(Q3Distance))) +
   scale_x_continuous(name="Distance",breaks=waiver(),limits=c(0,50),
                      n.breaks=5)+ labs(x = "Distance",y="Income")
 
+## Normalised distance and trips versus income
+DistanceIncomeGraph <-  ggplot(Full_Final) + 
+  geom_smooth(aes(x=normalize(Q3Distance),y=as.numeric(Q24AIncome),color="red"),method="lm",se=T) +
+  geom_smooth(aes(x=normalize(Q4Trips),y=as.numeric(Q24AIncome),color="blue"),method="lm",se=T)+
+  ggtitle("Relationship between income and distance-decay indicators.") +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("Trips to the coast.", "Distance from the coast"))+
+  scale_x_continuous(name="Normalised values",breaks=waiver(),limits=c(0,1),
+                     n.breaks=10)+
+  scale_y_continuous(name="Gross monthly income",breaks = waiver(), n.breaks=10,
+                     limits=c(0,5000),labels = function(x) paste0("£", x))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 10))
+
+## Distance-decay indicators vs CV WTP
+DD1 <-  ggplot(Full_Final) + 
+  geom_smooth(aes(x=(Q3Distance),y=Q7WTP,color="red"),method="loess",se=T) +
+  geom_smooth(aes(x=(Q3Distance),y=Q6WTP,color="blue"),method="loess",se=T)+
+  ggtitle("Relationship between CV WTP and Q3Distance") +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("WTP for research", "WTP for treatment"))+
+  scale_x_continuous(name="Distance",breaks=waiver(),limits=c(0,50),
+                     n.breaks=10)+
+  scale_y_continuous(name="WTP", breaks=waiver(),limits = c(0,75),
+                     n.breaks = 10, labels = function(x) paste0("£",x))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 10))
+
+## CV WTP by trips
+DD2 <- ggplot(Full_Final) + 
+  geom_smooth(aes(x=(Q4Trips),y=Q7WTP,color="red"),method="lm",se=T) +
+  geom_smooth(aes(x=(Q4Trips),y=Q6WTP,color="blue"),method="lm",se=T)+
+  ggtitle("Relationship between CV WTP and Q4Trips") +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("WTP for research", "WTP for treatment"))+
+  scale_x_continuous(name="Annual Trips",breaks=waiver(),limits=c(0,3),
+                     n.breaks=5)+
+  scale_y_continuous(name="WTP", breaks=waiver(),limits = c(0,75),
+                     n.breaks = 10, labels = function(x) paste0("£",x))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 10))
+
+## CE WTP by distance
+DD3 <- ggplot(Full_Final) + 
+  geom_smooth(aes(x=(Q3Distance),y=PerformanceCoef,color="red"),method="loess",se=T) +
+  geom_smooth(aes(x=(Q3Distance),y=EmissionCoef,color="blue"),method="loess",se=T)+
+  ggtitle("Relationship between CE WTP and Q3Distance") +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("Emissions MWTP", "Performance MWTP"))+
+  scale_x_continuous(name="Distance",breaks=waiver(),limits=c(0,50),
+                     n.breaks=10)+
+  scale_y_continuous(name="WTP", breaks=waiver(),limits = c(-1,1),
+                     n.breaks = 10, labels = function(x) paste0("£",x))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 10))
+
+## CE WTP by trips
+DD4 <- ggplot(Full_Final) + 
+  geom_smooth(aes(x=(Q4Trips),y=PerformanceCoef,color="red"),method="loess",se=T) +
+  geom_smooth(aes(x=(Q4Trips),y=EmissionCoef,color="blue"),method="loess",se=T)+
+  ggtitle("Relationship between CE WTP and Q4Trips") +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("Emissions MWTP", "Performance MWTP"))+
+  scale_x_continuous(name="Annual Trips",breaks=waiver(),limits=c(0,3),
+                     n.breaks=5)+
+  scale_y_continuous(name="WTP", breaks=waiver(),limits = c(-1,1),
+                     n.breaks = 10, labels = function(x) paste0("£",x))+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 10))
+
+grid.arrange(DD1,DD2,DD3,DD3,nrow=2)
 
 ggplot(Full_Final) + 
   geom_smooth(aes(y=Q13CurrentThreatToSelf,x=Q3Distance,color="blue"),method="lm",se=F) +
@@ -1911,6 +2514,29 @@ PPHist <- ggplot(FullSurvey2, aes(x=Precaution)) +
   scale_x_continuous(breaks=waiver(),limits = c(0,40),
                      n.breaks = 10, labels = function(x) paste0("£",x))+
   ggtitle("Histogram of respondent precautionary premia.")
+
+
+ggplot(Full_Final, aes(x=Precaution)) + 
+  geom_histogram(color="black", fill="white",binwidth = 1)+
+  scale_x_continuous(breaks=waiver(),limits = c(0,40),
+                     n.breaks = 10, labels = function(x) paste0("£",x))+
+  ggtitle("Histogram of respondent precautionary premia.")
+
+SBDCPRecaution <- ggplot(Full_Final, aes(x=Precaution)) + 
+  geom_histogram(aes(y = ..density..),color="black", fill="white",binwidth = 1)+
+  stat_function(fun=fun, 
+                args = with(Full_Final, c(mean = mean(Precaution), sd = sd(Precaution), n= 1)))+
+  scale_x_continuous(breaks=waiver(),limits = c(0,100),
+                     n.breaks = 10, labels = function(x) paste0("£",x))+
+  ggtitle("Histogram of respondent precautionary premia using SBDC.")
+
+ICLVPRecaution <- ggplot(Full_Final, aes(x=ICLVPrecautionF)) + 
+  geom_histogram(aes(y = ..density..),color="black", fill="white",binwidth = 1)+
+  stat_function(fun=fun, 
+                args = with(Full_Final, c(mean = mean(ICLVPrecautionF), sd = sd(ICLVPrecautionF), n= 1)))+
+  scale_x_continuous(breaks=waiver(),limits = c(-10,100),
+                     n.breaks = 10, labels = function(x) paste0("£",x))+
+  ggtitle("Histogram of respondent precautionary premia using ICLV.")
 
 
 EmissionDistribution <- ggplot(Full_Final, aes(x=EmissionCoef)) + 

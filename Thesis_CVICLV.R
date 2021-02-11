@@ -349,6 +349,7 @@ apollo_modelOutput(model)
 #### Q6-BidOnly-Normal #### 
 library(apollo)
 
+database$Q6ResearchResponse <- database$Q6ResearchResponse-1
 apollo_initialise()
 apollo_control = list(
   modelName  ="Q6Bid",
@@ -383,8 +384,7 @@ model = apollo_estimate(apollo_beta, apollo_fixed,
                         estimate_settings = list(writeIter=FALSE))
 
 apollo_modelOutput(model,modelOutput_settings = list(printPVal=TRUE))
--model$estimate["intercept"]/model$estimate["b1"]
--model$estimate["intercept"]/model$estimate["b2"]
+-model$estimate["intercept"]/model$estimate["b_bid"]
 model$estimate
 
 ## Validation:
@@ -463,7 +463,7 @@ summary(Validation2)
 
 #### Q7-BidOnly-Normal #### 
 library(apollo)
-
+database<- Test_Truncated
 apollo_initialise()
 apollo_control = list(
   modelName  ="Q7Bid",
@@ -498,9 +498,7 @@ model3 = apollo_estimate(apollo_beta, apollo_fixed,
                         estimate_settings = list(writeIter=FALSE))
 
 apollo_modelOutput(model3,modelOutput_settings = list(printPVal=TRUE))
--model$estimate["intercept"]/model$estimate["b1"]
--model$estimate["intercept"]/model$estimate["b2"]
-model3$estimate["intercept"]/model3$estimate["b_bid"]
+-model3$estimate["intercept"]/model3$estimate["b_bid"]
 model3$estimate
 
 ## Validation:
@@ -1350,7 +1348,7 @@ CVmodel6N = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apo
 apollo_modelOutput(CVmodel6N,modelOutput_settings = list(printPVal=TRUE))
 saveRDS(CVmodel6N,"CVmodel6N.rds")
 
-#### CHOSEN: Q7 Normal SBDC ICLV CVmodel6NT ####
+#### CHOSEN: Q7 Normal SBDC ICLV CVmodel7N ####
 
 # Setup:
 database$Q7Bid <- database$Q7Bid/100
@@ -1449,7 +1447,7 @@ apollo_modelOutput(CVmodel7N,modelOutput_settings = list(printPVal=TRUE))
 saveRDS(CVmodel7N,"CVmodel7N.rds")
 
 
-####  CHOSEN: Q6 Normal ICLV Truncated CVmodel7N ####
+####  CHOSEN: Q6 Normal ICLV Truncated CVmodel6NT ####
 
 
 # Setup the data for all truncated models:
@@ -1650,6 +1648,223 @@ apollo_modelOutput(CVmodel7NT,modelOutput_settings = list(printPVal=TRUE))
 saveRDS(CVmodel7NT,"CVmodel7NT.rds")
 
 
+####  Q6 Normal ICLV Truncated CVmodel6NTIncome ####
+
+
+# Setup the data for all truncated models:
+database <- Test_Truncated
+database$Q6Bid <- database$Q6Bid/100
+database$Q7Bid <- database$Q7Bid/100
+database$Q6ResearchResponse <-database$Q6ResearchResponse-1
+database$Q7TreatmentResponse <-database$Q7TreatmentResponse-1
+database$mean_income = mean(database$Income)
+
+
+# Estimate model:
+apollo_control = list(
+  modelName  = "CVmodel6NTIncome",
+  modelDescr = "CVmodel6NTIncome",
+  indivID    = "ID",
+  mixing     = TRUE,
+  nCores     = 4,
+  noValidation=TRUE)
+
+
+apollo_beta = c(intercept =0,b_bid    = 0,Price_income_elast       = 0,
+                lambda            = 1, 
+                gamma_Age       = 0, 
+                gamma_Gender    = 0,
+                gamma_Distance  = 0, 
+                gamma_Income =0,
+                gamma_Experts =0,
+                gamma_Cons =0,
+                gamma_BP =0,
+                gamma_Charity =0,
+                gamma_Certainty =0,
+                zeta_Q13   = 1, 
+                zeta_Q14   = 1, 
+                zeta_Q15   = 1, 
+                tau_Q13_1  =-2, 
+                tau_Q13_2  =-1, 
+                tau_Q13_3  = 1, 
+                tau_Q13_4  = 2, 
+                tau_Q14_1  =-2, 
+                tau_Q14_2  =-1, 
+                tau_Q14_3  = 1, 
+                tau_Q14_4  = 2, 
+                tau_Q15_1  =-2, 
+                tau_Q15_2  =-1, 
+                tau_Q15_3  = 1, 
+                tau_Q15_4  = 2)
+apollo_fixed = c()
+
+
+apollo_draws = list(
+  interDrawsType="halton",interNDraws=1000,          
+  interUnifDraws=c(),interNormDraws=c("eta"))
+
+
+apollo_randCoeff=function(apollo_beta, apollo_inputs){
+  randcoeff = list()
+  randcoeff[["LV"]] = gamma_Age*Age +gamma_Gender*Q1Gender + gamma_Distance*Distance + gamma_Income*Income + gamma_Experts*Experts + gamma_Cons*Consequentiality + gamma_BP*BP + gamma_Charity*Charity + gamma_Certainty*Q6ResearchCertainty + eta
+  return(randcoeff)}
+apollo_inputs = apollo_validateInputs()
+
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  P = list()
+  b_bid_v    = ( b_bid ) * ( Income / mean_income ) ^ Price_income_elast
+  op_settings1 = list(outcomeOrdered = Q13CurrentThreatToSelf, 
+                      V              = zeta_Q13*LV, 
+                      tau            = c(tau_Q13_1, tau_Q13_2, tau_Q13_3, tau_Q13_4),
+                      rows           = (Task==1),
+                      componentName  = "indic_Q13")
+  op_settings2 = list(outcomeOrdered = Q14FutureThreatToSelf, 
+                      V              = zeta_Q14*LV, 
+                      tau            = c(tau_Q14_1, tau_Q14_2, tau_Q14_3, tau_Q14_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q14")
+  op_settings3 = list(outcomeOrdered = Q15ThreatToEnvironment, 
+                      V              = zeta_Q15*LV, 
+                      tau            = c(tau_Q15_1, tau_Q15_2, tau_Q15_3, tau_Q15_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q15")
+  P[["indic_Q13"]] = apollo_op(op_settings1, functionality)
+  P[["indic_Q14"]] = apollo_op(op_settings2, functionality)
+  P[["indic_Q15"]] = apollo_op(op_settings3, functionality)
+  op_settings = list(outcomeOrdered= Q6ResearchResponse,
+                     V      = intercept + b_bid_v*Q6Bid+lambda*LV,
+                     tau    = list(-100,0),
+                     coding = c(-1,0,1))
+  P[['choice']] = apollo_op(op_settings, functionality)
+  # P = apollo_panelProd(P, apollo_inputs, functionality)
+  # P = apollo_prepareProb(P, apollo_inputs, functionality)
+  P = apollo_combineModels(P, apollo_inputs, functionality)
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+CVmodel6NTIncome = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+
+apollo_modelOutput(CVmodel6NTIncome,modelOutput_settings = list(printPVal=TRUE))
+saveRDS(CVmodel6NTIncome,"CVmodel6NTIncome.rds")
+
+
+CVmodel6NTIncomeunconditionals <- apollo_unconditionals(CVmodel6NTIncome,apollo_probabilities,apollo_inputs)
+median(-CVmodel6NTIncome$estimate["intercept"]/CVmodel6NTIncome$estimate["b_bid"]*(database$mean_income/database$Income)^CVmodel6NTIncome$estimate["Price_income_elast"]+CVmodel6NTIncomeunconditionals$LV)*100
+median(-CVmodel6NTIncome$estimate["intercept"]/CVmodel6NTIncome$estimate["b_bid"]*(database$mean_income/database$Income)^CVmodel6NTIncome$estimate["Price_income_elast"]+quantile(CVmodel6NTIncomeunconditionals$LV,c(0.45)))*100
+median(-CVmodel6NTIncome$estimate["intercept"]/CVmodel6NTIncome$estimate["b_bid"]*(database$mean_income/database$Income)^CVmodel6NTIncome$estimate["Price_income_elast"]+quantile(CVmodel6NTIncomeunconditionals$LV,c(0.55)))*100
+
+#### Q7 Normal SBDC ICLV Truncated CVmodel6NTIncome ####
+
+
+apollo_control = list(
+  modelName  = "CVmodel7NTIncome",
+  modelDescr = "CVmodel7NTIncome",
+  indivID    = "ID",
+  mixing     = TRUE,
+  nCores     = 4,
+  noValidation=TRUE)
+
+
+apollo_beta = c(intercept =0,b_bid    = 0,Price_income_elast       = 0,
+                lambda            = 1, 
+                gamma_Age       = 0, 
+                gamma_Gender    = 0,
+                gamma_Distance  = 0, 
+                gamma_Income =0,
+                gamma_Experts =0,
+                gamma_Cons =0,
+                gamma_BP =0,
+                gamma_Charity =0,
+                gamma_Certainty =0,
+                zeta_Q13   = 1, 
+                zeta_Q14   = 1, 
+                zeta_Q15   = 1, 
+                tau_Q13_1  =-2, 
+                tau_Q13_2  =-1, 
+                tau_Q13_3  = 1, 
+                tau_Q13_4  = 2, 
+                tau_Q14_1  =-2, 
+                tau_Q14_2  =-1, 
+                tau_Q14_3  = 1, 
+                tau_Q14_4  = 2, 
+                tau_Q15_1  =-2, 
+                tau_Q15_2  =-1, 
+                tau_Q15_3  = 1, 
+                tau_Q15_4  = 2)
+
+apollo_fixed = c()
+
+apollo_draws = list(
+  interDrawsType="halton",interNDraws=1000,          
+  interUnifDraws=c(),interNormDraws=c("eta"))
+
+apollo_randCoeff=function(apollo_beta, apollo_inputs){
+  randcoeff = list()
+  randcoeff[["LV"]] = gamma_Age*Age +gamma_Gender*Q1Gender + gamma_Distance*Distance + gamma_Income*Income + gamma_Experts*Experts + gamma_Cons*Consequentiality + gamma_BP*BP + gamma_Charity*Charity + gamma_Certainty*Q7TreatmentCertainty + eta
+  return(randcoeff)
+}
+
+
+apollo_inputs = apollo_validateInputs()
+
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  P = list()
+  op_settings1 = list(outcomeOrdered = Q13CurrentThreatToSelf, 
+                      V              = zeta_Q13*LV, 
+                      tau            = c(tau_Q13_1, tau_Q13_2, tau_Q13_3, tau_Q13_4),
+                      rows           = (Task==1),
+                      componentName  = "indic_Q13")
+  op_settings2 = list(outcomeOrdered = Q14FutureThreatToSelf, 
+                      V              = zeta_Q14*LV, 
+                      tau            = c(tau_Q14_1, tau_Q14_2, tau_Q14_3, tau_Q14_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q14")
+  op_settings3 = list(outcomeOrdered = Q15ThreatToEnvironment, 
+                      V              = zeta_Q15*LV, 
+                      tau            = c(tau_Q15_1, tau_Q15_2, tau_Q15_3, tau_Q15_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q15")
+  P[["indic_Q13"]] = apollo_op(op_settings1, functionality)
+  P[["indic_Q14"]] = apollo_op(op_settings2, functionality)
+  P[["indic_Q15"]] = apollo_op(op_settings3, functionality)
+  b_bid_v    = ( b_bid ) * ( Income / mean_income ) ^ Price_income_elast
+  op_settings = list(outcomeOrdered= Q7TreatmentResponse,
+                     V      = intercept + b_bid_v*Q7Bid+lambda*LV,
+                     tau    = list(-100,0),
+                     coding = c(-1,0,1))
+  P[['choice']] = apollo_op(op_settings, functionality)
+  # P = apollo_panelProd(P, apollo_inputs, functionality)
+  # P = apollo_prepareProb(P, apollo_inputs, functionality)
+  P = apollo_combineModels(P, apollo_inputs, functionality)
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+CVmodel7NTIncome = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+
+apollo_modelOutput(CVmodel7NTIncome,modelOutput_settings = list(printPVal=TRUE))
+saveRDS(CVmodel7NTIncome,"CVmodel7NTIncome.rds")
+xtable::xtable(round(data.frame(apollo_modelOutput(CVmodel7NTIncome,modelOutput_settings = list(printPVal=TRUE))),3),digits=3)
+
+CVmodel7NTIncomeunconditionals <- apollo_unconditionals(CVmodel7NTIncome,apollo_probabilities,apollo_inputs)
+median(-CVmodel7NTIncome$estimate["intercept"]/CVmodel7NTIncome$estimate["b_bid"]*(database$mean_income/database$Income)^CVmodel7NTIncome$estimate["Price_income_elast"]+CVmodel7NTIncomeunconditionals$LV)*100
+median(-CVmodel7NTIncome$estimate["intercept"]/CVmodel7NTIncome$estimate["b_bid"]*(database$mean_income/database$Income)^CVmodel7NTIncome$estimate["Price_income_elast"]+quantile(CVmodel7NTIncomeunconditionals$LV,c(0.45)))*100
+median(-CVmodel7NTIncome$estimate["intercept"]/CVmodel7NTIncome$estimate["b_bid"]*(database$mean_income/database$Income)^CVmodel7NTIncome$estimate["Price_income_elast"]+quantile(CVmodel7NTIncomeunconditionals$LV,c(0.55)))*100
+
+
+
+
 #### Prediction Accuracy #### 
 
 
@@ -1713,20 +1928,228 @@ round(100/length(CVQ7_Predictions$Match)*length(CVQ7_Predictions$Match[CVQ7_Pred
 # 47.719
 
 
-#### CV WTP:  ####
+# Save unconditionals:
+saveRDS(CVunconditionals, file="CVunconditionalsQ6T.rds")
+saveRDS(CVunconditionals6F, file="CVunconditionalsQ6F.rds")
+saveRDS(CVunconditionals7, file="CVunconditionals7T.rds")
+saveRDS(CVunconditionals7F, file="CVunconditionals7F.rds")
+
+
+#### Q6 ICLV WTP TRUNC WTP:  ####
 
 ## Get the unconditional/conditional values of parameters: 
 CVunconditionals <- apollo_unconditionals(CVmodel6NT,apollo_probabilities,apollo_inputs)
-CVconditionals <- apollo_conditionals(CVmodel6NT,apollo_probabilities,apollo_inputs)
 
+## Use formula:
+Q6ICLVWTP <- apply((-CVmodel6NT$estimate["intercept"]/CVmodel6NT$estimate["b_bid"]+CVunconditionals$LV)*100,MARGIN = 1,FUN = mean)
 
-median((CVmodel6NT$estimate["intercept"]+CVunconditionals$LV/CVunconditionals$b_bid))
+median(-CVmodel6NT$estimate["intercept"]/CVmodel6NT$estimate["b_bid"]+CVunconditionals$LV)*100
 
-# This approach works for the CE so maybe for the CV:
-median(-CVmodel6NT$estimate["intercept"]+(CVunconditionals$LV)/CVmodel6NT$estimate["b_bid"])
-median((CVunconditionals$b_Performance+CVunconditionals$LV/CVunconditionals$b_Price))
-median((CVunconditionals$b_Emission+CVunconditionals$LV/CVunconditionals$b_Price))
-
-
-# To validate with DCchoice package:
+## To validate with DCchoice package:
 summary(sbchoice(Q6ResearchResponse ~ 1  |Q6Bid , data = database,dist="normal"))
+
+# Confidence intervals:
+median(-CVmodel6NT$estimate["intercept"]/CVmodel6NT$estimate["b_bid"]+quantile(CVunconditionals$LV,c(0.45)))*100
+median(-CVmodel6NT$estimate["intercept"]/CVmodel6NT$estimate["b_bid"]+quantile(CVunconditionals$LV,c(0.5)))*100
+median(-CVmodel6NT$estimate["intercept"]/CVmodel6NT$estimate["b_bid"]+quantile(CVunconditionals$LV,c(0.55)))*100
+
+
+
+#### Q7 ICLV WTP TRUNC WTP:  ####
+
+## Get the unconditional/conditional values of parameters: 
+CVunconditionals7 <- apollo_unconditionals(CVmodel7NT,apollo_probabilities,apollo_inputs)
+
+## Use formula:
+Q7ICLVWTP <-apply((-CVmodel7NT$estimate["intercept"]/CVmodel7NT$estimate["b_bid"]+CVunconditionals7$LV)*100,MARGIN = 1,FUN = mean)
+  
+median(-CVmodel7NT$estimate["intercept"]/CVmodel7NT$estimate["b_bid"]+CVunconditionals7$LV)*100
+
+## To validate with DCchoice package:
+database$Q7TreatmentResponse <- database$Q7TreatmentResponse-1
+summary(sbchoice(Q7TreatmentResponse ~ 1  |Q7Bid , data = database,dist="normal"))
+
+# Confidence intervals:
+median(-CVmodel7NT$estimate["intercept"]/CVmodel7NT$estimate["b_bid"]+quantile(CVunconditionals7$LV,c(0.45)))*100
+mean(-CVmodel7NT$estimate["intercept"]/CVmodel7NT$estimate["b_bid"]+quantile(CVunconditionals7$LV,c(0.5)))*100
+mean(-CVmodel7NT$estimate["intercept"]/CVmodel7NT$estimate["b_bid"]+quantile(CVunconditionals7$LV,c(0.55)))*100
+
+
+#### Q6 ICLV WTP FULL WTP:  ####
+
+## Get the unconditional/conditional values of parameters: 
+CVunconditionals6F <- apollo_unconditionals(CVmodel6N,apollo_probabilities,apollo_inputs)
+
+## Use formula:
+Q6ICLVWTPFull <-apply((-CVmodel6N$estimate["intercept"]/CVmodel6N$estimate["b_bid"]+CVunconditionals6F$LV)*100,MARGIN = 1,FUN = mean)
+
+## Use formula:
+median(-CVmodel6N$estimate["intercept"]/CVmodel6N$estimate["b_bid"]+CVunconditionals6F$LV)*100
+
+## To validate with DCchoice package:
+summary(sbchoice(Q6ResearchResponse ~ 1  |Q6Bid , data = database,dist="normal"))
+# Confidence intervals:
+median(-CVmodel6N$estimate["intercept"]/CVmodel6N$estimate["b_bid"]+quantile(CVunconditionals6F$LV,c(0.45)))*100
+median(-CVmodel6N$estimate["intercept"]/CVmodel6N$estimate["b_bid"]+quantile(CVunconditionals6F$LV,c(0.5)))*100
+median(-CVmodel6N$estimate["intercept"]/CVmodel6N$estimate["b_bid"]+quantile(CVunconditionals6F$LV,c(0.55)))*100
+
+
+#### Q7 ICLV WTP FULL WTP:  ####
+
+## Get the unconditional/conditional values of parameters: 
+CVunconditionals7F <- apollo_unconditionals(CVmodel7N,apollo_probabilities,apollo_inputs)
+
+## Use formula:
+Q7ICLVWTPFull <-apply((-CVmodel7N$estimate["intercept"]/CVmodel7N$estimate["b_bid"]+CVunconditionals7F$LV)*100,MARGIN = 1,FUN = mean)
+
+
+## Use formula:
+median(-CVmodel7N$estimate["intercept"]/CVmodel7N$estimate["b_bid"]+CVunconditionals7F$LV)*100
+
+## To validate with DCchoice package:
+database$Q7TreatmentResponse <- database$Q7TreatmentResponse-1
+summary(sbchoice(Q7TreatmentResponse ~ 1  |Q7Bid , data = database,dist="normal"))
+
+# Confidence intervals:
+median(-CVmodel7N$estimate["intercept"]/CVmodel7N$estimate["b_bid"]+quantile(CVunconditionals7F$LV,c(0.45)))*100
+median(-CVmodel7N$estimate["intercept"]/CVmodel7N$estimate["b_bid"]+quantile(CVunconditionals7F$LV,c(0.5)))*100
+median(-CVmodel7N$estimate["intercept"]/CVmodel7N$estimate["b_bid"]+quantile(CVunconditionals7F$LV,c(0.55)))*100
+
+
+
+
+## Experimental:
+CV6LV = data.frame(slice(data.frame((apply(X = CVunconditionals$LV,MARGIN = 1,FUN = mean))),rep(1:n(),each=8)))
+CV7LV = data.frame(slice(data.frame((apply(X = CVunconditionals7$LV,MARGIN = 1,FUN = mean))),rep(1:n(),each=8)))
+Attitudes <- (data.frame((apply(cbind(Full_Full$Q13CurrentThreatToSelf,Full_Full$Q14FutureThreatToSelf,Full_Full$Q15ThreatToEnvironment),MARGIN = 1,FUN = mean))))
+colnames(CV6LV) <- "CV6LV"
+colnames(CV7LV) <- "CV7LV"
+colnames(Attitudes) <- "MeanAttitudes"
+Full_Full <- cbind(Full_Full,CV6LV,CV7LV, Attitudes)
+
+ggplot(Full_Full, aes(x=CV7LV, y=Q7WTP)) + geom_point()
+
+
+# Relationship between latent variables and attitudes
+ggplot(Full_Full) + 
+geom_smooth(aes(x=MeanAttitudes,y=CV6LV,color="red"),method="lm",se=T) +
+  geom_smooth(aes(x=MeanAttitudes,y=CV7LV,color="blue"),method="lm",se=T) +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("Q7", "Q6"))+
+  ggtitle("WTP by mean attitudes") +
+  scale_x_continuous(name="Likert scale levels",breaks = 1:5, 
+                     labels=c(1,2,3,4,5))+
+  scale_y_continuous(name="LV",
+                     breaks=waiver(),limits = c(-2.5,2.5),n.breaks = 10)+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 10)) +
+  labs(x = "Likert scale levels",y="LV")
+
+
+# WTP vs latent pro-environmental attitudes
+ggplot(Full_Full) + 
+  geom_smooth(aes(y=Q6WTP,x=CV6LV,color="red"),method="lm",se=T) +
+  geom_smooth(aes(y=Q7WTP,x=CV7LV,color="blue"),method="lm",se=T) +
+  scale_color_discrete(name = "Lines", 
+                       labels = c("Q7", "Q6"))+
+  ggtitle("WTP by mean attitudes") +
+  scale_y_continuous(name="WTP in £",
+                     breaks=waiver(),limits = c(10,75),
+                     n.breaks = 10, labels = function(x) paste0("£",x))+
+  scale_x_continuous(name="LV",
+                     breaks=waiver(),limits = c(-1,2.5),n.breaks = 5)+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = 10)) +
+  labs(x = "Likert scale levels",y="LV")
+
+# Replicating Abate et al (2020) box and whiskers:
+Full_Full$quantilegroup <- (ifelse(Full_Full$CV6LV < quantile(Full_Full$CV6LV, probs = c(0.10,0.25,0.50,0.75,0.90))[1],1,ifelse(Full_Full$CV6LV < quantile(Full_Full$CV6LV, probs = c(0.10,0.25,0.50,0.75,0.90))[2],2,ifelse(Full_Full$CV6LV < quantile(Full_Full$CV6LV, probs = c(0.10,0.25,0.50,0.75,0.90))[3],3,ifelse(Full_Full$CV6LV < quantile(Full_Full$CV6LV, probs = c(0.10,0.25,0.50,0.75,0.90))[4],4,5)))))
+Full_Full$quantilegroupQ7 <- (ifelse(Full_Full$CV7LV < quantile(Full_Full$CV7LV, probs = c(0.10,0.25,0.50,0.75,0.90))[1],1,ifelse(Full_Full$CV7LV < quantile(Full_Full$CV7LV, probs = c(0.10,0.25,0.50,0.75,0.90))[2],2,ifelse(Full_Full$CV7LV < quantile(Full_Full$CV7LV, probs = c(0.10,0.25,0.50,0.75,0.90))[3],3,ifelse(Full_Full$CV7LV < quantile(Full_Full$CV7LV, probs = c(0.10,0.25,0.50,0.75,0.90))[4],4,5)))))
+# quantile(Full_Full$CV6LV, probs = c(0.10,0.25,0.50,0.75,0.90))
+
+
+Q6ICLVGraph <- ggplot(Full_Full, aes(quantilegroup, Q6WTP)) +   geom_boxplot(aes(group = quantilegroup),varwidth = TRUE)+
+  scale_y_continuous(name="WTP in £",
+                     breaks=waiver(),limits = c(10,60),
+                     n.breaks = 10, labels = function(x) paste0("£",x))+
+  scale_x_discrete(name="Percentiles of latent variable",labels = c("10%","25%","50%","75%","90%"), limits=c(1,2,3,4,5))+
+  ggtitle("WTP by the Q6 precautionary attitudes.")+
+  geom_text(x = 1, y =7+round(mean(Full_Full$Q6WTP[Full_Full$quantilegroup==1]),2) , label = paste0("Mean: £",round(mean(Full_Full$Q6WTP[Full_Full$quantilegroup==1]),2)),color="black")+
+  geom_text(x = 2, y =7+round(mean(Full_Full$Q6WTP[Full_Full$quantilegroup==2]),2) , label = paste0("Mean: £",round(mean(Full_Full$Q6WTP[Full_Full$quantilegroup==2]),2)),color="black")+
+  geom_text(x = 3, y =7+round(mean(Full_Full$Q6WTP[Full_Full$quantilegroup==3]),2) , label = paste0("Mean: £",round(mean(Full_Full$Q6WTP[Full_Full$quantilegroup==3]),2)),color="black")+
+  geom_text(x = 4, y =7+round(mean(Full_Full$Q6WTP[Full_Full$quantilegroup==4]),2) , label = paste0("Mean: £",round(mean(Full_Full$Q6WTP[Full_Full$quantilegroup==4]),2)),color="black")+
+  geom_text(x = 5, y =7+round(mean(Full_Full$Q6WTP[Full_Full$quantilegroup==5]),2) , label = paste0("Mean: £",round(mean(Full_Full$Q6WTP[Full_Full$quantilegroup==5]),2)),color="black")
+
+
+
+Q7ICLVGraph <- ggplot(Full_Full, aes(quantilegroupQ7, Q7WTP)) +   geom_boxplot(aes(group = quantilegroupQ7),varwidth = TRUE)+
+  scale_y_continuous(name="WTP in £",
+                     breaks=waiver(),limits = c(10,60),
+                     n.breaks = 10, labels = function(x) paste0("£",x))+
+  scale_x_discrete(name="Percentiles of latent variable",labels = c("10%","25%","50%","75%","90%"), limits=c(1,2,3,4,5))+
+  ggtitle("WTP by the Q7 precautionary attitudes.")+
+  geom_text(x = 1, y =7+round(mean(Full_Full$Q7WTP[Full_Full$quantilegroupQ7==1]),2) , label = paste0("Mean: £",round(mean(Full_Full$Q7WTP[Full_Full$quantilegroupQ7==1]),2)),color="black")+
+  geom_text(x = 2, y =7+round(mean(Full_Full$Q7WTP[Full_Full$quantilegroupQ7==2]),2) , label = paste0("Mean: £",round(mean(Full_Full$Q7WTP[Full_Full$quantilegroupQ7==2]),2)),color="black")+
+  geom_text(x = 3, y =7+round(mean(Full_Full$Q7WTP[Full_Full$quantilegroupQ7==3]),2) , label = paste0("Mean: £",round(mean(Full_Full$Q7WTP[Full_Full$quantilegroupQ7==3]),2)),color="black")+
+  geom_text(x = 4, y =7+round(mean(Full_Full$Q7WTP[Full_Full$quantilegroupQ7==4]),2) , label = paste0("Mean: £",round(mean(Full_Full$Q7WTP[Full_Full$quantilegroupQ7==4]),2)),color="black")+
+  geom_text(x = 5, y =7+round(mean(Full_Full$Q7WTP[Full_Full$quantilegroupQ7==5]),2) , label = paste0("Mean: £",round(mean(Full_Full$Q7WTP[Full_Full$quantilegroupQ7==5]),2)),color="black")
+  
+
+grid.arrange(Q6ICLVGraph,Q7ICLVGraph)
+
+#### Calculating ICLV WTP for histogram ####
+## Plotting a histogram for the precautionary premia
+Q6TruncICLVWTP <- data.frame((-CVmodel6NT$estimate["intercept"]/CVmodel6NT$estimate["b_bid"]+apply(X=CVunconditionals$LV,MARGIN = 1,FUN = mean))*100)
+Q6FullICLVWTP <- data.frame((-CVmodel6N$estimate["intercept"]/CVmodel6N$estimate["b_bid"]+apply(X=CVunconditionals6F$LV,MARGIN = 1,FUN = mean))*100)
+Q7FullICLVWTP <- data.frame((-CVmodel7N$estimate["intercept"]/CVmodel7N$estimate["b_bid"]+apply(X=CVunconditionals7F$LV,MARGIN = 1,FUN = mean))*100)
+Q7TruncICLVWTP <- data.frame((-CVmodel7NT$estimate["intercept"]/CVmodel7NT$estimate["b_bid"]+apply(X=CVunconditionals7$LV,MARGIN = 1,FUN = mean))*100)
+ICLVPrecautionFull <-Q7FullICLVWTP-Q6FullICLVWTP
+ICLVPrecautionTrunc <- Q7TruncICLVWTP - Q6TruncICLVWTP 
+# Full_Full$ICLVPrecautionF<- slice(.data = ICLVPrecautionTrunc,rep(1:n(), each = 8))
+
+Full_Final <- cbind(Full_Final,ICLVPrecautionFull)
+Full_Full <- cbind(Full_Full,ICLVPrecautionTrunc)
+names(Full_Final$X..CVmodel7N.estimate..intercept...CVmodel7N.estimate..b_bid.....) <- ICLVPrecautionFull
+names(Full_Full$X..CVmodel7NT.estimate..intercept...CVmodel7NT.estimate..b_bid.....) <- c("ICLVPrecautionTrunc")
+Full_Full <- rename(ICLVPrecaution = X..CVmodel7NT.estimate..intercept...CVmodel7NT.estimate..b_bid.....,Full_Full)
+Full_Final <- rename(ICLVPrecautionF = X..CVmodel7N.estimate..intercept...CVmodel7N.estimate..b_bid.....,Full_Final)
+
+# Plotting histograms of the precautionary premium
+fun = function(x, mean, sd, n){
+  n * dnorm(x = x, mean = mean, sd = sd)
+}
+
+#### Making ICLVHist2 from C4 and P2 #### 
+SBDCPRecaution <- ggplot(Full_Final, aes(x=Precaution)) + 
+  geom_histogram(aes(y = ..density..),color="black", fill="white",binwidth = 1)+
+  stat_function(fun=fun, 
+                args = with(Full_Final, c(mean = mean(Precaution), sd = sd(Precaution), n= 1)))+
+  scale_x_continuous(name="Precautionary Premium (Q7 WTP - Q6 WTP) in £",breaks=waiver(),limits = c(0,100),
+                     n.breaks = 10, labels = function(x) paste0("£",x))+
+  ggtitle("Precautionary Premium from SBDC. (Full Sample).")
+
+SBDCPRecaution2 <- ggplot(Full_Full, aes(x=Precaution)) + 
+  geom_histogram(aes(y = ..density..),color="black", fill="white",binwidth = 1)+
+  stat_function(fun=fun, 
+                args = with(Full_Final, c(mean = mean(Precaution), sd = sd(Precaution), n= 1)))+
+  scale_x_continuous(name="Precautionary Premium (Q7 WTP - Q6 WTP) in £",breaks=waiver(),limits = c(0,100),
+                     n.breaks = 10, labels = function(x) paste0("£",x))+
+  ggtitle("Precautionary Premium from SBDC (Truncated Sample).")
+
+ICLVHistF <- ggplot(Full_Final, aes(x=ICLVPrecautionF)) + 
+  geom_histogram(aes(y = ..density..),color="black", fill="white",binwidth = 1)+
+  stat_function(fun=fun, 
+                args = with(Full_Final, c(mean = mean(ICLVPrecautionF), sd = sd(ICLVPrecautionF), n= 1)))+
+  scale_x_continuous(name="Precautionary Premium (Q7 WTP - Q6 WTP) in £",breaks=waiver(),limits = c(-10,100),
+                     n.breaks = 10,labels = function(x) paste0("£",x))+
+  ggtitle("Precautionary Premium from (Full Sample).")
+
+ICLVHistT <-ggplot(Full_Full, aes(x=(ICLVPrecautionF))) + 
+  geom_histogram(aes(y = ..density..),color="black", fill="white",binwidth = 1)+
+  stat_function(fun=fun, 
+                args = with(Full_Final, c(mean = mean(Full_Full$ICLVPrecautionF), sd = sd(Full_Full$ICLVPrecautionF), n= 1)))+
+  scale_x_continuous(name="Precautionary Premium (Q7 WTP - Q6 WTP) in £",breaks=waiver(),limits = c(-10,100),
+                     n.breaks = 10,labels = function(x) paste0("£",x))+
+  ggtitle("Precautionary Premium from (Truncated Sample).")
+
+grid.arrange(SBDCPRecaution,SBDCPRecaution2,ICLVHistF, ICLVHistT)
