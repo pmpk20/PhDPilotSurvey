@@ -117,10 +117,10 @@ wilcox.test(x=Full_Final$EmissionCoef[Full_Final$Q25Understanding < (median(Full
 
 
 ## Rule 3) Protest vote testing: Shows there is a significant difference
-wilcox.test(x=Full_Final$Q6WTP[Full_Final$Protestors==0],y=Full_Final$Q6WTP[Full_Final$Protestors==1]) ## Outcome: NULL
-wilcox.test(x=Full_Final$Q7WTP[Full_Final$Protestors==0],y=Full_Final$Q7WTP[Full_Final$Protestors==1]) ## Outcome: Alternative of =/= 
-wilcox.test(x=Full_Final$PerformanceCoef[Full_Final$Protestors==0],y=Full_Final$PerformanceCoef[Full_Final$Protestors==1]) ## Outcome: Alternative of =/=
-wilcox.test(x=Full_Final$EmissionCoef[Full_Final$Protestors==0],y=Full_Final$EmissionCoef[Full_Final$Protestors==1]) ## Outcome: Alternative of =/= 
+wilcox.test(x=Full_Final$Q6WTP[Full_Final$Protesters==0],y=Full_Final$Q6WTP[Full_Final$Protesters==1]) ## Outcome: NULL
+wilcox.test(x=Full_Final$Q7WTP[Full_Final$Protesters==0],y=Full_Final$Q7WTP[Full_Final$Protesters==1]) ## Outcome: Alternative of =/= 
+wilcox.test(x=Full_Final$PerformanceCoef[Full_Final$Protesters==0],y=Full_Final$PerformanceCoef[Full_Final$Protesters==1]) ## Outcome: Alternative of =/=
+wilcox.test(x=Full_Final$EmissionCoef[Full_Final$Protesters==0],y=Full_Final$EmissionCoef[Full_Final$Protesters==1]) ## Outcome: Alternative of =/= 
 
 
 ## Rule 4) Dominated scenario testing: Shows there is a significant difference
@@ -640,59 +640,66 @@ ConsBarQ7 <- ggplot(Full_Final, aes((Q20Consequentiality), Q7WTP)) +
 #### Section 5: Protest Analysis ####
 
 
-## Setting up data using visually-identified protestors:
+## Setting up data using visually-identified Protesters:
 FullSurvey3 <- data.frame(read.csv("FullSurvey.csv")) 
-Protestors <- c(24,33,44,61,121,127,182,200,211,219,239,251,275,306,320,326,341,360,363,371,399,464,467,479,480,506,579,591,649,654,931,932,935,953,989,1002,1011,1024,14,35,39,54,79,106,130,146,149,155,163,203,214,215,217,244,246,249,252,267,268,282,290,327,343,362,364,374,380,393,398,407,414,425,426,433,477,519,524,536,543,545,547,557,567,575,589,590,595,614,617,629,637,638,639,651,665,674,680,915,933,940,950,959,960,975,978,996,1026,1027,1028)
-Protestors <- ifelse(FullSurvey3$ï..Respondent %in%  Protestors== TRUE, 1,0)
-Full_Final <- cbind(Full_Final,slice(.data = data.frame(Protestors),rep(1:n(), each = 8)))
+Protesters <- c(14,24,33,39,44,61,79,106,121,130,149,163,182,200,203,211,214,215,217,
+                239,244,249,251,252,267,282,290,306,320,326,327,341,343,362,363,364,
+                371,374,380,393,399,407,414,425,426,464,467,477,479,480,519,524,536,
+                545,547,557,567,579,590,591,595,614,629,639,649,651,654,665,674,680,
+                915,931,932,933,935,940,950,953,959,960,975,978,989,996,1002,1011,1024,1026,1027,1028)
+Protesters <- ifelse(FullSurvey3$ï..Respondent %in%  Protesters== TRUE, 1,0)
+Full_Final <- cbind(Full_Final,slice(.data = data.frame(Protesters),rep(1:n(), each = 8)))
+# Just in case need to override:
+# Full_Final$Protesters <- as.integer(unlist(slice(.data = data.frame(Protesters),rep(1:n(), each = 8))))
 
-ProtestQ6 <- ggplot(Full_Final, aes((Protestors), Q6WTP)) + 
+
+ProtestQ6 <- ggplot(Full_Final, aes((Protesters), Q6WTP)) + 
   stat_summary(fun=mean, geom="col")+
-  scale_x_discrete(name="Protestors",limits=c(0,1),
-                   labels=c("No protest\n (N = 561)","Protestor\n (N = 109)"))+
+  scale_x_discrete(name="Protesters",limits=c(0,1),
+                   labels=c("No protest\n (N = 580)","Protester\n (N = 90)"))+
   scale_y_continuous(name="Q6WTP",
                      breaks=waiver(),n.breaks = 10, labels = function(x) paste0("£",x))+
-  geom_text(x = 0, y = 20, label = paste0("Mean: £",round(mean(Full_Final$Q6WTP[Full_Final$Protestors==0]),2)), color="white")+
-  geom_text(x = 1, y = 20, label = paste0("Mean: £",round(mean(Full_Final$Q6WTP[Full_Final$Protestors==1]),2)), color="white")+ 
+  geom_text(x = 0, y = 20, label = paste0("Mean: £",round(mean(Full_Final$Q6WTP[Full_Final$Protesters==0]),2)), color="white")+
+  geom_text(x = 1, y = 20, label = paste0("Mean: £",round(mean(Full_Final$Q6WTP[Full_Final$Protesters==1]),2)), color="white")+ 
   ggtitle("Mean Q6 WTP by protesting.")
 
-ProtestQ7 <- ggplot(Full_Final, aes((Protestors), Q7WTP)) + 
+ProtestQ7 <- ggplot(Full_Final, aes((Protesters), Q7WTP)) + 
   stat_summary(fun=mean, geom="col")+
-  scale_x_discrete(name="Protestors",limits=c(0,1),
-                   labels=c("No protest\n (N = 561)","Protestor\n (N = 109)"))+
+  scale_x_discrete(name="Protesters",limits=c(0,1),
+                   labels=c("No protest\n (N = 580)","Protester\n (N = 90)"))+
   scale_y_continuous(name="Q7WTP",
                      breaks=waiver(),n.breaks = 10, labels = function(x) paste0("£",x))+
-  geom_text(x = 0, y = 20, label = paste0("Mean: £",round(mean(Full_Final$Q7WTP[Full_Final$Protestors==0]),2)), color="white")+
-  geom_text(x = 1, y = 20, label = paste0("Mean: £",round(mean(Full_Final$Q7WTP[Full_Final$Protestors==1]),2)), color="white")+ 
+  geom_text(x = 0, y = 20, label = paste0("Mean: £",round(mean(Full_Final$Q7WTP[Full_Final$Protesters==0]),2)), color="white")+
+  geom_text(x = 1, y = 20, label = paste0("Mean: £",round(mean(Full_Final$Q7WTP[Full_Final$Protesters==1]),2)), color="white")+ 
   ggtitle("Mean Q7 WTP by protesting.")
 
 
-ProtestE <- ggplot(Full_Final, aes((Protestors), EmissionCoef)) + 
+ProtestE <- ggplot(Full_Final, aes((Protesters), EmissionCoef)) + 
   stat_summary(fun=mean, geom="col")+
-  scale_x_discrete(name="Protestors",limits=c(0,1, 2),
-                   labels=c("No protest\n (N = 561)","Protestor\n (N = 109)"))+
-  scale_y_continuous(name="Emissions MWTP",
-                     breaks=waiver(),n.breaks = 10, labels = function(x) paste0("£",x))+
-  geom_text(x = 0, y = 0.02, label = paste0("Mean: £",round(mean(Full_Final$EmissionCoef[Full_Final$Protestors==0]),3)), color="white")+
-  geom_text(x = 1, y = 0.01, label = paste0("Mean: -£",abs(round(mean(Full_Final$EmissionCoef[Full_Final$Protestors==1]),3))), color="black")+
+  scale_x_discrete(name="Protesters",limits=c(0,1, 2),
+                   labels=c("No protest\n (N = 580)","Protester\n (N = 90)"))+
+  scale_y_continuous(name="Emissions MWTP", breaks=waiver(),
+                     limits=c(0,1),n.breaks = 5, labels = function(x) paste0("£",x))+
+  geom_text(x = 0, y = 0.2, label = paste0("Mean: £",abs(round(mean(Full_Final$EmissionCoef[Full_Final$Protesters==0]),3))), color="black")+
+  geom_text(x = 1, y = 0.2, label = paste0("Mean: £",abs(round(mean(Full_Final$EmissionCoef[Full_Final$Protesters==1]),3))), color="black")+
   ggtitle("Mean Emission MWTP by protesting")
 
-ProtestP <- ggplot(Full_Final, aes((Protestors), PerformanceCoef)) + 
+ProtestP <- ggplot(Full_Final, aes((Protesters), y=as.numeric(abs(PerformanceCoef)))) + 
   stat_summary(fun=mean, geom="col")+
-  scale_x_discrete(name="Protestors",limits=c(0,1, 2),
-                   labels=c("No protest\n (N = 561)","Protestor\n (N = 109)"))+
-  scale_y_continuous(name="Performance MWTP",
-                     breaks=waiver(),n.breaks = 10, labels = function(x) paste0("£",x))+
-  geom_text(x = 0, y = -0.02, label = paste0("Mean: -£",abs(round(mean(Full_Final$PerformanceCoef[Full_Final$Protestors==0]),3))), color="white")+
-  geom_text(x = 1, y = -0.02, label = paste0("Mean: £",abs(round(mean(Full_Final$PerformanceCoef[Full_Final$Protestors==1]),3))), color="black")+
-  ggtitle("Mean Performance MWTP by protesting")
+  scale_x_discrete(name="Protesters",limits=c(0,1, 2),
+                   labels=c("No protest\n (N = 580)","Protester\n (N = 90)"))+
+  scale_y_continuous(name="| Performance MWTP |",breaks=waiver(),
+                     limits=c(0,1),n.breaks = 5, labels = function(x) paste0("£",x))+
+  geom_text(x = 0, y = 0.2, label = paste0("Mean: £",abs(round(mean(Full_Final$PerformanceCoef[Full_Final$Protesters==0]),3))), color="black")+
+  geom_text(x = 1, y = 0.2, label = paste0("Mean: £",abs(round(mean(Full_Final$PerformanceCoef[Full_Final$Protesters==1]),3))), color="black")+
+  ggtitle("Absolute Mean Performance MWTP by protesting")
 
 grid.arrange(ProtestE, ProtestP)
 grid.arrange(ProtestQ6, ProtestQ7)
 
 ### Plotting protest effects:
 ProtestGraph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) + 
-  facet_grid( ~ Protestors, labeller = as_labeller(c(
+  facet_grid( ~ Protesters, labeller = as_labeller(c(
     `0` = "Protest\n (N = 561)",
     `1` = "Included\n (N = 109)")))+
   geom_smooth(aes(y=Q6WTP,color="blue"),method="lm",se=F) +
@@ -709,20 +716,20 @@ ProtestGraph <- ggplot(Full_Final, aes(x=as.numeric(Q24AIncome))) +
   labs(x = "Protesting",y="WTP")
 
 
-## Comparing the distribution of WTP by protestors and non-protestors
-grid.arrange(ggplot(Full_Final[Full_Final$Protestors==0,], aes(x=Full_Final$Q6WTP[Full_Final$Protestors ==0])) + 
+## Comparing the distribution of WTP by Protesters and non-Protesters
+grid.arrange(ggplot(Full_Final[Full_Final$Protesters==0,], aes(x=Full_Final$Q6WTP[Full_Final$Protesters ==0])) + 
                geom_histogram(color="black", fill="white",bins = 50)+
                scale_x_continuous(breaks=waiver(),limits = c(0,50),
                                   n.breaks = 10)+
-               ggtitle("Histogram of CV Q6 WTP for protestors."),
-             ggplot(Full_Final[Full_Final$Protestors==1,], aes(x=Full_Final$Q6WTP[Full_Final$Protestors ==1])) + 
+               ggtitle("Histogram of CV Q6 WTP for Protesters."),
+             ggplot(Full_Final[Full_Final$Protesters==1,], aes(x=Full_Final$Q6WTP[Full_Final$Protesters ==1])) + 
                geom_histogram(color="black", fill="white",bins = 50)+
                scale_x_continuous(breaks=waiver(),limits = c(0,50),
                                   n.breaks = 10)+
-               ggtitle("Histogram of CV Q6 WTP for non-protestors."))
+               ggtitle("Histogram of CV Q6 WTP for non-Protesters."))
 
 ### Plotting protest effects a different way:
-ProtestGraph <- ggplot(Full_Final, aes(x=as.numeric(Protestors))) +
+ProtestGraph <- ggplot(Full_Final, aes(x=as.numeric(Protesters))) +
   geom_col(aes(y=Q6WTP)) +
   ggtitle("WTP by protesting") +
   theme(plot.title = element_text(hjust = 0.5),
@@ -937,39 +944,32 @@ ggplot()+
 
 
 ## Demand Curve: Plotting choice versus price levels 
-PriceCurve <- ggplot(Fulls, aes(Choice,Price_B)) + 
-  geom_point(shape = 1) +
-  geom_smooth(method="lm",se=T) +
-  ggtitle("Demand curve") +
-  theme(plot.title = element_text(hjust = 0.5),
-        plot.margin=unit(c(1,1,-0.5,1),"cm"),
-        axis.title.y = element_text(size = 10)) +
+PriceCurve <- ggplot(Fulls, aes(Choice,Price_B)) +
+  geom_smooth(method="loess",se=T) +
+  ggtitle("Levels vs likelihood (Price)")+
   labs(x = "Likelihood of accepting option B",y="Attribute levels")+
-  scale_x_continuous(breaks = 0:1, labels=c(0,1))+
-  scale_y_continuous(breaks = 0:3, labels=c(0.5,1.0,2.5,5.0))
+  scale_x_continuous(breaks = 0:1, labels=c(0,1))+ 
+  scale_y_continuous(name="Attribute Levels",breaks = waiver(), n.breaks=6, labels=c(0,0.5,1.0,2.5,5.0))
 
 
 ## Emission Curve: Plotting choice versus emission levels 
 EmissionsCurve <- ggplot(Fulls, aes(Choice,Emission_B)) + 
-  geom_point(shape = 1) +
-  geom_smooth(method="lm",se=T) +
-  ggtitle("Emission curve") +
-  theme(plot.title = element_text(hjust = 0.5),
-        plot.margin=unit(c(1,1,-0.5,1),"cm"),
-        axis.title.y = element_text(size = 10)) +
-  labs(x = "Likelihood of accepting option B",y="Attribute levels")+
-  scale_x_continuous(breaks = 0:1, labels=c(0,1))
+  geom_smooth(method="loess",se=T) +
+  ggtitle("Levels vs likelihood (Emissions)") +
+labs(x = "Likelihood of accepting option B",y="Attribute levels")+
+  scale_x_continuous(breaks = 0:1, labels=c(0,1))+ 
+  scale_y_continuous(name="Attribute Levels",breaks = waiver(), 
+                     n.breaks=4, labels=c(0.0,0.1,0.4,0.9))
 
 ## Performance Curve: Plotting choice versus performance levels 
 PerformanceCurve <- ggplot(Fulls, aes(Choice,Performance_B)) + 
-  geom_point(shape = 1) +
-  geom_smooth(method="lm",se=T) +
-  ggtitle("Performance curve") +
-  theme(plot.title = element_text(hjust = 0.5),
-        plot.margin=unit(c(1,1,-0.5,1),"cm"),
-        axis.title.y = element_text(size = 10)) +
+  geom_smooth(method="loess",se=T) +
+  ggtitle("Levels vs likelihood (Performance)") +
   labs(x = "Likelihood of accepting option B",y="Attribute levels")+
-  scale_x_continuous(breaks = 0:1,labels=c(0,1))
+  scale_x_continuous(breaks = 0:1,labels=c(0,1))+
+  scale_y_continuous(name="Attribute Levels",breaks = waiver(), 
+                     n.breaks=5, labels=c(0.0,0.05,0.1,0.5,1))
+
 
 grid.arrange(PriceCurve, EmissionsCurve, PerformanceCurve)
 
@@ -1226,7 +1226,22 @@ Q22GraphC <- ggplot(Full_Final, aes(x=Q22Education)) +
                      n.breaks = 5,labels=c("Prefer not to say\n(N = 15)","GCSE\n(N = 147)","A level\n(N = 178)","Bachelor\n(N = 212)","Postgraduate\n(N = 118)"))+
   scale_y_continuous(name="Income",breaks = waiver(), n.breaks=5,
                      limits=c(0,5000),labels = function(x) paste0("£",x))+
-  labs(x = "Education",y="Income")
+  labs(x = "Education",y="Gross Monthly Income")
+
+
+### Education v income bar:
+Q22GraphD <-  ggplot(Full_Final, aes(x=as.numeric(Q22Education), y=as.numeric(Q24AIncome))) + 
+  stat_summary(fun=mean, geom="col")+
+  scale_x_discrete(name="Q22Education",limits = c(0,1,2,3,4),
+                   labels=c("Prefer not to say\n(N = 15)","GCSE\n(N = 147)","A level\n(N = 178)","Bachelor\n(N = 212)","Postgraduate\n(N = 118)"))+
+  scale_y_continuous(name="Gross Monthly Income",breaks = waiver(), n.breaks=5,
+                     limits=c(0,5000),labels = function(x) paste0("£",x))+
+  geom_text(x = 0, y = 500, label = paste0("£",round(mean(Full_Final$Q24AIncome[Full_Final$Q22Education==0]),2)), color="white")+
+  geom_text(x = 1, y = 500, label = paste0("£",round(mean(Full_Final$Q24AIncome[Full_Final$Q22Education==1]),2)), color="white")+
+  geom_text(x = 2, y = 500, label = paste0("£",round(mean(Full_Final$Q24AIncome[Full_Final$Q22Education==2]),2)), color="white")+
+  geom_text(x = 3, y = 500, label = paste0("£",round(mean(Full_Final$Q24AIncome[Full_Final$Q22Education==3]),2)), color="white")+
+  geom_text(x = 4, y = 500, label = paste0("£",round(mean(Full_Final$Q24AIncome[Full_Final$Q22Education==4]),2)), color="white")+
+  ggtitle("Self-Reported Gross Monthly Income By Highest Education Level")
 
 
 ## EducationBarQ6
@@ -1376,6 +1391,24 @@ Q23GraphC <- ggplot(Full_Final, aes(x=Q23Employment)) +
   scale_y_continuous(name="Income",breaks = waiver(), n.breaks=5,
                      limits=c(0,5000),labels = function(x) paste0("£",x))+
   labs(x = "Employment",y="Income")
+
+
+
+## EmploymentBar Income
+EmploymentBarIncome <- ggplot(Full_Final, aes(x=as.numeric(Q23Employment), y=as.numeric(Q24AIncome))) + 
+  stat_summary(fun=mean, geom="col")+
+  scale_x_discrete(name="Q23Employment",limits = c(0,1,2,3,4,5,6),
+                   labels=c("Prefer not to say\n (N = 18)","NEET\n (N = 76)",           "Retired\n (N = 52)",           "Student\n (N = 30)",           "Part-time\n (N = 100)",           "Self-employed\n (N = 46)",           "Full-time\n (N = 348)"))+
+  scale_y_continuous(name="Income",breaks = waiver(), n.breaks=5,
+                     limits=c(0,5000),labels = function(x) paste0("£",x))+
+  geom_text(x = 0, y = 500, label = paste0("£",round(mean(Full_Final$Q24AIncome[Full_Final$Q23Employment==0]),2)), color="white")+
+  geom_text(x = 1, y = 500, label = paste0("£",round(mean(Full_Final$Q24AIncome[Full_Final$Q23Employment==1]),2)), color="white")+
+  geom_text(x = 2, y = 500, label = paste0("£",round(mean(Full_Final$Q24AIncome[Full_Final$Q23Employment==2]),2)), color="white")+
+  geom_text(x = 3, y = 500, label = paste0("£",round(mean(Full_Final$Q24AIncome[Full_Final$Q23Employment==3]),2)), color="white")+
+  geom_text(x = 4, y = 500, label = paste0("£",round(mean(Full_Final$Q24AIncome[Full_Final$Q23Employment==4]),2)), color="white")+
+  geom_text(x = 5, y = 500, label = paste0("£",round(mean(Full_Final$Q24AIncome[Full_Final$Q23Employment==5]),2)), color="white")+
+  geom_text(x = 6, y = 500, label = paste0("£",round(mean(Full_Final$Q24AIncome[Full_Final$Q23Employment==6]),2)), color="white")+
+  ggtitle("Gross Monthly Income by Q23Employment")
 
 
 ## EmploymentBarQ6
@@ -2528,7 +2561,7 @@ SBDCPRecaution <- ggplot(Full_Final, aes(x=Precaution)) +
                 args = with(Full_Final, c(mean = mean(Precaution), sd = sd(Precaution), n= 1)))+
   scale_x_continuous(breaks=waiver(),limits = c(0,100),
                      n.breaks = 10, labels = function(x) paste0("£",x))+
-  ggtitle("Histogram of respondent precautionary premia using SBDC.")
+  ggtitle("Probit precautionary premia (Full Sample).")
 
 ICLVPRecaution <- ggplot(Full_Final, aes(x=ICLVPrecautionF)) + 
   geom_histogram(aes(y = ..density..),color="black", fill="white",binwidth = 1)+
@@ -2536,7 +2569,28 @@ ICLVPRecaution <- ggplot(Full_Final, aes(x=ICLVPrecautionF)) +
                 args = with(Full_Final, c(mean = mean(ICLVPrecautionF), sd = sd(ICLVPrecautionF), n= 1)))+
   scale_x_continuous(breaks=waiver(),limits = c(-10,100),
                      n.breaks = 10, labels = function(x) paste0("£",x))+
-  ggtitle("Histogram of respondent precautionary premia using ICLV.")
+  ggtitle("ICLV precautionary premia (Full Sample).")
+
+
+SBDCPRecautionT <- ggplot(Full_Full, aes(x=Precaution)) + 
+  geom_histogram(aes(y = ..density..),color="black", fill="white",binwidth = 1)+
+  stat_function(fun=fun, 
+                args = with(Full_Full, c(mean = mean(Precaution), sd = sd(Precaution), n= 1)))+
+  scale_x_continuous(breaks=waiver(),limits = c(0,100),
+                     n.breaks = 10, labels = function(x) paste0("£",x))+
+  ggtitle("Probit precautionary premia (Truncated Sample).")
+
+ICLVPRecautionT <- ggplot(Full_Full, aes(x=ICLVPrecautionF)) + 
+  geom_histogram(aes(y = ..density..),color="black", fill="white",binwidth = 1)+
+  stat_function(fun=fun, 
+                args = with(Full_Full, c(mean = mean(ICLVPrecautionF), sd = sd(ICLVPrecautionF), n= 1)))+
+  scale_x_continuous(breaks=waiver(),limits = c(-10,100),
+                     n.breaks = 10, labels = function(x) paste0("£",x))+
+  ggtitle("ICLV precautionary premia (Truncated Sample).")
+
+
+grid.arrange(SBDCPRecaution,ICLVPRecaution,SBDCPRecautionT,ICLVPRecautionT)
+
 
 
 EmissionDistribution <- ggplot(Full_Final, aes(x=EmissionCoef)) + 
@@ -2642,3 +2696,97 @@ grid.arrange(KnowledgeGraphA, KnowledgeGraphB)
 grid.arrange(KnowledgeGraphD, KnowledgeGraphC)
 grid.arrange(PerformanceWTP, EmissionWTP )
 grid.arrange(PerformanceDistribution, EmissionDistribution )
+
+
+#### AMCE: ####
+
+install.packages("cjoint")
+library(cjoint)
+
+# AMCE of socioeconomic characteristics
+summary(amce(cs~Q1Gender + Q2Age +
+               Q3Distance +  Q4Trips + Q16BP + Q18Charity +  Q22Education +
+               Q23Employment +  IncomeDummy + Order + Task +       
+               Q20Consequentiality + Q21Experts+Q25Understanding +Q12CECertainty,data=Full_Full,respondent.id = "ID"))
+
+# AMCE of CE attributes:
+E1 <- (amce(cs~Price+Performance+Emission,data=Full_Full,respondent.id = "ID"))
+
+# AMCE of most-relevant for CE:
+Effects <-(amce(cs~Price+Performance+Emission+ Q1Gender + Q2Age +
+                  Q3Distance +  Q4Trips + Q16BP + Q18Charity +
+                  IncomeDummy + Order +       
+                  Q20Consequentiality + Q21Experts+Q25Understanding +Q12CECertainty,data=Full_Full,respondent.id = "ID"))
+levels.test<-list()
+levels.test[["Price"]] <- c("0","0.5","1","2.5","5")
+levels.test[["Performance"]] <- c("0","5","10","50")
+levels.test[["Emission"]] <- c("0","10","40","90")
+levels.test[["IncomeDummy"]] <- c("0","1")
+levels.test[["Order"]] <- c("0","1")
+levels.test[["Q12CECertainty"]] <- c("1","2")
+levels.test[["Q16BP"]] <- c("0","1","2")
+levels.test[["Q18Charity"]] <- c("0","1")
+levels.test[["Q1Gender"]] <- c("0","1","2")
+levels.test[["Q20Consequentiality"]] <- c("1","2")
+levels.test[["Q21Experts"]] <- c("1","2","3","4","5")
+levels.test[["Q25Understanding"]] <- c("7","8","9","10")
+levels.test[["Q2Age"]] <- c("21.5","32.5","47.5","63")
+levels.test[["Q3Distance"]] <- c("6","6.5","15.5","35","50")
+levels.test[["Q4Trips"]] <- c("0","1","2","3")
+
+cjoint::plot.amce(Effects,xlab = "Marginal effect on CE choices",
+                  xlim=c(-0.75,0.75),level.names = levels.test,
+                  text.size = 6,point.size = 0.25,dodge.size = 0.1,
+                  main = "Average Marginal Component Effect for all covariates.")
+
+
+
+# AMCE of most-relevant for Q6:
+EffectsQ6 <-(amce(Q6ResearchResponse~Q1Gender + Q2Age +
+                    Q3Distance +  Q4Trips + Q16BP + Q18Charity +
+                    IncomeDummy + Order +Q6Bid+       
+                    Q20Consequentiality + Q21Experts+Q25Understanding +Q6ResearchCertainty,data=Full_Full,respondent.id = "ID"))
+levels.test<-list()
+levels.test[["Q6Bid"]] <- c("5","10","20","30","40","50","60","70","80","90","100")
+levels.test[["IncomeDummy"]] <- c("0","1")
+levels.test[["Order"]] <- c("0","1")
+levels.test[["Q6ResearchCertainty"]] <- c("0","1","2")
+levels.test[["Q16BP"]] <- c("0","1","2")
+levels.test[["Q18Charity"]] <- c("0","1")
+levels.test[["Q1Gender"]] <- c("0","1","2")
+levels.test[["Q20Consequentiality"]] <- c("1","2")
+levels.test[["Q21Experts"]] <- c("1","2","3","4","5")
+levels.test[["Q25Understanding"]] <- c("7","8","9","10")
+levels.test[["Q2Age"]] <- c("21.5","32.5","47.5","63")
+levels.test[["Q3Distance"]] <- c("6","6.5","15.5","35","50")
+levels.test[["Q4Trips"]] <- c("0","1","2","3")
+
+cjoint::plot.amce(EffectsQ6,xlab = "Marginal effect on CV Q6 choices",
+                  xlim=c(-1,1),level.names = levels.test,
+                  text.size = 6,point.size = 0.25,dodge.size = 0.1,
+                  main = "Average Marginal Component Effect for Q6.")
+
+# AMCE of most-relevant for Q7:
+EffectsQ7 <-(amce(Q7TreatmentResponse~Q1Gender + Q2Age +
+                    Q3Distance +  Q4Trips + Q16BP + Q18Charity +
+                    IncomeDummy + Order +Q7Bid+       
+                    Q20Consequentiality + Q21Experts+Q25Understanding +Q7TreatmentCertainty,data=Full_Full,respondent.id = "ID"))
+levels.test<-list()
+levels.test[["Q7Bid"]] <- c("5","10","20","30","40","50","60","70","80","90","100")
+levels.test[["IncomeDummy"]] <- c("0","1")
+levels.test[["Order"]] <- c("0","1")
+levels.test[["Q7TreatmentCertainty"]] <- c("0","1","2")
+levels.test[["Q16BP"]] <- c("0","1","2")
+levels.test[["Q18Charity"]] <- c("0","1")
+levels.test[["Q1Gender"]] <- c("0","1","2")
+levels.test[["Q20Consequentiality"]] <- c("1","2")
+levels.test[["Q21Experts"]] <- c("1","2","3","4","5")
+levels.test[["Q25Understanding"]] <- c("7","8","9","10")
+levels.test[["Q2Age"]] <- c("21.5","32.5","47.5","63")
+levels.test[["Q3Distance"]] <- c("6","6.5","15.5","35","50")
+levels.test[["Q4Trips"]] <- c("0","1","2","3")
+
+cjoint::plot.amce(EffectsQ7,xlab = "Marginal effect on CV Q7 choices",
+                  xlim=c(-1,1),level.names = levels.test,
+                  text.size = 6,point.size = 0.25,dodge.size = 0.1,
+                  main = "Average Marginal Component Effect for Q7.")

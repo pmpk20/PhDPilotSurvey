@@ -1626,6 +1626,401 @@ View(cbind(t(round(cbind("1"=data.frame(MXLmodel$estimate["b_Emission"]/MXLmodel
               "14"=data.frame(MXLmodel14$estimate["mu_b_Performance"])),3))))
 
 
+#### Estimating with Income Dummy instead: MNL ####
+
+
+## MNL Full Sample income dummy not levels:
+
+library(apollo)
+library(stats)
+apollo_control = list(
+  modelName  ="MNL1ID",
+  indivID    ="ID"
+)
+
+## Set parameters and their initial values here 
+apollo_beta=c(asc_A      = 0,
+              asc_B      = 0,
+              b_Price    = 0,
+              b_Performance   = 0,
+              b_Emission      = 0,
+              b_Gender = 0,
+              b_Age      = 0,
+              b_Distance = 0,
+              b_Trips    = 0,
+              b_BP       = 0,
+              b_Charity  = 0,
+              b_Education  = 0,
+              b_Employment = 0,
+              b_Income     = 0,
+              b_Order      = 0,
+              b_Task       = 0,
+              b_Cons       = 0,
+              b_Experts    = 0,
+              b_Understanding =0,
+              b_Certainty=0)
+
+## Set one of the ASCs as zero using the utility-difference approach: 
+apollo_fixed = c("asc_A")
+
+## Check model is good so far 
+apollo_inputs = apollo_validateInputs()
+
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  
+  ## Attach inputs and detach after function exit
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  
+  ## Create list of probabilities P
+  P = list()
+  
+  ## Must specify SDs against the ASC directly
+  asc_B1 = asc_B + b_Gender*Q1Gender + b_Age*Age +
+    b_Distance * Distance + 
+    b_Trips * Trips +
+    b_BP * BP +
+    b_Charity * Charity + 
+    b_Education * Education +
+    b_Employment * Employment + 
+    b_Income * IncomeDummy +
+    b_Order * Order +      
+    b_Task * Task +       
+    b_Cons * Consequentiality +       
+    b_Experts * Experts+
+    b_Understanding*Survey +
+    b_Certainty*Q12CECertainty
+  
+  
+  ### List of utilities: these must use the same names as in mnl_settings, order is irrelevant
+  V = list()
+  V[['A']]  = asc_A        + b_Performance  * Performance_A + b_Emission * Emission_A + b_Price * Price_A
+  V[['B']]  = asc_B1  + b_Performance  * Performance_B  + b_Emission * Emission_B + b_Price * Price_B
+  
+  ### Define settings for MNL model component
+  mnl_settings = list(
+    alternatives = c(A=1, B=2),
+    avail        = list(A=1, B=1),
+    choiceVar    = Choice,
+    V            = V
+  )
+  
+  ### Compute probabilities using MNL model
+  P[["model"]] = apollo_mnl(mnl_settings, functionality)
+  
+  ### Take product across observation for same individual
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  
+  ### Prepare and return outputs of function
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+MNL1ID = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+
+apollo_modelOutput(MNL1ID,modelOutput_settings = list(printPVal=TRUE))
+apollo_saveOutput(MNL1ID)
+saveRDS(MNL1ID,"MNL1ID.rds")
+
+## WTP calculations: 
+apollo_deltaMethod(MNL1ID, list(operation="ratio", parName1="b_Performance", parName2="b_Price"))
+apollo_deltaMethod(MNL1ID, list(operation="ratio", parName1="b_Emission", parName2="b_Price"))
+
+
+## MNL Truncated Sample income dummy not levels:
+
+database = Test_Truncated
+
+apollo_control = list(
+  modelName  ="MNL2ID",
+  indivID    ="ID"
+)
+
+## Set parameters and their initial values here 
+apollo_beta=c(asc_A      = 0,
+              asc_B      = 0,
+              b_Price    = 0,
+              b_Performance   = 0,
+              b_Emission      = 0,
+              b_Gender = 0,
+              b_Age      = 0,
+              b_Distance = 0,
+              b_Trips    = 0,
+              b_BP       = 0,
+              b_Charity  = 0,
+              b_Education  = 0,
+              b_Employment = 0,
+              b_Income     = 0,
+              b_Order      = 0,
+              b_Task       = 0,
+              b_Cons       = 0,
+              b_Experts    = 0,
+              b_Understanding =0,
+              b_Certainty=0)
+
+## Set one of the ASCs as zero using the utility-difference approach: 
+apollo_fixed = c("asc_A")
+
+## Check model is good so far 
+apollo_inputs = apollo_validateInputs()
+
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  
+  ## Attach inputs and detach after function exit
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  
+  ## Create list of probabilities P
+  P = list()
+  
+  ## Must specify SDs against the ASC directly
+  asc_B1 = asc_B + b_Gender*Q1Gender + b_Age*Age +
+    b_Distance * Distance + 
+    b_Trips * Trips +
+    b_BP * BP +
+    b_Charity * Charity + 
+    b_Education * Education +
+    b_Employment * Employment + 
+    b_Income * IncomeDummy +
+    b_Order * Order +      
+    b_Task * Task +       
+    b_Cons * Consequentiality +       
+    b_Experts * Experts+
+    b_Understanding*Survey +
+    b_Certainty*Q12CECertainty
+  
+  
+  ### List of utilities: these must use the same names as in mnl_settings, order is irrelevant
+  V = list()
+  V[['A']]  = asc_A        + b_Performance  * Performance_A + b_Emission * Emission_A + b_Price * Price_A
+  V[['B']]  = asc_B1  + b_Performance  * Performance_B  + b_Emission * Emission_B + b_Price * Price_B
+  
+  ### Define settings for MNL model component
+  mnl_settings = list(
+    alternatives = c(A=1, B=2),
+    avail        = list(A=1, B=1),
+    choiceVar    = Choice,
+    V            = V
+  )
+  
+  ### Compute probabilities using MNL model
+  P[["model"]] = apollo_mnl(mnl_settings, functionality)
+  
+  ### Take product across observation for same individual
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  
+  ### Prepare and return outputs of function
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+MNL2ID = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+
+apollo_modelOutput(MNL2ID,modelOutput_settings = list(printPVal=TRUE))
+saveRDS(MNL2ID,"MNL2ID.rds")
+
+
+#### Estimating with Income Dummy instead: MXL ####
+
+
+## MXL Full with dummy:
+
+
+apollo_control = list(
+  modelName ="MXL20ID",  indivID   ="ID",  
+  mixing    = TRUE, nCores    = 4)
+
+
+apollo_beta = c(asc_A      = 0,
+                asc_BB      = 0,
+                mu_Price    =-3,
+                sig_Price=0,
+                mu_Performance = -3,
+                sig_Performance = 0,
+                mu_Emission = -3,
+                sig_Emission = 0,
+                b_Gender = 0,
+                b_Age      = 0,
+                b_Distance = 0,
+                b_Trips    = 0,
+                b_BP       = 0,
+                b_Charity  = 0,
+                b_Education  = 0,
+                b_Employment = 0,
+                b_Income     = 0,
+                b_Order      = 0,
+                b_Task       = 0,
+                b_Cons       = 0,
+                b_Experts    = 0,
+                b_Understanding =0,
+                b_Certainty=0)
+apollo_fixed = c("asc_A")
+
+
+apollo_draws = list(
+  interDrawsType = "halton",
+  interNDraws    = 1000,
+  interUnifDraws = c(),
+  interNormDraws = c("draws_Price","draws_Performance","draws_Emission"),
+  intraDrawsType = "halton",
+  intraNDraws    = 0,
+  intraUnifDraws = c(),
+  intraNormDraws = c())
+
+
+apollo_randCoeff = function(apollo_beta, apollo_inputs){
+  randcoeff = list()
+  randcoeff[["b_Price"]] =  -exp(mu_Price + sig_Price * draws_Price )
+  randcoeff[["b_Performance"]] =  -exp(mu_Performance + sig_Performance * draws_Performance )
+  randcoeff[["b_Emission"]] =  -exp(mu_Emission + sig_Emission * draws_Emission )
+  randcoeff[["asc_B"]] = asc_BB + b_Gender*Q1Gender + b_Age*Age +
+    b_Distance * Distance + 
+    b_Trips * Trips +
+    b_BP * BP +
+    b_Charity * Charity + 
+    b_Education * Education +
+    b_Employment * Employment + 
+    b_Income * IncomeDummy +
+    b_Order * Order +      
+    b_Task * Task +       
+    b_Cons * Consequentiality +       
+    b_Experts * Experts+
+    b_Understanding*Survey +
+    b_Certainty*Q12CECertainty
+  return(randcoeff)}
+apollo_inputs = apollo_validateInputs()
+
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  P = list()
+  V = list()
+  V[['A']] = asc_A + b_Price*(Price_A + b_Performance*Performance_A + b_Emission*Emission_A)
+  V[['B']] = asc_B + b_Price*(Price_B + b_Performance*Performance_B + b_Emission*Emission_B)
+  mnl_settings = list(
+    alternatives  = c(A=1, B=2),
+    avail         = list(A=1, B=1),
+    choiceVar     = Choice,
+    V             = V)
+  P[['model']] = apollo_mnl(mnl_settings, functionality)
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+# # Starting value search:
+# apollo_beta = apollo_searchStart(apollo_beta,
+#                                  apollo_fixed,
+#                                  apollo_probabilities,
+#                                  apollo_inputs,
+#                                  searchStart_settings=list(nCandidates=20))
+# 
+MXLmodel20ID = apollo_estimate(apollo_beta, apollo_fixed,
+                             apollo_probabilities, apollo_inputs)
+
+apollo_modelOutput(MXLmodel20ID,modelOutput_settings = list(printPVal=TRUE))
+
+
+## MXL truncated sample with dummy ## 
+
+
+database <- Test_Truncated
+apollo_control = list(
+  modelName ="MXL20ID",  indivID   ="ID",  
+  mixing    = TRUE, nCores    = 4)
+
+
+apollo_beta = c(asc_A      = 0,      asc_BB      = 0,
+                mu_Price    =-3,     sig_Price=0,
+                mu_Performance = -3, sig_Performance = 0,
+                mu_Emission = -3,    sig_Emission = 0,
+                b_Gender = 0,   b_Age      = 0,
+                b_Distance = 0, b_Trips    = 0,
+                b_BP       = 0, b_Charity  = 0,
+                b_Education  = 0, b_Employment = 0,
+                b_Income     = 0, b_Order      = 0,
+                b_Task       = 0, b_Cons       = 0,
+                b_Experts    = 0, b_Understanding =0,
+                b_Certainty=0)
+apollo_fixed = c("asc_A")
+
+
+apollo_draws = list(
+  interDrawsType = "halton",
+  interNDraws    = 1000,
+  interUnifDraws = c(),
+  interNormDraws = c("draws_Price","draws_Performance","draws_Emission"),
+  intraDrawsType = "halton",
+  intraNDraws    = 0,
+  intraUnifDraws = c(),
+  intraNormDraws = c())
+
+
+apollo_randCoeff = function(apollo_beta, apollo_inputs){
+  randcoeff = list()
+  randcoeff[["b_Price"]] =  -exp(mu_Price + sig_Price * draws_Price )
+  randcoeff[["b_Performance"]] =  -exp(mu_Performance + sig_Performance * draws_Performance )
+  randcoeff[["b_Emission"]] =  -exp(mu_Emission + sig_Emission * draws_Emission )
+  randcoeff[["asc_B"]] = asc_BB + b_Gender*Q1Gender + b_Age*Age +
+    b_Distance * Distance + 
+    b_Trips * Trips +
+    b_BP * BP +
+    b_Charity * Charity + 
+    b_Education * Education +
+    b_Employment * Employment + 
+    b_Income * IncomeDummy +
+    b_Order * Order +      
+    b_Task * Task +       
+    b_Cons * Consequentiality +       
+    b_Experts * Experts+
+    b_Understanding*Survey +
+    b_Certainty*Q12CECertainty
+  return(randcoeff)}
+apollo_inputs = apollo_validateInputs()
+
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  P = list()
+  V = list()
+  V[['A']] = asc_A + b_Price*(Price_A + b_Performance*Performance_A + b_Emission*Emission_A)
+  V[['B']] = asc_B + b_Price*(Price_B + b_Performance*Performance_B + b_Emission*Emission_B)
+  mnl_settings = list(
+    alternatives  = c(A=1, B=2),
+    avail         = list(A=1, B=1),
+    choiceVar     = Choice,
+    V             = V)
+  P[['model']] = apollo_mnl(mnl_settings, functionality)
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+# # Starting value search:
+# apollo_beta = apollo_searchStart(apollo_beta,
+#                                  apollo_fixed,
+#                                  apollo_probabilities,
+#                                  apollo_inputs,
+#                                  searchStart_settings=list(nCandidates=20))
+# 
+MXLmodel21ID = apollo_estimate(apollo_beta, apollo_fixed,
+                             apollo_probabilities, apollo_inputs)
+
+apollo_modelOutput(MXLmodel21ID,modelOutput_settings = list(printPVal=TRUE))
+saveRDS(MXLmodel21ID,"MXLmodel21ID.rds")
+xtable(data.frame(apollo_modelOutput(MXLmodel21ID,modelOutput_settings = list(printPVal=TRUE))),digits=3)
+
+
+MXLmodel21ID$estimate["mu_Performance"]
+MXLmodel21ID$estimate["mu_Emission"]
+
+
 #### Relaxing constant marginal utility of income ####
 
 ## Conditional logit

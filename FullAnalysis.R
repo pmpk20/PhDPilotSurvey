@@ -2,7 +2,7 @@
 # Project author: Peter King (p.m.king@bath.ac.uk)
 # Project title: Economic valuation of benefits from the proposed REACH restriction of intentionally-added microplastics.
 # Alternatively: Thesis_SetupCode.r, Thesis_Graphing.r, Thesis_ApolloMXL.r,Thesis_ApolloLCM.r, Thesis_CVICLV.r
-
+# Note: the final dataset for analysis is Full_Final, the truncated version is Full_Full
 
 #### Section 0: Replication Information ####
 
@@ -27,12 +27,13 @@
 
 #### Section 0: Package installation ####
 
-
+                        
 pkgbuild::has_build_tools()
 library(Hmisc)
 library(dplyr)
 library(ggplot2)
 library(gridExtra)
+library(DCchoice)
 library(apollo)
 setwd("H:/PhDPilotSurvey") ## Sets working directory. This is where my Github repo is cloned to.
 source('Thesis_SetupCode.r')
@@ -41,13 +42,14 @@ source('Thesis_SetupCode.r')
 ## Run the following on first run:
 # Sys.setenv(PATH = paste(Sys.getenv("PATH"), "C:\\Rtools\\bin", sep = ";"))
 # pkgbuild::find_rtools(debug = TRUE)
+# install.packages("farver")
 # install.packages("lifecycle")
 # install.packages("mnormt")
 # install.packages("RSGHB")
 # install.packages("Rcpp") ## Necessary dependency for rngWELL
 # install.packages("rngWELL") ## Can sometimes fix APOLLO issues
 # install.packages("randtoolbox") ## Necessary for APOLLO random draws
-## install.packages("apollo") ## Most complex and powerful library for discrete choice
+# # install.packages("apollo") ## Most complex and powerful library for discrete choice
 # install.packages("H:/dos/PhD/Other/Training courses/CMC/apollo_libraries/apollo_0.2.1.zip", repos = NULL, type = "win.binary")
 # install.packages("mlogit") ## MLOGIT is the best DCE package in R so far.
 # install.packages("gmnl") ## Very similar to MLOGIT but more flexibility.
@@ -63,7 +65,6 @@ source('Thesis_SetupCode.r')
 FullSurvey <- data.frame(read.csv("FullSurvey.csv")) ## Imports from the excel file straight from the survey companies website.
 # Full_Long <- data.frame(read.csv("Full_Long.csv"))
 # Full_Final <- data.frame(read.csv("FinalData.csv")) ## Imports from the excel file straight from the survey companies website.
-# FullSurvey <- FullSurvey[ !(FullSurvey$ï..Respondent %in% c(24,33,44,61,121,127,182,200,211,219,239,251,275,306,320,326,341,360,363,371,399,464,467,479,480,506,579,591,649,654,931,932,935,953,989,1002,1011,1024,14,35,39,54,79,106,130,146,149,155,163,203,214,215,217,244,246,249,252,267,268,282,290,327,343,362,364,374,380,393,398,407,414,425,426,433,477,519,524,536,543,545,547,557,567,575,589,590,595,614,617,629,637,638,639,651,665,674,680,915,933,940,950,959,960,975,978,996,1026,1027,1028)), ] ## Drop protest rows
 
 
 FullSurvey <- FullSurvey[ -c(4,14,15,16,23,24,26,27,58,68,69)] ## Drop columns of no importance to the quantitative analysis, namely text responses.
@@ -432,7 +433,11 @@ Full_Long <- mlogit.data(Full, shape = "wide", choice = "Choice",
 #### Section 2: Sample truncation ####
 # Note: Protests examined by eyeballing the text responses.
 
-ProtestVotes <- c(24,33,44,61,121,127,182,200,211,219,239,251,275,306,320,326,341,360,363,371,399,464,467,479,480,506,579,591,649,654,931,932,935,953,989,1002,1011,1024,14,35,39,54,79,106,130,146,149,155,163,203,214,215,217,244,246,249,252,267,268,282,290,327,343,362,364,374,380,393,398,407,414,425,426,433,477,519,524,536,543,545,547,557,567,575,589,590,595,614,617,629,637,638,639,651,665,674,680,915,933,940,950,959,960,975,978,996,1026,1027,1028)
+ProtestVotes <- c(14,24,33,39,44,61,79,106,121,130,149,163,182,200,203,211,214,215,217,
+                  239,244,249,251,252,267,282,290,306,320,326,327,341,343,362,363,364,
+                  371,374,380,393,399,407,414,425,426,464,467,477,479,480,519,524,536,
+                  545,547,557,567,579,590,591,595,614,629,639,649,651,654,665,674,680,
+                  915,931,932,933,935,940,950,953,959,960,975,978,989,996,1002,1011,1024,1026,1027,1028)
 
 ### Truncation Strategy One:
 AllCriteria <- data.frame("IDs" = unique(Full_Long$ID[ (Full_Long$Q25Understanding >=7) &
@@ -451,7 +456,11 @@ AllCriteria <- data.frame("IDs" = unique(Full_Long$ID[ (Full_Long$Q25Understandi
                                   (Full_Long$Q20Consequentiality >= 1) ])) 
 
 ## Here checking if any of the remaining respondents were on the protest list: 
-AllCriteria <- AllCriteria[ !(AllCriteria$IDs %in% c(24,33,44,61,121,127,182,200,211,219,239,251,275,306,320,326,341,360,363,371,399,464,467,479,480,506,579,591,649,654,931,932,935,953,989,1002,1011,1024,14,35,39,54,79,106,130,146,149,155,163,203,214,215,217,244,246,249,252,267,268,282,290,327,343,362,364,374,380,393,398,407,414,425,426,433,477,519,524,536,543,545,547,557,567,575,589,590,595,614,617,629,637,638,639,651,665,674,680,915,933,940,950,959,960,975,978,996,1026,1027,1028)),]
+AllCriteria <- AllCriteria[ !(AllCriteria$IDs %in%c(14,24,33,39,44,61,79,106,121,130,149,163,182,200,203,211,214,215,217,
+                                                    239,244,249,251,252,267,282,290,306,320,326,327,341,343,362,363,364,
+                                                    371,374,380,393,399,407,414,425,426,464,467,477,479,480,519,524,536,
+                                                    545,547,557,567,579,590,591,595,614,629,639,649,651,654,665,674,680,
+                                                    915,931,932,933,935,940,950,953,959,960,975,978,989,996,1002,1011,1024,1026,1027,1028)),]
 Full_Full <- Full_Long[ (Full_Final$ID) %in% c(AllCriteria),] ## Fully truncated:
 # Full_Full <- Full_Long[ (Full_Long$ID) %in% c(AllCriteria),] ## Can truncate the Full_Long dataframe too if needing to estimate in MLOGIT
 Full_Excluded <- Full_Final[ !(Full_Final$ID) %in% c(AllCriteria),] ## The excluded responses
@@ -500,11 +509,15 @@ mean(FullSurvey2$Q2Age)
 mean(FullSurvey2$Q4Trips)
 
 # Sample education levels:
+FS2_Trunc <- FullSurvey2[ (FullSurvey2$ID) %in% c(AllCriteria),]
 100/670*table(FullSurvey$Q22Education)
+round(100/length(unique(FullSurvey2$ID))*table(FullSurvey2$Q22Education>2),2)
 
 # Sample employment types:
 100/670*table(FullSurvey$Q23Employment)
 
+# C4 Age-Gender table
+round(aggregate(apply(cbind(FullSurvey2$Q13CurrentThreatToSelf,FullSurvey2$Q14FutureThreatToSelf,FullSurvey2$Q15ThreatToEnvironment),MARGIN = 1,FUN = mean),list(FullSurvey2$Q2Age),mean),2)
 
 #### Section 3: Choice Experiment in MLOGIT ####
 ############ Notes: Long and estimates a lot of models, initially in MLOGIT but later in GMNL.
@@ -651,7 +664,7 @@ data.frame(round(summary(MXL_4)$CoefTable[,4],3))
 
 
 # Can truncate sample by protest votes:
-# Full_Cons <- Full_Cons[ !(Full_Cons$ï..Respondent %in% c(24,33,44,61,121,127,182,200,211,219,239,251,275,306,320,326,341,360,363,371,399,464,467,479,480,506,579,591,649,654,931,932,935,953,989,1002,1011,1024,14,35,39,54,79,106,130,146,149,155,163,203,214,215,217,244,246,249,252,267,268,282,290,327,343,362,364,374,380,393,398,407,414,425,426,433,477,519,524,536,543,545,547,557,567,575,589,590,595,614,617,629,637,638,639,651,665,674,680,915,933,940,950,959,960,975,978,996,1026,1027,1028)), ] ## Drop protest rows
+# Full_Cons <- Full_Cons[ !(Full_Cons$ï..Respondent %in% c(14,24,33,39,44,61,79,106,121,130,149,163,182,200,203,211,214,215,217,239,244,249,251,252,267,282,290,306,320,326,327,341,343,362,363,364, 371,374,380,393,399,407,414,425,426,464,467,477,479,480,519,524,536, 545,547,557,567,579,590,591,595,614,629,639,649,651,654,665,674,680,915,931,932,933,935,940,950,953,959,960,975,978,989,996,1002,1011,1024,1026,1027,1028)), ] ## Drop protest rows
 
 
 ## Model 8: MXL all sociodemographics, WTP-space, truncated sample
@@ -1258,8 +1271,8 @@ library(DCchoice)
 ## Creating new dataframes depending on ordering or consequentiality. 
 Full_NormalOrder <-Full_Long[Full_Long$Order == 0,]
 Full_OtherOrder <-Full_Long[Full_Long$Order == 1,]
-Full_Consequential <-Full_Long[Full_Long$Q20Consequentiality == 1,]
-Full_Inconsequential <-Full_Long[Full_Long$Q20Consequentiality != 1,]
+Full_Consequential <-Full_Long[Full_Long$Q20Consequentiality != 0,]
+Full_Inconsequential <-Full_Long[Full_Long$Q20Consequentiality == 0,]
 
 
 ## I also split the other dataframe for ease of fitting WTP 
@@ -1314,7 +1327,7 @@ Ordering <- data.frame(rbind("Normal order"=data.frame("Accepting higher bid"=c(
 ## This section deals with Q6 and Q7 respectively but uses a non-parametric Kaplan-Meier-Turnbull survival function:
 ResearchKMT <- turnbull.sb(formula = Q6ResearchResponse ~ Q6Bid,data = Full_Order1)
 summary(ResearchKMT)
-plot(ResearchKMT)
+plot(ResearchKMT,main="Q6 Kaplan-Meier-Turnbull survival function")
 
 
 ## Reporting the KMT for Q7.
@@ -1360,7 +1373,7 @@ summary(Research_BidOnly_Trunc) ## Reports the SBDC analysis for Q6 with mean, m
 Research_SB <- sbchoice(Q6ResearchResponse ~ Order + Q1Gender + Q2Age + Q3Distance
                         + Q4Trips +Q6ResearchCertainty + Q16BP + Q18Charity + Q20Consequentiality
                         + Q21Experts + Q22Education + Q23Employment
-                        +  Q24AIncome + Q25Understanding + Timing | Q6Bid, data = Full_Long,dist="logistic")
+                        +  Q24AIncome + Q25Understanding  | Q6Bid, data = Full_Long,dist="logistic")
 summary(Research_SB) ## Reports the SBDC analysis for Q6 with mean, median and coefficients.
 krCI(Research_SB)
 bootCI(Research_SB)
@@ -1369,11 +1382,47 @@ bootCI(Research_SB)
 ####### Q6 on truncated sample:
 Research_Truncated <- sbchoice(Q6ResearchResponse ~ Order + Q1Gender + Q2Age + Q3Distance
                                + Q4Trips +Q6ResearchCertainty + Q16BP + Q18Charity + Q20Consequentiality
-                               + Q21Experts + Q22Education + Q23Employment
-                               +  Q24AIncome + Q25Understanding + Timing| Q6Bid, data = Full_Full,dist="logistic")
+                               + Q21Experts + Q22Education + Q23Employment+Timing
+                               +  IncomeDummy + Q25Understanding | Q6Bid, data = Full_Full,dist="logistic")
 summary(Research_Truncated)
 krCI(Research_Truncated)
 round(data.frame(c(summary(Research_Truncated)$glm.summary[12])),3)
+xtable()
+MFX <-  data.frame(round(probitmfx(formula = Q6ResearchResponse ~ Order + Q1Gender + Q2Age + Q3Distance
+                                  + Q4Trips +Q6ResearchCertainty + Q16BP + Q18Charity + Q20Consequentiality
+                                  + Q21Experts + Q22Education + Q23Employment
+                                  +  IncomeDummy + Q25Understanding  + Q6Bid,data = Full_Full,robust = TRUE)$mfxest[,1],3))
+
+
+
+cbind(round(data.frame(c(summary(Research_Truncated)$glm.summary[12])),3)["coefficients.Estimate"],
+  rbind(0,data.frame(round(probitmfx(formula = Q6ResearchResponse ~ Order + Q1Gender + Q2Age + Q3Distance
+                             + Q4Trips +Q6ResearchCertainty + Q16BP + Q18Charity + Q20Consequentiality
+                             + Q21Experts + Q22Education + Q23Employment
+                             +  IncomeDummy + Q25Understanding  + Q6Bid,data = Full_Full,robust = TRUE)$mfxest[,1],3))),
+  round(data.frame(c(summary(Research_Truncated)$glm.summary[12])),3)["coefficients.Std..Error"],
+  round(data.frame(c(summary(Research_Truncated)$glm.summary[12])),3)["coefficients.Pr...z.."])
+
+
+
+####### Q6 All Covariates Full Sample ID:
+Research_SBID <- sbchoice(Q6ResearchResponse ~ Order + Q1Gender + Q2Age + Q3Distance
+                        + Q4Trips +Q6ResearchCertainty + Q16BP + Q18Charity + Q20Consequentiality
+                        + Q21Experts + Q22Education + Q23Employment
+                        +  IncomeDummy + Q25Understanding  | Q6Bid, data = Full_Final,dist="logistic")
+summary(Research_SBID) ## Reports the SBDC analysis for Q6 with mean, median and coefficients.
+krCI(Research_SBID)
+bootCI(Research_SBID)
+
+
+####### Q6 All Covariates Truncated Sample ID:
+Research_TruncatedID <- sbchoice(Q6ResearchResponse ~ Order + Q1Gender + Q2Age + Q3Distance
+                               + Q4Trips +Q6ResearchCertainty + Q16BP + Q18Charity + Q20Consequentiality
+                               + Q21Experts + Q22Education + Q23Employment
+                               +  IncomeDummy + Q25Understanding + Timing| Q6Bid, data = Full_Full,dist="logistic")
+summary(Research_TruncatedID)
+krCI(Research_TruncatedID)
+round(data.frame(c(summary(Research_TruncatedID)$glm.summary[12])),3)
 
 
 ####### Testing ordering effects: 
@@ -1443,7 +1492,7 @@ bootCI(Treatment_DB)
 Treatment_Truncated <- dbchoice(Q7TreatmentResponse + Q7Response2 ~ Order + Q1Gender + Q2Age + Q3Distance
                          + Q4Trips + Q7TreatmentCertainty+ Q16BP + Q18Charity+Q20Consequentiality+
                          + Q21Experts + Q22Education + Q23Employment
-                         +  Q24AIncome + Q25Understanding + Timing | Q7Bid + Q7Bid2,data = Full_Full,dist="logistic")
+                         +  IncomeDummy + Q25Understanding  | Q7Bid + Q7Bid2,data = Full_Full,dist="logistic")
 summary(Treatment_Truncated)
 krCI(Treatment_Truncated)
 bootCI(Treatment_Truncated)
@@ -1453,7 +1502,6 @@ data.frame(round(probitmfx(formula = Q7TreatmentResponse ~ Order + Q1Gender + Q2
                            + Q4Trips + Q7TreatmentCertainty+ Q16BP + Q18Charity+Q20Consequentiality+
                              + Q21Experts + Q22Education + Q23Employment
                            +  Q24AIncome + Q25Understanding + Timing + Q7Bid,data = Full_Full,robust = TRUE)$mfxest[,1],3))
-
 
 
 ####### Full-covariates model (SB):
@@ -1468,15 +1516,67 @@ bootCI(Treatment1_SB)
 Treatment2_SB <- sbchoice(Q7TreatmentResponse ~  Order + Q1Gender + Q2Age + Q3Distance
                           + Q4Trips + Q7TreatmentCertainty + Q16BP + Q18Charity + Q20Consequentiality
                           + Q21Experts + Q22Education + Q23Employment
-                          +  Q24AIncome + Q25Understanding + Timing  | Q7Bid ,data = Full_Full,dist="logistic")
+                          +  IncomeDummy + Q25Understanding  | Q7Bid ,data = Full_Full,dist="logistic")
 summary(Treatment2_SB)
 krCI(Treatment2_SB)
 round(data.frame(c(summary(Treatment2_SB)$glm.summary[12])),3)
 View(round(krCI(Treatment2_SB)$out,2))
-data.frame(round(probitmfx(formula = Q7TreatmentResponse ~  Order + Q1Gender + Q2Age + Q3Distance
-                           + Q4Trips + Q7TreatmentCertainty + Q16BP + Q18Charity + Q20Consequentiality
-                           + Q21Experts + Q22Education + Q23Employment
-                           +  Q24AIncome + Q25Understanding + Timing + Q7Bid,data = Full_Full,robust = TRUE)$mfxest[,1],3))
+# data.frame(round(probitmfx(formula = Q7TreatmentResponse ~  Order + Q1Gender + Q2Age + Q3Distance
+#                            + Q4Trips + Q7TreatmentCertainty + Q16BP + Q18Charity + Q20Consequentiality
+#                            + Q21Experts + Q22Education + Q23Employment
+#                            +  Q24AIncome + Q25Understanding + Timing + Q7Bid,data = Full_Full,robust = TRUE)$mfxest[,1],3))
+
+
+xtable(cbind(round(data.frame(c(summary(Treatment2_SB)$glm.summary[12])),3)["coefficients.Estimate"],
+             rbind(0,data.frame(round(probitmfx(formula = Q7TreatmentResponse ~Order + Q1Gender + Q2Age + Q3Distance
+                                                + Q4Trips + Q7TreatmentCertainty+ Q16BP + Q18Charity+Q20Consequentiality+
+                                                  + Q21Experts + Q22Education + Q23Employment
+                                                +  IncomeDummy + Q25Understanding + Q7Bid,data = Full_Full,robust = TRUE)$mfxest[,1],3))),
+             round(data.frame(c(summary(Treatment2_SB)$glm.summary[12])),3)["coefficients.Std..Error"],
+             round(data.frame(c(summary(Treatment2_SB)$glm.summary[12])),3)["coefficients.Pr...z.."]),digits=3)
+
+
+
+####### Q7 DB Full Covariates ID:
+Treatment_DB_ID <- dbchoice(Q7TreatmentResponse + Q7Response2 ~   Order + Q1Gender + Q2Age + Q3Distance
+                         + Q4Trips +Q7TreatmentCertainty + Q16BP + Q18Charity + Q20Consequentiality
+                         + Q21Experts + Q22Education + Q23Employment
+                         +  IncomeDummy + Q25Understanding + Timing  | Q7Bid + Q7Bid2,data = Full_Final,dist="logistic")
+summary(Treatment_DB_ID)
+krCI(Treatment_DB_ID)
+
+
+####### Q7 DB Truncated Covariates ID:
+Treatment_Truncated_DB_ID <- dbchoice(Q7TreatmentResponse + Q7Response2 ~ Order + Q1Gender + Q2Age + Q3Distance
+                                + Q4Trips + Q7TreatmentCertainty+ Q16BP + Q18Charity+Q20Consequentiality+
+                                  + Q21Experts + Q22Education + Q23Employment
+                                +  IncomeDummy + Q25Understanding + Timing | Q7Bid + Q7Bid2,data = Full_Full,dist="logistic")
+summary(Treatment_Truncated_DB_ID)
+krCI(Treatment_Truncated_DB_ID)
+# bootCI(Treatment_Truncated_DB_ID)
+round(data.frame((summary(Treatment_Truncated_DB_ID)$coef)),3)
+
+
+
+####### Q7 SB Full Covariates ID:
+Treatment1_SBID <- sbchoice(Q7TreatmentResponse ~  Order + Q1Gender + Q2Age + Q3Distance
+                          + Q4Trips + Q7TreatmentCertainty + Q16BP + Q18Charity + Q20Consequentiality
+                          + Q21Experts + Q22Education + Q23Employment
+                          +  IncomeDummy + Q25Understanding + Timing  | Q7Bid ,data = Full_Long,dist="logistic")
+summary(Treatment1_SBID)
+bootCI(Treatment1_SBID)
+
+####### Q7 SB Truncated Covariates ID:
+Treatment2_SBID <- sbchoice(Q7TreatmentResponse ~  Order + Q1Gender + Q2Age + Q3Distance
+                          + Q4Trips + Q7TreatmentCertainty + Q16BP + Q18Charity + Q20Consequentiality
+                          + Q21Experts + Q22Education + Q23Employment
+                          +  IncomeDummy + Q25Understanding + Timing  | Q7Bid ,data = Full_Full,dist="logistic")
+summary(Treatment2_SBID)
+krCI(Treatment2_SBID)
+round(data.frame(c(summary(Treatment2_SBID)$glm.summary[12])),3)
+View(round(krCI(Treatment2_SBID)$out,2))
+
+
 
 
 ####### Ordering DBDC:
@@ -1558,11 +1658,11 @@ plot(Treatment_InconsequentialKMT)
 Research <- sbchoice(Q6ResearchResponse ~ Q1Gender + Q2Age + Q3Distance
                      + Q4Trips + Q16BP + Q18Charity
                      + Q21Experts + Q22Education + Q23Employment
-                     +  Q24AIncome + Timing| Q6Bid, data = Full_Order1,dist="logistic")
+                     +  Q24AIncome + Timing| Q6Bid, data = Full_Order1,dist="normal")
 Treatment <- sbchoice(Q7TreatmentResponse ~ Q1Gender + Q2Age + Q3Distance
                       + Q4Trips + Q16BP + Q18Charity
                       + Q21Experts + Q22Education + Q23Employment
-                      +  Q24AIncome + Timing| Q7Bid, data = Full_Order2,dist="logistic")
+                      +  Q24AIncome + Timing| Q7Bid, data = Full_Order2,dist="normal")
 summary(Research)
 summary(Treatment)
 Full_Order1 <- cbind(Full_Order1,
@@ -1583,16 +1683,16 @@ colnames(Full_Order2)[56] <- "Q7WTP"
 
 ## In this experimental code I fit WTP to an average respondent and then examine the difference in median WTP by ordering effects only. 
 Research_WTP <- sbchoice(Q6ResearchResponse ~ Order +  Q1Gender + Q2Age + Q3Distance
-                         + Q4Trips + Q16BP + Q18Charity
+                         + Q4Trips + Q6ResearchCertainty+Q16BP + Q18Charity
                          + Q21Experts + Q22Education + Q23Employment
-                         +  Q24AIncome + Timing | Q6Bid, data = FullSurvey2,dist="logistic")
+                         +  Q24AIncome + Timing | Q6Bid, data = FullSurvey2,dist="normal")
 O1 <- krCI(Research_WTP,individual = data.frame(Order=0, Q1Gender = mean(FullSurvey2$Q1Gender), Q2Age = mean(FullSurvey2$Q2Age), Q3Distance = mean(FullSurvey2$Q3Distance),Q4Trips = mean(FullSurvey2$Q4Trips), Q16BP = mean(FullSurvey2$Q16BP),Q18Charity = mean(FullSurvey2$Q18Charity),Q21Experts = mean(FullSurvey2$Q21Experts),Q22Education = mean(FullSurvey2$Q22Education), Q23Employment = mean(FullSurvey2$Q23Employment), Q24AIncome = mean(FullSurvey2$Q24AIncome),Timing = mean(FullSurvey2$Timing)))
 O2 <- krCI(Research_WTP,individual = data.frame(Order=1, Q1Gender = mean(FullSurvey2$Q1Gender), Q2Age = mean(FullSurvey2$Q2Age), Q3Distance = mean(FullSurvey2$Q3Distance),Q4Trips = mean(FullSurvey2$Q4Trips), Q16BP = mean(FullSurvey2$Q16BP),Q18Charity = mean(FullSurvey2$Q18Charity),Q21Experts = mean(FullSurvey2$Q21Experts),Q22Education = mean(FullSurvey2$Q22Education), Q23Employment = mean(FullSurvey2$Q23Employment), Q24AIncome = mean(FullSurvey2$Q24AIncome),Timing = mean(FullSurvey2$Timing)))
 data.frame("Order 1" = c(median(O1$medWTP)), "Order 2" = c(median(O2$medWTP)),"Ordering effect" = c(abs(median(O1$medWTP)-median(O2$medWTP))))
 Treatment_DBWTP <- dbchoice(Q7TreatmentResponse + Q7Response2 ~ Order +  Q1Gender + Q2Age + Q3Distance
                             + Q4Trips + Q16BP + Q18Charity
                             + Q21Experts + Q22Education + Q23Employment
-                            +  Q24AIncome + Timing | Q7Bid + Q7Bid2,data = FullSurvey2,dist="logistic")
+                            +  Q24AIncome + Timing | Q7Bid + Q7Bid2,data = FullSurvey2,dist="normal")
 O1 <- krCI(Treatment_DBWTP,individual = data.frame(Order=0, Q1Gender = mean(FullSurvey2$Q1Gender), Q2Age = mean(FullSurvey2$Q2Age), Q3Distance = mean(FullSurvey2$Q3Distance),Q4Trips = mean(FullSurvey2$Q4Trips), Q16BP = mean(FullSurvey2$Q16BP),Q18Charity = mean(FullSurvey2$Q18Charity),Q21Experts = mean(FullSurvey2$Q21Experts),Q22Education = mean(FullSurvey2$Q22Education), Q23Employment = mean(FullSurvey2$Q23Employment), Q24AIncome = mean(FullSurvey2$Q24AIncome),Timing = mean(FullSurvey2$Timing)))
 O2 <- krCI(Treatment_DBWTP,individual = data.frame(Order=1, Q1Gender = mean(FullSurvey2$Q1Gender), Q2Age = mean(FullSurvey2$Q2Age), Q3Distance = mean(FullSurvey2$Q3Distance),Q4Trips = mean(FullSurvey2$Q4Trips), Q16BP = mean(FullSurvey2$Q16BP),Q18Charity = mean(FullSurvey2$Q18Charity),Q21Experts = mean(FullSurvey2$Q21Experts),Q22Education = mean(FullSurvey2$Q22Education), Q23Employment = mean(FullSurvey2$Q23Employment), Q24AIncome = mean(FullSurvey2$Q24AIncome),Timing = mean(FullSurvey2$Timing)))
 data.frame("Order 1" = c(median(O1$medWTP)), "Order 2" = c(median(O2$medWTP)),"Ordering effect" = c(abs(median(O1$medWTP)-median(O2$medWTP))))
@@ -1603,7 +1703,7 @@ i=1
 FullSurvey2 <- cbind(FullSurvey2,
                       apply(FullSurvey2, 
                             1, 
-                            function(i) c(krCI(Research_WTP,individual = data.frame(Order= FullSurvey2$Order[abs(i)], Q1Gender = FullSurvey2$Q1Gender[abs(i)], Q2Age = FullSurvey2$Q2Age[abs(i)], Q3Distance = FullSurvey2$Q3Distance[abs(i)],Q4Trips = FullSurvey2$Q4Trips[abs(i)], Q16BP = FullSurvey2$Q16BP[abs(i)],Q18Charity = FullSurvey2$Q18Charity[abs(i)],Q21Experts = FullSurvey2$Q21Experts[abs(i)],Q22Education = FullSurvey2$Q22Education[abs(i)], Q23Employment = FullSurvey2$Q23Employment[abs(i)], Q24AIncome = FullSurvey2$Q24AIncome[abs(i)],Timing = FullSurvey2$Timing[abs(i)]))$out[4,1])))
+                            function(i) c(krCI(Research_WTP,individual = data.frame(Order= FullSurvey2$Order[abs(i)], Q1Gender = FullSurvey2$Q1Gender[abs(i)], Q2Age = FullSurvey2$Q2Age[abs(i)], Q3Distance = FullSurvey2$Q3Distance[abs(i)],Q4Trips = FullSurvey2$Q4Trips[abs(i)], Q6ResearchCertainty= FullSurvey2$Q6ResearchCertainty[abs(i)], Q16BP = FullSurvey2$Q16BP[abs(i)],Q18Charity = FullSurvey2$Q18Charity[abs(i)],Q21Experts = FullSurvey2$Q21Experts[abs(i)],Q22Education = FullSurvey2$Q22Education[abs(i)], Q23Employment = FullSurvey2$Q23Employment[abs(i)], Q24AIncome = FullSurvey2$Q24AIncome[abs(i)],Timing = FullSurvey2$Timing[abs(i)]))$out[4,1])))
 colnames(FullSurvey2)[56] <- "Q6WTP"
 i=0
 FullSurvey2 <- cbind(FullSurvey2,
@@ -1619,6 +1719,7 @@ colnames(FullSurvey2)[58] <- "Precaution"
 Full_Final <- cbind(Full_Long,slice(.data = FullSurvey2[,56:58],rep(1:n(), each = 8)))
 Full_Final <- (cbind(Full_Final,slice(.data = Responsibility,rep(1:n(), each = 2))))
 write.csv(Full_Final,file = "FinalData.csv")
+write.csv(Full_Full,file = "Full_Full.csv")
 # FullSurvey2 <- FullSurvey2[ (FullSurvey2$Q1Gender == 0) | (FullSurvey2$Q1Gender == 1),]
 
 
@@ -1876,7 +1977,7 @@ write.csv(Test_Apollo,file = "Test_Apollo.csv")
 
 
 #### Section 6A: Conditional Logit (Pref-Space) ####
-
+database<- Test_Apollo
 library(apollo)
 
 apollo_initialise()
@@ -1920,7 +2021,8 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
   return(P)
 }
 
-CLmodel = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs,estimate_settings = list(bootstrapSE=1,bootstrapSeed = 24))
+CLmodel = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+# ,estimate_settings = list(bootstrapSE=1,bootstrapSeed = 24))
 
 apollo_modelOutput(CLmodel,modelOutput_settings = list(printPVal=TRUE))
 
@@ -1935,7 +2037,7 @@ b2 <- CLmodel$estimate["b_Performance"]
 
 
 #### Section 6A: Conditional Logit (WTP-Space) ####
-
+database<- Test_Truncated
 library(apollo)
 
 apollo_initialise()
@@ -1982,6 +2084,9 @@ CLModel = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apoll
 
 apollo_modelOutput(CLModel,modelOutput_settings = list(printPVal=TRUE))
 saveRDS(CLModel,"CLmodel.rds")
+## WTP calculations: 
+apollo_deltaMethod(CLModel, list(operation="ratio", parName1="b_Performance", parName2="b_Price"))
+apollo_deltaMethod(CLModel, list(operation="ratio", parName1="b_Emission", parName2="b_Price"))
 
 
 #### Section 6A: MNL Linear: Replicate MNL_3 ####
@@ -1989,6 +2094,7 @@ saveRDS(CLModel,"CLmodel.rds")
 
 library(apollo)
 library(stats)
+database <- Test_Apollo
 apollo_control = list(
   modelName  ="Replicating Full_MNL",
   indivID    ="ID"
@@ -2013,7 +2119,6 @@ apollo_beta=c(asc_A      = 0,
               b_Task       = 0,
               b_Cons       = 0,
               b_Experts    = 0,
-              b_Timing     = 0,
               b_Understanding =0,
               b_Certainty=0)
 
@@ -2041,12 +2146,11 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
     b_Charity * Charity + 
     b_Education * Education +
     b_Employment * Employment + 
-    b_Income * Income +
+    b_Income * IncomeDummy +
     b_Order * Order +      
     b_Task * Task +       
     b_Cons * Consequentiality +       
     b_Experts * Experts+
-    b_Timing * Timing+
     b_Understanding*Survey +
   b_Certainty*Q12CECertainty
   
@@ -2080,6 +2184,7 @@ MNL1 = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_i
 apollo_modelOutput(MNL1,modelOutput_settings = list(printPVal=TRUE))
 apollo_saveOutput(MNL1)
 saveRDS(MNL1,"MNL1.rds")
+xtable::xtable(round(data.frame(apollo_modelOutput(MNL1,modelOutput_settings = list(printPVal=TRUE))),3),digits=3)
 
 ## WTP calculations: 
 apollo_deltaMethod(MNL1, list(operation="ratio", parName1="b_Performance", parName2="b_Price"))
@@ -2143,7 +2248,7 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
     b_Charity * Charity + 
     b_Education * Education +
     b_Employment * Employment + 
-    b_Income * Income +
+    b_Income * IncomeDummy +
     b_Order * Order +      
     b_Task * Task +       
     b_Cons * Consequentiality +       
@@ -2180,7 +2285,7 @@ MNL2 = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_i
 
 apollo_modelOutput(MNL2,modelOutput_settings = list(printPVal=TRUE))
 saveRDS(MNL2,"MNL2.rds")
-xtable(data.frame(apollo_modelOutput(MNL2,modelOutput_settings = list(printPVal=TRUE)))    )
+xtable(data.frame(apollo_modelOutput(MNL2,modelOutput_settings = list(printPVal=TRUE))),digits=3)
 
 apollo_deltaMethod(MNL2, list(operation="ratio", parName1="b_Performance", parName2="b_Price"))
 apollo_deltaMethod(MNL2, list(operation="ratio", parName1="b_Emission", parName2="b_Price"))
@@ -2332,7 +2437,8 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
   return(P)
 }
 
-Piecewise_model = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs,estimate_settings = list(bootstrapSE=1,bootstrapSeed = 24))
+Piecewise_model = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+  apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs,estimate_settings = list(bootstrapSE=1,bootstrapSeed = 24))
 
 apollo_modelOutput(Piecewise_model,modelOutput_settings = list(printPVal=TRUE))
 
@@ -2348,9 +2454,6 @@ round(100/length(Piecewise_Predictions$Match)*length(Piecewise_Predictions$Match
 # 23.51
 round(100/length(Piecewise_Predictions$Match)*length(Piecewise_Predictions$Match[Piecewise_Predictions$Match==1]),3)
 # 76.49
-
-
-
 
 
 ## WTP calculations: 
@@ -4211,12 +4314,12 @@ round(mean(Full_Final$PerformanceCoef[Full_Final$Q24AIncome < mean(Full_Final$Q2
 
 
 #### Section 7B: Net Benefits: ####
-# Figures estimated in Thesis C5
+# Figures estimated in Thesis C7
 Households <- 27800000
 Products <- 23000000
-ResearchPoint <- 20000000
-ResearchLower <- 5000000
-ResearchUpper <- 100000000
+ResearchPoint <- 21818300
+ResearchLower <- 5729300
+ResearchUpper <- 102531100
 
 WWTPPoint <- 1370000000
 WWTPLower <- 1000000000

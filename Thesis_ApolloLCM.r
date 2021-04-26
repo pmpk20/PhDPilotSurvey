@@ -19,7 +19,7 @@ source('Thesis_SetupCode.r')
 ## Based closely from: http://www.apollochoicemodelling.com/files/Apollo_example_18.r
 
 
-database <- Test_Apollo
+database <- Test_Truncated
 apollo_initialise() ## Going to comment this once bc it's repeated a lot but this is a necessary first step
 
 apollo_control = list(
@@ -316,7 +316,7 @@ apollo_modelOutput(LCMStandard4CNoSD,modelOutput_settings = list(printPVal=TRUE)
 #### LCMStandard2CAllSD ####
 
 apollo_initialise()
-
+database <- Test_Truncated
 apollo_control = list(
   modelName  ="LCMStandard2CAllSD",modelDescr ="LCM1",
   indivID    ="ID",nCores     = 4)
@@ -333,17 +333,12 @@ apollo_beta = c(asc_1           = 0,
                 gamma_Gender=0,
                 gamma_Age      = 0,
                 gamma_Distance = 0,
-                gamma_Trips    = 0,
                 gamma_BP       = 0,
                 gamma_Charity  = 0,
-                gamma_Education  = 0,
-                gamma_Employment = 0,
                 gamma_Income     = 0,
                 gamma_Order      = 0,
-                gamma_Task       = 0,
                 gamma_Cons       = 0,
                 gamma_Experts    = 0,
-                gamma_Understanding =0,
                 gamma_Certainty=0)
 
 apollo_fixed = c("asc_1")
@@ -358,17 +353,12 @@ apollo_lcPars=function(apollo_beta, apollo_inputs){
   V[["class_a"]] = 0
   V[["class_b"]] = delta_b+ gamma_Gender*Q1Gender + gamma_Age*Age +
     gamma_Distance * Distance + 
-    gamma_Trips * Trips +
     gamma_BP * BP +
     gamma_Charity * Charity + 
-    gamma_Education * Education +
-    gamma_Employment * Employment + 
-    gamma_Income * Income +
+    gamma_Income * IncomeDummy +
     gamma_Order * Order +      
-    gamma_Task * Task +       
     gamma_Cons * Consequentiality +       
     gamma_Experts * Experts+
-    gamma_Understanding*Survey +
     gamma_Certainty*Q12CECertainty
   
   mnl_settings = list(

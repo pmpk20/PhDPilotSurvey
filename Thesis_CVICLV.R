@@ -2126,7 +2126,7 @@ SBDCPRecaution <- ggplot(Full_Final, aes(x=Precaution)) +
                 args = with(Full_Final, c(mean = mean(Precaution), sd = sd(Precaution), n= 1)))+
   scale_x_continuous(name="Precautionary Premium (Q7 WTP - Q6 WTP) in £",breaks=waiver(),limits = c(0,100),
                      n.breaks = 10, labels = function(x) paste0("£",x))+
-  ggtitle("Precautionary Premium from SBDC. (Full Sample).")
+  ggtitle("Precautionary Premia from probit (Full Sample).")
 
 SBDCPRecaution2 <- ggplot(Full_Full, aes(x=Precaution)) + 
   geom_histogram(aes(y = ..density..),color="black", fill="white",binwidth = 1)+
@@ -2134,7 +2134,7 @@ SBDCPRecaution2 <- ggplot(Full_Full, aes(x=Precaution)) +
                 args = with(Full_Final, c(mean = mean(Precaution), sd = sd(Precaution), n= 1)))+
   scale_x_continuous(name="Precautionary Premium (Q7 WTP - Q6 WTP) in £",breaks=waiver(),limits = c(0,100),
                      n.breaks = 10, labels = function(x) paste0("£",x))+
-  ggtitle("Precautionary Premium from SBDC (Truncated Sample).")
+  ggtitle("Precautionary Premia from probit (Truncated Sample).")
 
 ICLVHistF <- ggplot(Full_Final, aes(x=ICLVPrecautionF)) + 
   geom_histogram(aes(y = ..density..),color="black", fill="white",binwidth = 1)+
@@ -2142,7 +2142,7 @@ ICLVHistF <- ggplot(Full_Final, aes(x=ICLVPrecautionF)) +
                 args = with(Full_Final, c(mean = mean(ICLVPrecautionF), sd = sd(ICLVPrecautionF), n= 1)))+
   scale_x_continuous(name="Precautionary Premium (Q7 WTP - Q6 WTP) in £",breaks=waiver(),limits = c(-10,100),
                      n.breaks = 10,labels = function(x) paste0("£",x))+
-  ggtitle("Precautionary Premium from (Full Sample).")
+  ggtitle("Precautionary Premia from ICLV (Full Sample).")
 
 ICLVHistT <-ggplot(Full_Full, aes(x=(ICLVPrecautionF))) + 
   geom_histogram(aes(y = ..density..),color="black", fill="white",binwidth = 1)+
@@ -2150,6 +2150,855 @@ ICLVHistT <-ggplot(Full_Full, aes(x=(ICLVPrecautionF))) +
                 args = with(Full_Final, c(mean = mean(Full_Full$ICLVPrecautionF), sd = sd(Full_Full$ICLVPrecautionF), n= 1)))+
   scale_x_continuous(name="Precautionary Premium (Q7 WTP - Q6 WTP) in £",breaks=waiver(),limits = c(-10,100),
                      n.breaks = 10,labels = function(x) paste0("£",x))+
-  ggtitle("Precautionary Premium from (Truncated Sample).")
+  ggtitle("Precautionary Premia from ICLV (Truncated Sample).")
 
-grid.arrange(SBDCPRecaution,SBDCPRecaution2,ICLVHistF, ICLVHistT)
+grid.arrange(SBDCPRecaution,ICLVHistF,SBDCPRecaution2, ICLVHistT)
+
+
+
+
+#### Income Dummy Drop Cons ####
+
+
+#### CVmodel6New ####
+
+database <- Test_Apollo
+database$Q6Bid <- database$Q6Bid/100
+database$Q6ResearchResponse <-database$Q6ResearchResponse-1
+apollo_control = list(
+  modelName  = "ICLVQ6New",
+  modelDescr = "ICLVQ6New",
+  indivID    = "ID",
+  mixing     = TRUE,
+  nCores     = 4,
+  noValidation=TRUE)
+
+
+apollo_beta = c(intercept =0,b_bid    = 0,
+                lambda            = 1, 
+                gamma_Age       = 0, 
+                gamma_Gender    = 0,
+                gamma_Distance  = 0, 
+                gamma_Income =0,
+                gamma_Experts =0,
+                gamma_BP =0,
+                gamma_Charity =0,
+                zeta_Q13   = 1, 
+                zeta_Q14   = 1, 
+                zeta_Q15   = 1, 
+                tau_Q13_1  =-2, 
+                tau_Q13_2  =-1, 
+                tau_Q13_3  = 1, 
+                tau_Q13_4  = 2, 
+                tau_Q14_1  =-2, 
+                tau_Q14_2  =-1, 
+                tau_Q14_3  = 1, 
+                tau_Q14_4  = 2, 
+                tau_Q15_1  =-2, 
+                tau_Q15_2  =-1, 
+                tau_Q15_3  = 1, 
+                tau_Q15_4  = 2)
+
+apollo_fixed = c()
+
+apollo_draws = list(
+  interDrawsType="halton",interNDraws=1000,          
+  interUnifDraws=c(),interNormDraws=c("eta"))
+
+apollo_randCoeff=function(apollo_beta, apollo_inputs){
+  randcoeff = list()
+  randcoeff[["LV"]] = gamma_Age*Age +gamma_Gender*Q1Gender + gamma_Distance*Distance + gamma_Income*IncomeDummy + gamma_Experts*Experts + gamma_BP*BP + gamma_Charity*Charity + eta
+  return(randcoeff)
+}
+
+apollo_inputs = apollo_validateInputs()
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  P = list()
+  op_settings1 = list(outcomeOrdered = Q13CurrentThreatToSelf, 
+                      V              = zeta_Q13*LV, 
+                      tau            = c(tau_Q13_1, tau_Q13_2, tau_Q13_3, tau_Q13_4),
+                      rows           = (Task==1),
+                      componentName  = "indic_Q13")
+  op_settings2 = list(outcomeOrdered = Q14FutureThreatToSelf, 
+                      V              = zeta_Q14*LV, 
+                      tau            = c(tau_Q14_1, tau_Q14_2, tau_Q14_3, tau_Q14_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q14")
+  op_settings3 = list(outcomeOrdered = Q15ThreatToEnvironment, 
+                      V              = zeta_Q15*LV, 
+                      tau            = c(tau_Q15_1, tau_Q15_2, tau_Q15_3, tau_Q15_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q15")
+  P[["indic_Q13"]] = apollo_op(op_settings1, functionality)
+  P[["indic_Q14"]] = apollo_op(op_settings2, functionality)
+  P[["indic_Q15"]] = apollo_op(op_settings3, functionality)
+  op_settings = list(outcomeOrdered= Q6ResearchResponse,
+                     V      = intercept + b_bid*Q6Bid+lambda*LV,
+                     tau    = list(-100,0),
+                     coding = c(-1,0,1))
+  P[['choice']] = apollo_op(op_settings, functionality)
+  # P = apollo_panelProd(P, apollo_inputs, functionality)
+  # P = apollo_prepareProb(P, apollo_inputs, functionality)
+  P = apollo_combineModels(P, apollo_inputs, functionality)
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+CVmodel6NNew = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+
+apollo_modelOutput(CVmodel6NNew,modelOutput_settings = list(printPVal=TRUE))
+saveRDS(CVmodel6NNew,"CVmodel6NNew.rds")
+
+#### CVmodel7New ####
+
+# Setup:
+database <- Test_Apollo
+database$Q7Bid <- database$Q7Bid/100
+database$Q7TreatmentResponse <- database$Q7TreatmentResponse-1
+
+
+apollo_control = list(
+  modelName  = "ICLVQ7New",
+  modelDescr = "ICLVQ7New",
+  indivID    = "ID",
+  mixing     = TRUE,
+  nCores     = 4,
+  noValidation=TRUE)
+
+
+apollo_beta = c(intercept =0,b_bid    = 0,
+                lambda            = 1, 
+                gamma_Age       = 0, 
+                gamma_Gender    = 0,
+                gamma_Distance  = 0, 
+                gamma_Income =0,
+                gamma_Experts =0,
+                gamma_BP =0,
+                gamma_Charity =0,
+                zeta_Q13   = 1, 
+                zeta_Q14   = 1, 
+                zeta_Q15   = 1, 
+                tau_Q13_1  =-2, 
+                tau_Q13_2  =-1, 
+                tau_Q13_3  = 1, 
+                tau_Q13_4  = 2, 
+                tau_Q14_1  =-2, 
+                tau_Q14_2  =-1, 
+                tau_Q14_3  = 1, 
+                tau_Q14_4  = 2, 
+                tau_Q15_1  =-2, 
+                tau_Q15_2  =-1, 
+                tau_Q15_3  = 1, 
+                tau_Q15_4  = 2)
+
+apollo_fixed = c()
+
+apollo_draws = list(
+  interDrawsType="halton",interNDraws=1000,          
+  interUnifDraws=c(),interNormDraws=c("eta"))
+
+apollo_randCoeff=function(apollo_beta, apollo_inputs){
+  randcoeff = list()
+  randcoeff[["LV"]] = gamma_Age*Age +gamma_Gender*Q1Gender + gamma_Distance*Distance + gamma_Income*IncomeDummy + gamma_Experts*Experts + gamma_BP*BP + gamma_Charity*Charity + eta
+  return(randcoeff)
+}
+
+apollo_inputs = apollo_validateInputs()
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  P = list()
+  op_settings1 = list(outcomeOrdered = Q13CurrentThreatToSelf, 
+                      V              = zeta_Q13*LV, 
+                      tau            = c(tau_Q13_1, tau_Q13_2, tau_Q13_3, tau_Q13_4),
+                      rows           = (Task==1),
+                      componentName  = "indic_Q13")
+  op_settings2 = list(outcomeOrdered = Q14FutureThreatToSelf, 
+                      V              = zeta_Q14*LV, 
+                      tau            = c(tau_Q14_1, tau_Q14_2, tau_Q14_3, tau_Q14_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q14")
+  op_settings3 = list(outcomeOrdered = Q15ThreatToEnvironment, 
+                      V              = zeta_Q15*LV, 
+                      tau            = c(tau_Q15_1, tau_Q15_2, tau_Q15_3, tau_Q15_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q15")
+  P[["indic_Q13"]] = apollo_op(op_settings1, functionality)
+  P[["indic_Q14"]] = apollo_op(op_settings2, functionality)
+  P[["indic_Q15"]] = apollo_op(op_settings3, functionality)
+  op_settings = list(outcomeOrdered= Q7TreatmentResponse,
+                     V      = intercept + b_bid*Q7Bid+lambda*LV,
+                     tau    = list(-100,0),
+                     coding = c(-1,0,1))
+  P[['choice']] = apollo_op(op_settings, functionality)
+  # P = apollo_panelProd(P, apollo_inputs, functionality)
+  # P = apollo_prepareProb(P, apollo_inputs, functionality)
+  P = apollo_combineModels(P, apollo_inputs, functionality)
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+CVmodel7New = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+
+apollo_modelOutput(CVmodel7New,modelOutput_settings = list(printPVal=TRUE))
+saveRDS(CVmodel7New,"CVmodel7New.rds")
+
+
+####  CVmodel6NTNew ####
+
+
+# Setup the data for all truncated models:
+database <- Test_Truncated
+database$Q6Bid <- database$Q6Bid/100
+database$Q7Bid <- database$Q7Bid/100
+database$Q6ResearchResponse <-database$Q6ResearchResponse-1
+database$Q7TreatmentResponse <-database$Q7TreatmentResponse-1
+
+
+# Estimate model:
+apollo_control = list(
+  modelName  = "CVmodel6NTNew",
+  modelDescr = "CVmodel6NTNew",
+  indivID    = "ID",
+  mixing     = TRUE,
+  nCores     = 4,
+  noValidation=TRUE)
+
+
+apollo_beta = c(intercept =0,b_bid    = 0,
+                lambda            = 1, 
+                gamma_Age       = 0, 
+                gamma_Gender    = 0,
+                gamma_Distance  = 0, 
+                gamma_Income =0,
+                gamma_Experts =0,
+                gamma_BP =0,
+                gamma_Charity =0,
+                zeta_Q13   = 1, 
+                zeta_Q14   = 1, 
+                zeta_Q15   = 1, 
+                tau_Q13_1  =-2, 
+                tau_Q13_2  =-1, 
+                tau_Q13_3  = 1, 
+                tau_Q13_4  = 2, 
+                tau_Q14_1  =-2, 
+                tau_Q14_2  =-1, 
+                tau_Q14_3  = 1, 
+                tau_Q14_4  = 2, 
+                tau_Q15_1  =-2, 
+                tau_Q15_2  =-1, 
+                tau_Q15_3  = 1, 
+                tau_Q15_4  = 2)
+apollo_fixed = c()
+
+
+apollo_draws = list(
+  interDrawsType="halton",interNDraws=1000,          
+  interUnifDraws=c(),interNormDraws=c("eta"))
+
+
+apollo_randCoeff=function(apollo_beta, apollo_inputs){
+  randcoeff = list()
+  randcoeff[["LV"]] = gamma_Age*Age +gamma_Gender*Q1Gender + gamma_Distance*Distance + gamma_Income*IncomeDummy + gamma_Experts*Experts + gamma_BP*BP + gamma_Charity*Charity + eta
+  return(randcoeff)}
+apollo_inputs = apollo_validateInputs()
+
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  P = list()
+  op_settings1 = list(outcomeOrdered = Q13CurrentThreatToSelf, 
+                      V              = zeta_Q13*LV, 
+                      tau            = c(tau_Q13_1, tau_Q13_2, tau_Q13_3, tau_Q13_4),
+                      rows           = (Task==1),
+                      componentName  = "indic_Q13")
+  op_settings2 = list(outcomeOrdered = Q14FutureThreatToSelf, 
+                      V              = zeta_Q14*LV, 
+                      tau            = c(tau_Q14_1, tau_Q14_2, tau_Q14_3, tau_Q14_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q14")
+  op_settings3 = list(outcomeOrdered = Q15ThreatToEnvironment, 
+                      V              = zeta_Q15*LV, 
+                      tau            = c(tau_Q15_1, tau_Q15_2, tau_Q15_3, tau_Q15_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q15")
+  P[["indic_Q13"]] = apollo_op(op_settings1, functionality)
+  P[["indic_Q14"]] = apollo_op(op_settings2, functionality)
+  P[["indic_Q15"]] = apollo_op(op_settings3, functionality)
+  op_settings = list(outcomeOrdered= Q6ResearchResponse,
+                     V      = intercept + b_bid*Q6Bid+lambda*LV,
+                     tau    = list(-100,0),
+                     coding = c(-1,0,1))
+  P[['choice']] = apollo_op(op_settings, functionality)
+  # P = apollo_panelProd(P, apollo_inputs, functionality)
+  # P = apollo_prepareProb(P, apollo_inputs, functionality)
+  P = apollo_combineModels(P, apollo_inputs, functionality)
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+CVmodel6NTNew = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+
+apollo_modelOutput(CVmodel6NTNew,modelOutput_settings = list(printPVal=TRUE))
+saveRDS(CVmodel6NTNew,"CVmodel6NTNew.rds")
+# WTP:
+Model <- CVmodel6NTNew
+CVunconditionals7F <- apollo_unconditionals(Model,apollo_probabilities,apollo_inputs)
+ModelWTP <-apply((-Model$estimate["intercept"]/Model$estimate["b_bid"]+CVunconditionals7F$LV)*100,MARGIN = 1,FUN = mean)
+median(-Model$estimate["intercept"]/Model$estimate["b_bid"]+CVunconditionals7F$LV)*100
+
+
+#### CVmodel7NTNew ####
+
+# Setup the data for all truncated models:
+database <- Test_Truncated
+database$Q6Bid <- database$Q6Bid/100
+database$Q7Bid <- database$Q7Bid/100
+database$Q6ResearchResponse <-database$Q6ResearchResponse-1
+database$Q7TreatmentResponse <-database$Q7TreatmentResponse-1
+
+apollo_control = list(
+  modelName  = "CVmodel7NTNew",
+  modelDescr = "CVmodel7NTNew",
+  indivID    = "ID",
+  mixing     = TRUE,
+  nCores     = 4,
+  noValidation=TRUE)
+
+
+apollo_beta = c(intercept =0,b_bid    = 0,
+                lambda            = 1, 
+                gamma_Age       = 0, 
+                gamma_Gender    = 0,
+                gamma_Distance  = 0, 
+                gamma_Income =0,
+                gamma_Experts =0,
+                gamma_BP =0,
+                gamma_Charity =0,
+                zeta_Q13   = 1, 
+                zeta_Q14   = 1, 
+                zeta_Q15   = 1, 
+                tau_Q13_1  =-2, 
+                tau_Q13_2  =-1, 
+                tau_Q13_3  = 1, 
+                tau_Q13_4  = 2, 
+                tau_Q14_1  =-2, 
+                tau_Q14_2  =-1, 
+                tau_Q14_3  = 1, 
+                tau_Q14_4  = 2, 
+                tau_Q15_1  =-2, 
+                tau_Q15_2  =-1, 
+                tau_Q15_3  = 1, 
+                tau_Q15_4  = 2)
+
+apollo_fixed = c()
+
+apollo_draws = list(
+  interDrawsType="halton",interNDraws=1000,          
+  interUnifDraws=c(),interNormDraws=c("eta"))
+
+apollo_randCoeff=function(apollo_beta, apollo_inputs){
+  randcoeff = list()
+  randcoeff[["LV"]] = gamma_Age*Age +gamma_Gender*Q1Gender + gamma_Distance*Distance + gamma_Income*IncomeDummy + gamma_Experts*Experts + gamma_BP*BP + gamma_Charity*Charity + eta
+  return(randcoeff)
+}
+
+
+apollo_inputs = apollo_validateInputs()
+
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  P = list()
+  op_settings1 = list(outcomeOrdered = Q13CurrentThreatToSelf, 
+                      V              = zeta_Q13*LV, 
+                      tau            = c(tau_Q13_1, tau_Q13_2, tau_Q13_3, tau_Q13_4),
+                      rows           = (Task==1),
+                      componentName  = "indic_Q13")
+  op_settings2 = list(outcomeOrdered = Q14FutureThreatToSelf, 
+                      V              = zeta_Q14*LV, 
+                      tau            = c(tau_Q14_1, tau_Q14_2, tau_Q14_3, tau_Q14_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q14")
+  op_settings3 = list(outcomeOrdered = Q15ThreatToEnvironment, 
+                      V              = zeta_Q15*LV, 
+                      tau            = c(tau_Q15_1, tau_Q15_2, tau_Q15_3, tau_Q15_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q15")
+  P[["indic_Q13"]] = apollo_op(op_settings1, functionality)
+  P[["indic_Q14"]] = apollo_op(op_settings2, functionality)
+  P[["indic_Q15"]] = apollo_op(op_settings3, functionality)
+  op_settings = list(outcomeOrdered= Q7TreatmentResponse,
+                     V      = intercept + b_bid*Q7Bid+lambda*LV,
+                     tau    = list(-100,0),
+                     coding = c(-1,0,1))
+  P[['choice']] = apollo_op(op_settings, functionality)
+  # P = apollo_panelProd(P, apollo_inputs, functionality)
+  # P = apollo_prepareProb(P, apollo_inputs, functionality)
+  P = apollo_combineModels(P, apollo_inputs, functionality)
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+CVmodel7NTNew = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+
+apollo_modelOutput(CVmodel7NTNew,modelOutput_settings = list(printPVal=TRUE))
+saveRDS(CVmodel7NTNew,"CVmodel7NTNew.rds")
+
+# WTP:
+Model <- CVmodel7NTNew
+CVunconditionals7F <- apollo_unconditionals(Model,apollo_probabilities,apollo_inputs)
+ModelWTP <-apply((-Model$estimate["intercept"]/Model$estimate["b_bid"]+CVunconditionals7F$LV)*100,MARGIN = 1,FUN = mean)
+median(-Model$estimate["intercept"]/Model$estimate["b_bid"]+CVunconditionals7F$LV)*100
+
+
+#### IncomeDummy only ####
+
+
+#### CVmodel6NNewID ####
+
+database <- Test_Apollo
+database$Q6Bid <- database$Q6Bid/100
+database$Q6ResearchResponse <-database$Q6ResearchResponse-1
+apollo_control = list(
+  modelName  = "CVmodel6NNewID",
+  modelDescr = "CVmodel6NNewID",
+  indivID    = "ID",
+  mixing     = TRUE,
+  nCores     = 4,
+  noValidation=TRUE)
+
+
+apollo_beta = c(intercept =0,b_bid    = 0,
+                lambda            = 1, 
+                gamma_Age       = 0, 
+                gamma_Gender    = 0,
+                gamma_Distance  = 0, 
+                gamma_Income =0,
+                gamma_Experts =0,
+                gamma_BP =0,
+                gamma_Charity =0,
+                gamma_Certainty=0,
+                gamma_Cons=0,
+                zeta_Q13   = 1, 
+                zeta_Q14   = 1, 
+                zeta_Q15   = 1, 
+                tau_Q13_1  =-2, 
+                tau_Q13_2  =-1, 
+                tau_Q13_3  = 1, 
+                tau_Q13_4  = 2, 
+                tau_Q14_1  =-2, 
+                tau_Q14_2  =-1, 
+                tau_Q14_3  = 1, 
+                tau_Q14_4  = 2, 
+                tau_Q15_1  =-2, 
+                tau_Q15_2  =-1, 
+                tau_Q15_3  = 1, 
+                tau_Q15_4  = 2)
+
+apollo_fixed = c()
+
+apollo_draws = list(
+  interDrawsType="halton",interNDraws=1000,          
+  interUnifDraws=c(),interNormDraws=c("eta"))
+
+apollo_randCoeff=function(apollo_beta, apollo_inputs){
+  randcoeff = list()
+  randcoeff[["LV"]] = gamma_Age*Age +gamma_Gender*Q1Gender + gamma_Distance*Distance + gamma_Income*IncomeDummy + gamma_Experts*Experts + gamma_BP*BP + gamma_Charity*Charity + gamma_Certainty*Q12CECertainty +gamma_Cons*Consequentiality + eta
+  return(randcoeff)
+}
+
+apollo_inputs = apollo_validateInputs()
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  P = list()
+  op_settings1 = list(outcomeOrdered = Q13CurrentThreatToSelf, 
+                      V              = zeta_Q13*LV, 
+                      tau            = c(tau_Q13_1, tau_Q13_2, tau_Q13_3, tau_Q13_4),
+                      rows           = (Task==1),
+                      componentName  = "indic_Q13")
+  op_settings2 = list(outcomeOrdered = Q14FutureThreatToSelf, 
+                      V              = zeta_Q14*LV, 
+                      tau            = c(tau_Q14_1, tau_Q14_2, tau_Q14_3, tau_Q14_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q14")
+  op_settings3 = list(outcomeOrdered = Q15ThreatToEnvironment, 
+                      V              = zeta_Q15*LV, 
+                      tau            = c(tau_Q15_1, tau_Q15_2, tau_Q15_3, tau_Q15_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q15")
+  P[["indic_Q13"]] = apollo_op(op_settings1, functionality)
+  P[["indic_Q14"]] = apollo_op(op_settings2, functionality)
+  P[["indic_Q15"]] = apollo_op(op_settings3, functionality)
+  op_settings = list(outcomeOrdered= Q6ResearchResponse,
+                     V      = intercept + b_bid*Q6Bid+lambda*LV,
+                     tau    = list(-100,0),
+                     coding = c(-1,0,1))
+  P[['choice']] = apollo_op(op_settings, functionality)
+  # P = apollo_panelProd(P, apollo_inputs, functionality)
+  # P = apollo_prepareProb(P, apollo_inputs, functionality)
+  P = apollo_combineModels(P, apollo_inputs, functionality)
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+CVmodel6NNewID = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+
+apollo_modelOutput(CVmodel6NNewID,modelOutput_settings = list(printPVal=TRUE))
+saveRDS(CVmodel6NNewID,"CVmodel6NNewID.rds")
+CVmodel6NNewID <- readRDS("CVmodel6NNewID.rds")
+
+# WTP:
+Model <- CVmodel6NNewID
+CVunconditionals7F <- apollo_unconditionals(Model,apollo_probabilities,apollo_inputs)
+ModelWTP <-apply((-Model$estimate["intercept"]/Model$estimate["b_bid"]+CVunconditionals7F$LV)*100,MARGIN = 1,FUN = mean)
+CVmodel6NNewIDWTP <- median(-Model$estimate["intercept"]/Model$estimate["b_bid"]+CVunconditionals7F$LV)*100
+
+
+#### CVmodel7NewID ####
+
+# Setup:
+database <- Test_Apollo
+database$Q7Bid <- database$Q7Bid/100
+database$Q7TreatmentResponse <- database$Q7TreatmentResponse-1
+
+library(apollo)
+apollo_initialise()
+apollo_control = list(
+  modelName  = "CVmodel7NewID",
+  modelDescr = "CVmodel7NewID",
+  indivID    = "ID",
+  mixing     = TRUE,
+  nCores     = 4,
+  noValidation=TRUE)
+
+
+apollo_beta = c(intercept =0,b_bid    = 0,
+                lambda            = 1, 
+                gamma_Age       = 0, 
+                gamma_Gender    = 0,
+                gamma_Distance  = 0, 
+                gamma_Income =0,
+                gamma_Experts =0,
+                gamma_BP =0,
+                gamma_Charity =0,
+                gamma_Cons=0,
+                gamma_Certainty=0,
+                zeta_Q13   = 1, 
+                zeta_Q14   = 1, 
+                zeta_Q15   = 1, 
+                tau_Q13_1  =-2, 
+                tau_Q13_2  =-1, 
+                tau_Q13_3  = 1, 
+                tau_Q13_4  = 2, 
+                tau_Q14_1  =-2, 
+                tau_Q14_2  =-1, 
+                tau_Q14_3  = 1, 
+                tau_Q14_4  = 2, 
+                tau_Q15_1  =-2, 
+                tau_Q15_2  =-1, 
+                tau_Q15_3  = 1, 
+                tau_Q15_4  = 2)
+
+apollo_fixed = c()
+
+apollo_draws = list(
+  interDrawsType="halton",interNDraws=1000,          
+  interUnifDraws=c(),interNormDraws=c("eta"))
+
+apollo_randCoeff=function(apollo_beta, apollo_inputs){
+  randcoeff = list()
+  randcoeff[["LV"]] = gamma_Age*Age +gamma_Gender*Q1Gender + gamma_Distance*Distance + gamma_Income*IncomeDummy + gamma_Experts*Experts + gamma_BP*BP + gamma_Charity*Charity +gamma_Certainty*Q12CECertainty +gamma_Cons*Consequentiality + eta
+  return(randcoeff)
+}
+
+apollo_inputs = apollo_validateInputs()
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  P = list()
+  op_settings1 = list(outcomeOrdered = Q13CurrentThreatToSelf, 
+                      V              = zeta_Q13*LV, 
+                      tau            = c(tau_Q13_1, tau_Q13_2, tau_Q13_3, tau_Q13_4),
+                      rows           = (Task==1),
+                      componentName  = "indic_Q13")
+  op_settings2 = list(outcomeOrdered = Q14FutureThreatToSelf, 
+                      V              = zeta_Q14*LV, 
+                      tau            = c(tau_Q14_1, tau_Q14_2, tau_Q14_3, tau_Q14_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q14")
+  op_settings3 = list(outcomeOrdered = Q15ThreatToEnvironment, 
+                      V              = zeta_Q15*LV, 
+                      tau            = c(tau_Q15_1, tau_Q15_2, tau_Q15_3, tau_Q15_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q15")
+  P[["indic_Q13"]] = apollo_op(op_settings1, functionality)
+  P[["indic_Q14"]] = apollo_op(op_settings2, functionality)
+  P[["indic_Q15"]] = apollo_op(op_settings3, functionality)
+  op_settings = list(outcomeOrdered= Q7TreatmentResponse,
+                     V      = intercept + b_bid*Q7Bid+lambda*LV,
+                     tau    = list(-100,0),
+                     coding = c(-1,0,1))
+  P[['choice']] = apollo_op(op_settings, functionality)
+  # P = apollo_panelProd(P, apollo_inputs, functionality)
+  # P = apollo_prepareProb(P, apollo_inputs, functionality)
+  P = apollo_combineModels(P, apollo_inputs, functionality)
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+CVmodel7NewID = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+
+apollo_modelOutput(CVmodel7NewID,modelOutput_settings = list(printPVal=TRUE))
+saveRDS(CVmodel7NewID,"CVmodel7NewID.rds")
+CVmodel7NewID <- readRDS("CVmodel7NewID.rds")
+# WTP:
+Model <- CVmodel7NewID
+CVunconditionals7F <- apollo_unconditionals(Model,apollo_probabilities,apollo_inputs)
+ModelWTP <-apply((-Model$estimate["intercept"]/Model$estimate["b_bid"]+CVunconditionals7F$LV)*100,MARGIN = 1,FUN = mean)
+CVmodel7NewIDWTP <- median(-Model$estimate["intercept"]/Model$estimate["b_bid"]+CVunconditionals7F$LV)*100
+
+
+
+####  CVmodel6NTNewID ####
+
+
+# Setup the data for all truncated models:
+database <- Test_Truncated
+database$Q6Bid <- database$Q6Bid/100
+database$Q7Bid <- database$Q7Bid/100
+database$Q6ResearchResponse <-database$Q6ResearchResponse-1
+database$Q7TreatmentResponse <-database$Q7TreatmentResponse-1
+
+
+# Estimate model:
+apollo_control = list(
+  modelName  = "CVmodel6NTNewID",
+  modelDescr = "CVmodel6NTNewID",
+  indivID    = "ID",
+  mixing     = TRUE,
+  nCores     = 4,
+  noValidation=TRUE)
+
+
+apollo_beta = c(intercept =0,b_bid    = 0,
+                lambda            = 1, 
+                gamma_Age       = 0, 
+                gamma_Gender    = 0,
+                gamma_Distance  = 0, 
+                gamma_Income =0,
+                gamma_Experts =0,
+                gamma_BP =0,
+                gamma_Charity =0,
+                gamma_Certainty=0,
+                gamma_Cons=0,
+                zeta_Q13   = 1, 
+                zeta_Q14   = 1, 
+                zeta_Q15   = 1, 
+                tau_Q13_1  =-2, 
+                tau_Q13_2  =-1, 
+                tau_Q13_3  = 1, 
+                tau_Q13_4  = 2, 
+                tau_Q14_1  =-2, 
+                tau_Q14_2  =-1, 
+                tau_Q14_3  = 1, 
+                tau_Q14_4  = 2, 
+                tau_Q15_1  =-2, 
+                tau_Q15_2  =-1, 
+                tau_Q15_3  = 1, 
+                tau_Q15_4  = 2)
+apollo_fixed = c()
+
+
+apollo_draws = list(
+  interDrawsType="halton",interNDraws=1000,          
+  interUnifDraws=c(),interNormDraws=c("eta"))
+
+
+apollo_randCoeff=function(apollo_beta, apollo_inputs){
+  randcoeff = list()
+  randcoeff[["LV"]] = gamma_Age*Age +gamma_Gender*Q1Gender + gamma_Distance*Distance + gamma_Income*IncomeDummy + gamma_Experts*Experts + gamma_BP*BP + gamma_Charity*Charity +gamma_Certainty*Q12CECertainty +gamma_Cons*Consequentiality + eta
+  return(randcoeff)}
+apollo_inputs = apollo_validateInputs()
+
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  P = list()
+  op_settings1 = list(outcomeOrdered = Q13CurrentThreatToSelf, 
+                      V              = zeta_Q13*LV, 
+                      tau            = c(tau_Q13_1, tau_Q13_2, tau_Q13_3, tau_Q13_4),
+                      rows           = (Task==1),
+                      componentName  = "indic_Q13")
+  op_settings2 = list(outcomeOrdered = Q14FutureThreatToSelf, 
+                      V              = zeta_Q14*LV, 
+                      tau            = c(tau_Q14_1, tau_Q14_2, tau_Q14_3, tau_Q14_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q14")
+  op_settings3 = list(outcomeOrdered = Q15ThreatToEnvironment, 
+                      V              = zeta_Q15*LV, 
+                      tau            = c(tau_Q15_1, tau_Q15_2, tau_Q15_3, tau_Q15_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q15")
+  P[["indic_Q13"]] = apollo_op(op_settings1, functionality)
+  P[["indic_Q14"]] = apollo_op(op_settings2, functionality)
+  P[["indic_Q15"]] = apollo_op(op_settings3, functionality)
+  op_settings = list(outcomeOrdered= Q6ResearchResponse,
+                     V      = intercept + b_bid*Q6Bid+lambda*LV,
+                     tau    = list(-100,0),
+                     coding = c(-1,0,1))
+  P[['choice']] = apollo_op(op_settings, functionality)
+  # P = apollo_panelProd(P, apollo_inputs, functionality)
+  # P = apollo_prepareProb(P, apollo_inputs, functionality)
+  P = apollo_combineModels(P, apollo_inputs, functionality)
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+CVmodel6NTNewID = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+
+apollo_modelOutput(CVmodel6NTNewID,modelOutput_settings = list(printPVal=TRUE))
+xtable::xtable(round(data.frame(apollo_modelOutput(CVmodel6NTNewID,modelOutput_settings = list(printPVal=TRUE))),3),digits=3)
+saveRDS(CVmodel6NTNewID,"CVmodel6NTNewID.rds")
+CVmodel6NTNewID <- readRDS("CVmodel6NTNewID.rds")
+# WTP:
+Model <- CVmodel6NTNewID
+CVunconditionals7F <- apollo_unconditionals(Model,apollo_probabilities,apollo_inputs)
+ModelWTP <-apply((-Model$estimate["intercept"]/Model$estimate["b_bid"]+CVunconditionals7F$LV)*100,MARGIN = 1,FUN = mean)
+CVmodel6NTNewIDWTP <- median(-Model$estimate["intercept"]+CVunconditionals7F$LV/Model$estimate["b_bid"])
+
+
+#### CVmodel7NTNew ####
+
+# Setup the data for all truncated models:
+database <- Test_Truncated
+database$Q6Bid <- database$Q6Bid/100
+database$Q7Bid <- database$Q7Bid/100
+database$Q6ResearchResponse <-database$Q6ResearchResponse-1
+database$Q7TreatmentResponse <-database$Q7TreatmentResponse-1
+
+apollo_control = list(
+  modelName  = "CVmodel7NTNewID",
+  modelDescr = "CVmodel7NTNewID",
+  indivID    = "ID",
+  mixing     = TRUE,
+  nCores     = 4,
+  noValidation=TRUE)
+
+
+apollo_beta = c(intercept =0,b_bid    = 0,
+                lambda            = 1, 
+                gamma_Age       = 0, 
+                gamma_Gender    = 0,
+                gamma_Distance  = 0, 
+                gamma_Income =0,
+                gamma_Experts =0,
+                gamma_BP =0,
+                gamma_Charity =0,
+                gamma_Certainty=0,
+                gamma_Cons=0,
+                zeta_Q13   = 1, 
+                zeta_Q14   = 1, 
+                zeta_Q15   = 1, 
+                tau_Q13_1  =-2, 
+                tau_Q13_2  =-1, 
+                tau_Q13_3  = 1, 
+                tau_Q13_4  = 2, 
+                tau_Q14_1  =-2, 
+                tau_Q14_2  =-1, 
+                tau_Q14_3  = 1, 
+                tau_Q14_4  = 2, 
+                tau_Q15_1  =-2, 
+                tau_Q15_2  =-1, 
+                tau_Q15_3  = 1, 
+                tau_Q15_4  = 2)
+
+apollo_fixed = c()
+
+apollo_draws = list(
+  interDrawsType="halton",interNDraws=1000,          
+  interUnifDraws=c(),interNormDraws=c("eta"))
+
+apollo_randCoeff=function(apollo_beta, apollo_inputs){
+  randcoeff = list()
+  randcoeff[["LV"]] = gamma_Age*Age +gamma_Gender*Q1Gender + gamma_Distance*Distance + gamma_Income*IncomeDummy + gamma_Experts*Experts + gamma_BP*BP + gamma_Charity*Charity + gamma_Certainty*Q12CECertainty +gamma_Cons*Consequentiality + eta
+  return(randcoeff)
+}
+
+
+apollo_inputs = apollo_validateInputs()
+
+
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+  apollo_attach(apollo_beta, apollo_inputs)
+  on.exit(apollo_detach(apollo_beta, apollo_inputs))
+  P = list()
+  op_settings1 = list(outcomeOrdered = Q13CurrentThreatToSelf, 
+                      V              = zeta_Q13*LV, 
+                      tau            = c(tau_Q13_1, tau_Q13_2, tau_Q13_3, tau_Q13_4),
+                      rows           = (Task==1),
+                      componentName  = "indic_Q13")
+  op_settings2 = list(outcomeOrdered = Q14FutureThreatToSelf, 
+                      V              = zeta_Q14*LV, 
+                      tau            = c(tau_Q14_1, tau_Q14_2, tau_Q14_3, tau_Q14_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q14")
+  op_settings3 = list(outcomeOrdered = Q15ThreatToEnvironment, 
+                      V              = zeta_Q15*LV, 
+                      tau            = c(tau_Q15_1, tau_Q15_2, tau_Q15_3, tau_Q15_4), 
+                      rows           = (Task==1),
+                      componentName  = "indic_Q15")
+  P[["indic_Q13"]] = apollo_op(op_settings1, functionality)
+  P[["indic_Q14"]] = apollo_op(op_settings2, functionality)
+  P[["indic_Q15"]] = apollo_op(op_settings3, functionality)
+  op_settings = list(outcomeOrdered= Q7TreatmentResponse,
+                     V      = intercept + b_bid*Q7Bid+lambda*LV,
+                     tau    = list(-100,0),
+                     coding = c(-1,0,1))
+  P[['choice']] = apollo_op(op_settings, functionality)
+  # P = apollo_panelProd(P, apollo_inputs, functionality)
+  # P = apollo_prepareProb(P, apollo_inputs, functionality)
+  P = apollo_combineModels(P, apollo_inputs, functionality)
+  P = apollo_panelProd(P, apollo_inputs, functionality)
+  P = apollo_avgInterDraws(P, apollo_inputs, functionality)
+  P = apollo_prepareProb(P, apollo_inputs, functionality)
+  return(P)
+}
+
+CVmodel7NTNewID = apollo_estimate(apollo_beta, apollo_fixed, apollo_probabilities, apollo_inputs)
+
+apollo_modelOutput(CVmodel7NTNewID,modelOutput_settings = list(printPVal=TRUE))
+saveRDS(CVmodel7NTNewID,"CVmodel7NTNewID.rds")
+CVmodel7NTNewID <- readRDS("CVmodel7NTNewID.rds")
+xtable::xtable(round(data.frame(apollo_modelOutput(CVmodel7NTNewID,modelOutput_settings = list(printPVal=TRUE))),3),digits=3)
+# WTP:
+Model <- CVmodel7NTNewID
+CVunconditionals7F <- apollo_unconditionals(Model,apollo_probabilities,apollo_inputs)
+ModelWTP <-apply((-Model$estimate["intercept"]/Model$estimate["b_bid"]+CVunconditionals7F$LV)*100,MARGIN = 1,FUN = mean)
+CVmodel7NTNewIDWTP <- median(-Model$estimate["intercept"]/Model$estimate["b_bid"]+CVunconditionals7F$LV)*100
+
+

@@ -392,6 +392,9 @@ Full$av_B <- rep(1,nrow(Full)) # Add a vector of ones to show that the status qu
 Full$Choice[Full$Choice == 0] <- "A"  ## Necessary here to change numeric to string
 Full$Choice[Full$Choice == 1] <- "B" ## The MFORMULA looks for _B or _A so choice must be SQ or ALT
 
+# Adding in income dummy:
+FullSurvey2$IncomeDummy <- as.numeric(ifelse(FullSurvey2$Q24AIncome <=median(FullSurvey2$Q24AIncome),0,1))
+Full_Final$IncomeDummy <- as.numeric(ifelse(Full_Final$Q24AIncome <=median(FullSurvey2$Q24AIncome),0,1))
 
 #### MLOGIT SETUP #### 
 
@@ -415,8 +418,31 @@ Full_Long$Emission[Full_Long$Emission == 0.4] <- 40
 #### TRUNCATION #### 
 
 
-## These are respondent IDs obtained by visual inspection of text responses
-ProtestVotes <- c(24,33,44,61,121,127,182,200,211,219,239,251,275,306,320,326,341,360,363,371,399,464,467,479,480,506,579,591,649,654,931,932,935,953,989,1002,1011,1024,14,35,39,54,79,106,130,146,149,155,163,203,214,215,217,244,246,249,252,267,268,282,290,327,343,362,364,374,380,393,398,407,414,425,426,433,477,519,524,536,543,545,547,557,567,575,589,590,595,614,617,629,637,638,639,651,665,674,680,915,933,940,950,959,960,975,978,996,1026,1027,1028)
+# ## These are respondent IDs obtained by visual inspection of text responses
+ProtestVotes <- c(14,24,33,39,44,61,79,106,121,130,149,163,182,200,203,211,214,215,217,
+  239,244,249,251,252,267,282,290,306,320,326,327,341,343,362,363,364,
+  371,374,380,393,399,407,414,425,426,464,467,477,479,480,519,524,536,
+  545,547,557,567,579,590,591,595,614,629,639,649,651,654,665,674,680,
+  915,931,932,933,935,940,950,953,959,960,975,978,989,996,1002,1011,1024,1026,1027,1028)
+
+## For The Record these are the IDs of protestors:
+#   [1]   1   3   4   6   7  11  13  14  15  17  18  20  21  22  24  25  28  29  30  32  33  36
+# [23]  37  38  39  40  41  42  44  46  49  51  52  55  56  59  60  61  62  64  65  66  67  71
+# [45]  72  75  77  79  80  83  84  85  87  91  92  93  94  96  97  98 101 106 107 108 109 110
+# [67] 111 114 119 121 123 126 128 129 130 132 134 135 139 142 143 144 147 149 150 151 154 156
+# [89] 158 159 160 162 163 164 170 173 174 177 179 181 182 183 184 185 187 188 190 191 192 193
+# [111] 197 200 201 203 205 208 209 211 214 215 216 217 220 222 227 228 229 230 232 233 234 237
+# [133] 239 240 241 243 244 245 247 248 249 250 251 252 257 258 259 261 262 264 265 266 267 272
+# [155] 274 277 279 281 282 285 286 287 290 291 292 300 301 302 303 304 306 310 314 318 319 320
+# [177] 321 322 323 326 327 328 329 330 332 333 336 338 341 342 343 345 346 347 349 350 351 352
+# [199] 353 354 358 362 363 364 366 371 373 374 378 380 382 383 387 389 390 393 394 396 397 399
+# [221] 400 401 403 406 407 411 414 415 416 418 420 422 425 426 427 428 429 430 434 437 440 441
+# [243] 442 443 444 446 447 449 452 453 455 456 457 459 460 462 463 464 466 467 469 470 472 474
+# [265] 477 479 480 481 485 487 488 490 491 494 495 496 497 498 499 501 502 504 508 509 510 513
+# [287] 514 516 519 520 522 524 525 526 528 529 531 532 533 535 536 537 539 541 542 544 545 546
+# [309] 547 548 550 551 552 557 558 559 560 565 566 567 569 570 572 574 576 577 578 579 580 585
+# [331] 587 588 590 591 593 595 598 601 603 605 608 611 612 614 615 624 625 626 629 634 636 639
+# [353] 643 647 648 649 651 652 654 655 656 657 659 664 665 666
 
 ### Truncation Rule Two:
 AllCriteria <- data.frame("IDs" = unique(Full_Long$ID[ (Full_Long$Q25Understanding >=7) &
@@ -468,7 +494,7 @@ colnames(Test_Apollo) <- c("ID","Task","Q1Gender","Age","Distance",
 # Tests_Dominated <- Test_Apollo[!Test_Apollo$ID %in% c(Test_Apollo$ID[ ((Test_Apollo$Task == 1) & (Test_Apollo$Choice ==1) & (grepl("SQ",rownames(Test_Apollo),fixed = TRUE) == FALSE)) ]),]
 # Tests_Understanding <- Tests_Dominated[!Tests_Dominated$ID %in% c( unique(Tests_Dominated$ID[Tests_Dominated$Survey <= 5])),]
 # Test_Apollo <- Tests_Understanding
-
+Test_Apollo$IncomeDummy <- as.numeric(ifelse(Test_Apollo$Income <=median(FullSurvey2$Q24AIncome),0,1))
 
 ## Each alternative is always available so I just rep the 1 value for all respondents
 Test_Apollo$av_A <- rep(1,nrow(Full)) 
@@ -507,7 +533,7 @@ database$Q6ResearchResponse <- database$Q6ResearchResponse-1
 
 
 ## Providing a truncated sample
-Test_Truncated <- Test_Apollo[ (Test_Apollo$ID) %in% c(AllCriteria),] 
+Test_Truncated <- Test_Apollo[ (Test_Apollo$ID) %in% c(AllCriteria),] ## Fully truncated:
 Fulls2 <- Fulls[ (Fulls$ID) %in% c(AllCriteria),] ## The excluded responses
 # database <- Test_Truncated ## Use this to estimate with the truncated sample instead
 
@@ -600,3 +626,4 @@ PredictionsCV <- function(Model,data){
 # cbind(rownames(LCMTrunc),round(LCMTrunc$Estimate,3)),
 # cbind(rownames(ICLVFull),round(ICLVFull$Estimate,3)),
 # cbind(rownames(ICLVTrunc),round(ICLVTrunc$Estimate,3))),digits=3)
+
