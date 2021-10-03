@@ -1,3 +1,6 @@
+Peter King PhD Thesis Analysis and Replication Repo.
+
+
 Hi, this should be all the code necessary to replicate my doctoral thesis ``Estimation of the Value of Precautionary Restrictions On Microplastics``.
 
 
@@ -18,10 +21,10 @@ To replicate I have made standalone scripts for:
 
 - Finally, FullAnalysis.R is the compilation of all these but may be outdated and unreadable. 
 
-These may be updated/appended later but for now that should enable replication. Any issues or comments let me know at: p.m.king@bath.ac.uk
+These may be updated/appended later but for now that should enable replication. Any issues or comments let me know at: p.m.king@kent.ac.uk
 
 
 03/10 To-Do:
 - Bivariate probit ICLV
 - Finish Stata and Python replication attempts
-- Get it published.
+- Publish papers.
