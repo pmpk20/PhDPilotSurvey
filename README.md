@@ -1,15 +1,10 @@
-# PhDPilotSurvey
-PhD survey analysis:
-
-
 Hi, this should be all the code necessary to replicate my doctoral thesis ``Estimation of the Value of Precautionary Restrictions On Microplastics``.
 
 
 To replicate I have made standalone scripts for:
 - The setup (Thesis_SetupCode.R) which imports the raw data from the survey company and transforms it enough to facilitate estimation with Apollo
 
-- The replication file (Thesis_Replication.R) which should be just the estimation code in order it appears in-text.
--- Note: Files beginning ``Replication_`` will be better versions of this.
+- The replication file (Thesis_Replication.R) which should be just the estimation code in order it appears in-text (Note: Files beginning ``Replication_`` will be better versions of this).
 
 - The graphs (Thesis_Graphing.R) - I made a huge amount for my thesis and many are no longer used but they're still there if you want to visualise the results further. Happy to take suggestions on better visualisation choices!
 
