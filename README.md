@@ -1,17 +1,19 @@
 # PhDPilotSurvey
-PhD full survey analysis:
+PhD survey analysis:
 
 
-Hi, this is my repo for all the code necessary to replicate my thesis ``Estimation of the Value of Precautionary Restrictions On Microplastics``.
+Hi, this should be all the code necessary to replicate my doctoral thesis ``Estimation of the Value of Precautionary Restrictions On Microplastics``.
+
 
 To replicate I have made standalone scripts for:
 - The setup (Thesis_SetupCode.R) which imports the raw data from the survey company and transforms it enough to facilitate estimation with Apollo
 
 - The replication file (Thesis_Replication.R) which should be just the estimation code in order it appears in-text.
+-- Note: Files beginning ``Replication_`` will be better versions of this.
 
 - The graphs (Thesis_Graphing.R) - I made a huge amount for my thesis and many are no longer used but they're still there if you want to visualise the results further. Happy to take suggestions on better visualisation choices!
 
-- Mixed Logit models (Thesis_ApolloMXL.R). These are the most important models but there's a huge amount of trial and error evident here. They don't take too long to estimate at least. My first MXL models were using MLOGIT so there may be some functionality from that I need to translate to Apollo.
+- Mixed Logit models (Thesis_ApolloMXL.R). These are the most important models but there's a huge amount of trial and error evident here. 
 
 - Integrated Choice-Latent Variables Models; split into CE (Thesis_CEICLV.R) and CV (Thesis_CVICLV.R) sections. these take longer to estimate but form the basis for my second paper.
 
@@ -24,7 +26,7 @@ To replicate I have made standalone scripts for:
 These may be updated/appended later but for now that should enable replication. Any issues or comments let me know at: p.m.king@bath.ac.uk
 
 
-26/04 To-Do:
+03/10 To-Do:
 - Bivariate probit ICLV
 - Finish Stata and Python replication attempts
-- Tidy up code further
+- Get it published.
