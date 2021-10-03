@@ -519,6 +519,15 @@ round(100/length(unique(FullSurvey2$ID))*table(FullSurvey2$Q22Education>2),2)
 # C4 Age-Gender table
 round(aggregate(apply(cbind(FullSurvey2$Q13CurrentThreatToSelf,FullSurvey2$Q14FutureThreatToSelf,FullSurvey2$Q15ThreatToEnvironment),MARGIN = 1,FUN = mean),list(FullSurvey2$Q2Age),mean),2)
 
+
+
+
+## Check number who always choose the status quo: (N = 199)
+length(FullSurvey2$ID[ (FullSurvey2$Q9Choice==0) & 
+                    (FullSurvey2$Q10Choice==0) & 
+                      (FullSurvey2$Q11Choice==0)& 
+                    (FullSurvey2$Q12Choice==0)])
+
 #### Section 3: Choice Experiment in MLOGIT ####
 ############ Notes: Long and estimates a lot of models, initially in MLOGIT but later in GMNL.
 
@@ -664,7 +673,7 @@ data.frame(round(summary(MXL_4)$CoefTable[,4],3))
 
 
 # Can truncate sample by protest votes:
-# Full_Cons <- Full_Cons[ !(Full_Cons$ï..Respondent %in% c(14,24,33,39,44,61,79,106,121,130,149,163,182,200,203,211,214,215,217,239,244,249,251,252,267,282,290,306,320,326,327,341,343,362,363,364, 371,374,380,393,399,407,414,425,426,464,467,477,479,480,519,524,536, 545,547,557,567,579,590,591,595,614,629,639,649,651,654,665,674,680,915,931,932,933,935,940,950,953,959,960,975,978,989,996,1002,1011,1024,1026,1027,1028)), ] ## Drop protest rows
+# Full_Cons <- Full_Cons[ !(Full_Cons$o..Respondent %in% c(14,24,33,39,44,61,79,106,121,130,149,163,182,200,203,211,214,215,217,239,244,249,251,252,267,282,290,306,320,326,327,341,343,362,363,364, 371,374,380,393,399,407,414,425,426,464,467,477,479,480,519,524,536, 545,547,557,567,579,590,591,595,614,629,639,649,651,654,665,674,680,915,931,932,933,935,940,950,953,959,960,975,978,989,996,1002,1011,1024,1026,1027,1028)), ] ## Drop protest rows
 
 
 ## Model 8: MXL all sociodemographics, WTP-space, truncated sample
@@ -4255,25 +4264,25 @@ Weights <- cbind(data.frame("e0"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AInc
                  data.frame("e1.5"=(mean(Full_Final$Q24AIncome)/Full_Final$Q24AIncome)^1.5))
 
 ## C5 T11:
-Q6 <- 53.25
-Q7 <- 73.71
+Q6 <- 77.10
+Q7 <- 88.43
 SampleY <- 2192
 Em <- 0.038
 Perf <- 0.045
 
-cbind(data.frame("e0"=mean(Q6*mean(SampleY/FullSurvey2$Q24AIncome)^0)),
-                   data.frame("e0.5"=mean(Q6*mean(SampleY/FullSurvey2$Q24AIncome)^0.5)),
-                   data.frame("e0.75"=mean(Q6*mean(SampleY/FullSurvey2$Q24AIncome)^0.75)),
-                   data.frame("e1"=mean(Q6*mean(SampleY/FullSurvey2$Q24AIncome)^1)),
-                   data.frame("e1.25"=mean(Q6*mean(SampleY/FullSurvey2$Q24AIncome)^1.25)),
-                   data.frame("e1.5"=mean(Q6*mean(SampleY/FullSurvey2$Q24AIncome)^1.5)))
+cbind(data.frame("e0"=mean(Q6*mean(SampleY/Full_Final$Q24AIncome)^0)),
+                   data.frame("e0.5"=mean(Q6*mean(SampleY/Full_Final$Q24AIncome)^0.5)),
+      data.frame("e0.75"=mean(Q6*mean(SampleY/Full_Final$Q24AIncome)^0.75)),
+                   data.frame("e1"=mean(Q6*mean(SampleY/Full_Final$Q24AIncome)^1)),
+      data.frame("e1.25"=mean(Q6*mean(SampleY/Full_Final$Q24AIncome)^1.25)),
+                   data.frame("e1.5"=mean(Q6*mean(SampleY/Full_Final$Q24AIncome)^1.5)))
 
-cbind(data.frame("e0"=mean(Q7*mean(SampleY/FullSurvey2$Q24AIncome)^0)),
-      data.frame("e0.5"=mean(Q7*mean(SampleY/FullSurvey2$Q24AIncome)^0.5)),
-      data.frame("e0.75"=mean(Q7*mean(SampleY/FullSurvey2$Q24AIncome)^0.75)),
-      data.frame("e1"=mean(Q7*mean(SampleY/FullSurvey2$Q24AIncome)^1)),
-      data.frame("e1.25"=mean(Q7*mean(SampleY/FullSurvey2$Q24AIncome)^1.25)),
-      data.frame("e1.5"=mean(Q7*mean(SampleY/FullSurvey2$Q24AIncome)^1.5)))  
+cbind(data.frame("e0"=mean(Q7*mean(SampleY/Full_Final$Q24AIncome)^0)),
+      data.frame("e0.5"=mean(Q7*mean(SampleY/Full_Final$Q24AIncome)^0.5)),
+      data.frame("e0.75"=mean(Q7*mean(SampleY/Full_Final$Q24AIncome)^0.75)),
+      data.frame("e1"=mean(Q7*mean(SampleY/Full_Final$Q24AIncome)^1)),
+      data.frame("e1.25"=mean(Q7*mean(SampleY/Full_Final$Q24AIncome)^1.25)),
+      data.frame("e1.5"=mean(Q7*mean(SampleY/Full_Final$Q24AIncome)^1.5)))  
 
 cbind(data.frame("e0"=mean(Em*mean(SampleY/FullSurvey2$Q24AIncome)^0)),
       data.frame("e0.5"=mean(Em*mean(SampleY/FullSurvey2$Q24AIncome)^0.5)),
@@ -4321,9 +4330,18 @@ ResearchPoint <- 21818300
 ResearchLower <- 5729300
 ResearchUpper <- 102531100
 
+ResearchPointB <- Households*77.10
+ResearchLowerB <- Households*72.35
+ResearchUpperB <- Households*83.23
+
+
 WWTPPoint <- 1370000000
 WWTPLower <- 1000000000
 WWTPUpper <- 5000000000
+
+WWTPPointB <- Households*88.43
+WWTPLowerB <- Households*83.23
+WWTPUpperB <- Households*93.92
 
 CosmeticsPoint <- 1010000000
 CosmeticsLower <- 213000000
@@ -4340,7 +4358,50 @@ Full_Final <- cbind(Full_Final,
       data.frame("CosmeticsLowerNB"=Full_Final$EmissionCoef*100 - (CosmeticsLower/Products)),
       data.frame("CosmeticsUpperNB"=Full_Final$EmissionCoef*100 - (CosmeticsUpper/Products)))
 
+## Fitting WTP Correctly
+Full_Low <- Full_Final[(Full_Final$Q24AIncome < median(Full_Final$Q24AIncome)) ,]
+Full_High <- Full_Final[ (Full_Final$Q24AIncome > median(Full_Final$Q24AIncome)) ,]
 
+Treatment_LowIncome_WTP <- sbchoice(Q7TreatmentResponse  ~ 1 |Q7Bid , data = Full_Low,dist="normal")
+Treatment_HighIncome_WTP <- sbchoice(Q7TreatmentResponse  ~ 1 |Q7Bid , data = Full_High,dist="normal")
+
+Treatment_LowIncome_WTP_Point <- krCI(Treatment_LowIncome_WTP)$out[1,1]
+Treatment_LowIncome_WTP_High <- krCI(Treatment_LowIncome_WTP)$out[1,3]
+Treatment_LowIncome_WTP_Low <- krCI(Treatment_LowIncome_WTP)$out[1,2]
+
+Treatment_HighIncome_WTP_Point <- krCI(Treatment_HighIncome_WTP)$out[1,1]
+Treatment_HighIncome_WTP_High <- krCI(Treatment_HighIncome_WTP)$out[1,3]
+Treatment_HighIncome_WTP_Low <- krCI(Treatment_HighIncome_WTP)$out[1,2]
+
+
+
+Research_LowIncome_WTP <- sbchoice(Q6ResearchResponse  ~ 1 |Q6Bid , data = Full_Low,dist="normal")
+Research_HighIncome_WTP <- sbchoice(Q6ResearchResponse  ~ 1 |Q6Bid , data = Full_High,dist="normal")
+
+Research_LowIncome_WTP_Point <- krCI(Research_LowIncome_WTP)$out[1,1]
+Research_LowIncome_WTP_High <- krCI(Research_LowIncome_WTP)$out[1,3]
+Research_LowIncome_WTP_Low <- krCI(Research_LowIncome_WTP)$out[1,2]
+
+Research_HighIncome_WTP_Point <- krCI(Research_HighIncome_WTP)$out[1,1]
+Research_HighIncome_WTP_High <- krCI(Research_HighIncome_WTP)$out[1,3]
+Research_HighIncome_WTP_Low <- krCI(Research_HighIncome_WTP)$out[1,2]
+
+cbind(round(Research_LowIncome_WTP_Low,2),
+      round(Research_LowIncome_WTP_Point,2),
+      round(Research_LowIncome_WTP_High,2))
+cbind(round(Research_HighIncome_WTP_Low,2),
+      round(Research_HighIncome_WTP_Point,2),
+      round(Research_HighIncome_WTP_High,2))
+
+
+## Calculating 95% confidence intervals
+a <- -2.5159
+s <- -3.3553
+n <- 430
+error <- qnorm(0.975)*s/sqrt(n)
+left <- a-error 
+right <- a+error
+round(c(left,a,right),2)
 ## Implicit weights using net benefits instead:
 # Q6 using point, lower and upper bound cost estimates:
 round(mean(Full_Final$ResearchPointNB[Full_Final$Q24AIncome < mean(Full_Final$Q24AIncome)])/
@@ -4365,7 +4426,6 @@ round(mean(Full_Final$CosmeticsLowerNB[Full_Final$Q24AIncome < mean(Full_Final$Q
         mean(Full_Final$CosmeticsLowerNB[Full_Final$Q24AIncome > mean(Full_Final$Q24AIncome)]),2)
 round(mean(Full_Final$CosmeticsUpperNB[Full_Final$Q24AIncome < mean(Full_Final$Q24AIncome)])/
         mean(Full_Final$CosmeticsUpperNB[Full_Final$Q24AIncome > mean(Full_Final$Q24AIncome)]),2)
-
 
 
 

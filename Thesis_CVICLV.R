@@ -23,6 +23,7 @@ alpha(x = data.frame(Full_Final$Q13CurrentThreatToSelf,Full_Final$Q14FutureThrea
 
 
 #### Q6Bid-only logistic ####
+database <- Test_Apollo
 apollo_initialise()
 apollo_control = list(modelName  ="Q6Bid-OnlyLogistic", indivID    ="ID")
 apollo_beta=c(b_bid    = 0,
@@ -2053,9 +2054,9 @@ ggplot(Full_Full) +
   scale_color_discrete(name = "Lines", 
                        labels = c("Q7", "Q6"))+
   ggtitle("WTP by mean attitudes") +
-  scale_y_continuous(name="WTP in £",
+  scale_y_continuous(name="WTP in #",
                      breaks=waiver(),limits = c(10,75),
-                     n.breaks = 10, labels = function(x) paste0("£",x))+
+                     n.breaks = 10, labels = function(x) paste0("#",x))+
   scale_x_continuous(name="LV",
                      breaks=waiver(),limits = c(-1,2.5),n.breaks = 5)+
   theme(plot.title = element_text(hjust = 0.5),
@@ -2069,30 +2070,30 @@ Full_Full$quantilegroupQ7 <- (ifelse(Full_Full$CV7LV < quantile(Full_Full$CV7LV,
 
 
 Q6ICLVGraph <- ggplot(Full_Full, aes(quantilegroup, Q6WTP)) +   geom_boxplot(aes(group = quantilegroup),varwidth = TRUE)+
-  scale_y_continuous(name="WTP in £",
+  scale_y_continuous(name="WTP in #",
                      breaks=waiver(),limits = c(10,60),
-                     n.breaks = 10, labels = function(x) paste0("£",x))+
+                     n.breaks = 10, labels = function(x) paste0("#",x))+
   scale_x_discrete(name="Percentiles of latent variable",labels = c("10%","25%","50%","75%","90%"), limits=c(1,2,3,4,5))+
   ggtitle("WTP by the Q6 precautionary attitudes.")+
-  geom_text(x = 1, y =7+round(mean(Full_Full$Q6WTP[Full_Full$quantilegroup==1]),2) , label = paste0("Mean: £",round(mean(Full_Full$Q6WTP[Full_Full$quantilegroup==1]),2)),color="black")+
-  geom_text(x = 2, y =7+round(mean(Full_Full$Q6WTP[Full_Full$quantilegroup==2]),2) , label = paste0("Mean: £",round(mean(Full_Full$Q6WTP[Full_Full$quantilegroup==2]),2)),color="black")+
-  geom_text(x = 3, y =7+round(mean(Full_Full$Q6WTP[Full_Full$quantilegroup==3]),2) , label = paste0("Mean: £",round(mean(Full_Full$Q6WTP[Full_Full$quantilegroup==3]),2)),color="black")+
-  geom_text(x = 4, y =7+round(mean(Full_Full$Q6WTP[Full_Full$quantilegroup==4]),2) , label = paste0("Mean: £",round(mean(Full_Full$Q6WTP[Full_Full$quantilegroup==4]),2)),color="black")+
-  geom_text(x = 5, y =7+round(mean(Full_Full$Q6WTP[Full_Full$quantilegroup==5]),2) , label = paste0("Mean: £",round(mean(Full_Full$Q6WTP[Full_Full$quantilegroup==5]),2)),color="black")
+  geom_text(x = 1, y =7+round(mean(Full_Full$Q6WTP[Full_Full$quantilegroup==1]),2) , label = paste0("Mean: #",round(mean(Full_Full$Q6WTP[Full_Full$quantilegroup==1]),2)),color="black")+
+  geom_text(x = 2, y =7+round(mean(Full_Full$Q6WTP[Full_Full$quantilegroup==2]),2) , label = paste0("Mean: #",round(mean(Full_Full$Q6WTP[Full_Full$quantilegroup==2]),2)),color="black")+
+  geom_text(x = 3, y =7+round(mean(Full_Full$Q6WTP[Full_Full$quantilegroup==3]),2) , label = paste0("Mean: #",round(mean(Full_Full$Q6WTP[Full_Full$quantilegroup==3]),2)),color="black")+
+  geom_text(x = 4, y =7+round(mean(Full_Full$Q6WTP[Full_Full$quantilegroup==4]),2) , label = paste0("Mean: #",round(mean(Full_Full$Q6WTP[Full_Full$quantilegroup==4]),2)),color="black")+
+  geom_text(x = 5, y =7+round(mean(Full_Full$Q6WTP[Full_Full$quantilegroup==5]),2) , label = paste0("Mean: #",round(mean(Full_Full$Q6WTP[Full_Full$quantilegroup==5]),2)),color="black")
 
 
 
 Q7ICLVGraph <- ggplot(Full_Full, aes(quantilegroupQ7, Q7WTP)) +   geom_boxplot(aes(group = quantilegroupQ7),varwidth = TRUE)+
-  scale_y_continuous(name="WTP in £",
+  scale_y_continuous(name="WTP in #",
                      breaks=waiver(),limits = c(10,60),
-                     n.breaks = 10, labels = function(x) paste0("£",x))+
+                     n.breaks = 10, labels = function(x) paste0("#",x))+
   scale_x_discrete(name="Percentiles of latent variable",labels = c("10%","25%","50%","75%","90%"), limits=c(1,2,3,4,5))+
   ggtitle("WTP by the Q7 precautionary attitudes.")+
-  geom_text(x = 1, y =7+round(mean(Full_Full$Q7WTP[Full_Full$quantilegroupQ7==1]),2) , label = paste0("Mean: £",round(mean(Full_Full$Q7WTP[Full_Full$quantilegroupQ7==1]),2)),color="black")+
-  geom_text(x = 2, y =7+round(mean(Full_Full$Q7WTP[Full_Full$quantilegroupQ7==2]),2) , label = paste0("Mean: £",round(mean(Full_Full$Q7WTP[Full_Full$quantilegroupQ7==2]),2)),color="black")+
-  geom_text(x = 3, y =7+round(mean(Full_Full$Q7WTP[Full_Full$quantilegroupQ7==3]),2) , label = paste0("Mean: £",round(mean(Full_Full$Q7WTP[Full_Full$quantilegroupQ7==3]),2)),color="black")+
-  geom_text(x = 4, y =7+round(mean(Full_Full$Q7WTP[Full_Full$quantilegroupQ7==4]),2) , label = paste0("Mean: £",round(mean(Full_Full$Q7WTP[Full_Full$quantilegroupQ7==4]),2)),color="black")+
-  geom_text(x = 5, y =7+round(mean(Full_Full$Q7WTP[Full_Full$quantilegroupQ7==5]),2) , label = paste0("Mean: £",round(mean(Full_Full$Q7WTP[Full_Full$quantilegroupQ7==5]),2)),color="black")
+  geom_text(x = 1, y =7+round(mean(Full_Full$Q7WTP[Full_Full$quantilegroupQ7==1]),2) , label = paste0("Mean: #",round(mean(Full_Full$Q7WTP[Full_Full$quantilegroupQ7==1]),2)),color="black")+
+  geom_text(x = 2, y =7+round(mean(Full_Full$Q7WTP[Full_Full$quantilegroupQ7==2]),2) , label = paste0("Mean: #",round(mean(Full_Full$Q7WTP[Full_Full$quantilegroupQ7==2]),2)),color="black")+
+  geom_text(x = 3, y =7+round(mean(Full_Full$Q7WTP[Full_Full$quantilegroupQ7==3]),2) , label = paste0("Mean: #",round(mean(Full_Full$Q7WTP[Full_Full$quantilegroupQ7==3]),2)),color="black")+
+  geom_text(x = 4, y =7+round(mean(Full_Full$Q7WTP[Full_Full$quantilegroupQ7==4]),2) , label = paste0("Mean: #",round(mean(Full_Full$Q7WTP[Full_Full$quantilegroupQ7==4]),2)),color="black")+
+  geom_text(x = 5, y =7+round(mean(Full_Full$Q7WTP[Full_Full$quantilegroupQ7==5]),2) , label = paste0("Mean: #",round(mean(Full_Full$Q7WTP[Full_Full$quantilegroupQ7==5]),2)),color="black")
   
 
 grid.arrange(Q6ICLVGraph,Q7ICLVGraph)
@@ -2124,32 +2125,32 @@ SBDCPRecaution <- ggplot(Full_Final, aes(x=Precaution)) +
   geom_histogram(aes(y = ..density..),color="black", fill="white",binwidth = 1)+
   stat_function(fun=fun, 
                 args = with(Full_Final, c(mean = mean(Precaution), sd = sd(Precaution), n= 1)))+
-  scale_x_continuous(name="Precautionary Premium (Q7 WTP - Q6 WTP) in £",breaks=waiver(),limits = c(0,100),
-                     n.breaks = 10, labels = function(x) paste0("£",x))+
+  scale_x_continuous(name="Precautionary Premium (Q7 WTP - Q6 WTP) in #",breaks=waiver(),limits = c(0,100),
+                     n.breaks = 10, labels = function(x) paste0("#",x))+
   ggtitle("Precautionary Premia from probit (Full Sample).")
 
 SBDCPRecaution2 <- ggplot(Full_Full, aes(x=Precaution)) + 
   geom_histogram(aes(y = ..density..),color="black", fill="white",binwidth = 1)+
   stat_function(fun=fun, 
                 args = with(Full_Final, c(mean = mean(Precaution), sd = sd(Precaution), n= 1)))+
-  scale_x_continuous(name="Precautionary Premium (Q7 WTP - Q6 WTP) in £",breaks=waiver(),limits = c(0,100),
-                     n.breaks = 10, labels = function(x) paste0("£",x))+
+  scale_x_continuous(name="Precautionary Premium (Q7 WTP - Q6 WTP) in #",breaks=waiver(),limits = c(0,100),
+                     n.breaks = 10, labels = function(x) paste0("#",x))+
   ggtitle("Precautionary Premia from probit (Truncated Sample).")
 
 ICLVHistF <- ggplot(Full_Final, aes(x=ICLVPrecautionF)) + 
   geom_histogram(aes(y = ..density..),color="black", fill="white",binwidth = 1)+
   stat_function(fun=fun, 
                 args = with(Full_Final, c(mean = mean(ICLVPrecautionF), sd = sd(ICLVPrecautionF), n= 1)))+
-  scale_x_continuous(name="Precautionary Premium (Q7 WTP - Q6 WTP) in £",breaks=waiver(),limits = c(-10,100),
-                     n.breaks = 10,labels = function(x) paste0("£",x))+
+  scale_x_continuous(name="Precautionary Premium (Q7 WTP - Q6 WTP) in #",breaks=waiver(),limits = c(-10,100),
+                     n.breaks = 10,labels = function(x) paste0("#",x))+
   ggtitle("Precautionary Premia from ICLV (Full Sample).")
 
 ICLVHistT <-ggplot(Full_Full, aes(x=(ICLVPrecautionF))) + 
   geom_histogram(aes(y = ..density..),color="black", fill="white",binwidth = 1)+
   stat_function(fun=fun, 
                 args = with(Full_Final, c(mean = mean(Full_Full$ICLVPrecautionF), sd = sd(Full_Full$ICLVPrecautionF), n= 1)))+
-  scale_x_continuous(name="Precautionary Premium (Q7 WTP - Q6 WTP) in £",breaks=waiver(),limits = c(-10,100),
-                     n.breaks = 10,labels = function(x) paste0("£",x))+
+  scale_x_continuous(name="Precautionary Premium (Q7 WTP - Q6 WTP) in #",breaks=waiver(),limits = c(-10,100),
+                     n.breaks = 10,labels = function(x) paste0("#",x))+
   ggtitle("Precautionary Premia from ICLV (Truncated Sample).")
 
 grid.arrange(SBDCPRecaution,ICLVHistF,SBDCPRecaution2, ICLVHistT)

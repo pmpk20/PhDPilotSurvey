@@ -24,6 +24,7 @@
 # rm(list=ls())
 pkgbuild::has_build_tools()
 library(Hmisc)
+library(xtable)
 library(dplyr)
 library(ggplot2)
 library(gridExtra)
@@ -92,13 +93,15 @@ nrow(Full_Full)/8
 
 
 #### Conditional Logit: C4 ####
-database<- Test_Truncated
+Test_Apollo <- data.frame(read.csv("Test_Apollo.csv")) # Import the final data for ease
+Test_Apollo$Performance_B <- Test_Apollo$Performance_B*-1
+database<- Test_Apollo
 library(apollo)
 
 apollo_initialise()
 
 apollo_control = list(
-  modelName  ="Replicating Full_MNL", indivID    ="ID")
+  modelName  ="CLModel", indivID    ="ID")
 
 apollo_beta=c(asc_A      = 0,
               asc_B      = 0,
@@ -148,7 +151,9 @@ apollo_deltaMethod(CLmodel, list(operation="ratio", parName1="b_Emission", parNa
 
 #### Multinomial Logit: C4 ####
 
-database = Test_Truncated
+Test_Apollo <- data.frame(read.csv("Test_Apollo.csv")) # Import the final data for ease
+Test_Apollo$Performance_B <- Test_Apollo$Performance_B*-1
+database<- Test_Apollo
 library(apollo)
 library(stats)
 apollo_control = list(
@@ -593,7 +598,7 @@ summary(Research_BidOnly_Trunc) ## Reports the SBDC analysis for Q6 with mean, m
 ## Covariates:
 Research_TruncatedID <- sbchoice(Q6ResearchResponse ~ Q1Gender + Q2Age + Q3Distance+ Q4Trips +
                                    Q16BP + Q18Charity + Q22Education+  IncomeDummy+Order+
-                                 Q20Consequentiality+ Q21Experts+ Q25Understanding + Q6ResearchCertainty| Q6Bid, data = Full_Full,dist="normal")
+                                 Q20Consequentiality+ Q21Experts+ Q25Understanding + Q6ResearchCertainty| Q6Bid, data = Full_Final,dist="normal")
 summary(Research_TruncatedID)
 krCI(Research_TruncatedID)
 round(data.frame(c(summary(Research_TruncatedID)$glm.summary[12])),3)
@@ -601,7 +606,7 @@ round(data.frame(c(summary(Research_TruncatedID)$glm.summary[12])),3)
 xtable(cbind(round(data.frame(c(summary(Research_TruncatedID)$glm.summary[12])),3)["coefficients.Estimate"],
       rbind(0,data.frame(round(probitmfx(formula = Q6ResearchResponse ~ Q1Gender + Q2Age + Q3Distance+ Q4Trips +
                                            Q16BP + Q18Charity + Q22Education+  IncomeDummy+Order+
-                                           Q20Consequentiality+ Q21Experts+ Q25Understanding + Q6ResearchCertainty+Q6Bid,data = Full_Full,robust = TRUE)$mfxest[,1],3))),
+                                           Q20Consequentiality+ Q21Experts+ Q25Understanding + Q6ResearchCertainty+Q6Bid,data = Full_Final,robust = TRUE)$mfxest[,1],3))),
       round(data.frame(c(summary(Research_TruncatedID)$glm.summary[12])),3)["coefficients.Std..Error"],
       round(data.frame(c(summary(Research_TruncatedID)$glm.summary[12])),3)["coefficients.Pr...z.."]))
 
