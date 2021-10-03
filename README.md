@@ -1,4 +1,5 @@
-## Peter King PhD Thesis Analysis and Replication Repo.\
+## Peter King PhD Thesis Analysis and Replication Repo.
+
 
 
 Hi, this should be all the code necessary to replicate my doctoral thesis ``Estimation of the Value of Precautionary Restrictions On Microplastics``.
