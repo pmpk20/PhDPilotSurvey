@@ -1,37 +1,32 @@
 ## Peter King PhD Thesis Replication Repo.
 
 
+----
+Hi, this should be all the code necessary to replicate my doctoral thesis ``Estimation of the Value of Precautionary Restrictions On Microplastics``.  
 
-Hi, this should be all the code necessary to replicate my doctoral thesis ``Estimation of the Value of Precautionary Restrictions On Microplastics``.
 
+----
+#### How to replicate:
+  -  `Thesis_SetupCode.R`: transforms raw data *FinalData.csv* to *Test_Apollo.csv* which is necessary for estimation with Apollo.
+  -  `Replication_PhD_C4CEModels.R`: estimates just those choice models models in-text. `Thesis_ApolloMXL.R` performs the specification search for the MXL.
+  -  `Replication_PhD_LCM2Class.R`: a trimmed version of `Thesis_ApolloLCM.R` that reports latent class models.
+  -  `Replication_PhD_C5CVModels.R`: reports all the contingent valuation models.
+  -  `Replication_PhD_CBA.py`: enables replicating the CBA tables. 
+  -  `Thesis_Replication.R`: puts these into one file to estimate the key parts of the thesis.  
 
-Files included are:
-- `Thesis_SetupCode.R`:  
-  - This imports the raw data (**) from the survey company and transforms it to (*Test_Apollo.csv*) for estimation with Apollo.
-
-- Files beginning with *Replication* are streamlined code to replicate specific sections of the thesis.
-
+----
+#### Other files:
 - `Thesis_Graphing.R`:  
   - All the plots in the thesis can be found here - alongside some no longer used.
   - Happy to take suggestions on better visualisation choices!
 
-- `Thesis_ApolloMXL.R`:  
-  - All the Mixed Logit models I estimated are here.
-  - This is the specification search so there's a huge amount of trial and error evident here. 
-
 - `Thesis_CEICLV.R` and `Thesis_CVICLV.R`:  
   - Integrated Choice-Latent Variables Models; split into CE and CV sections. 
-  - These take longer to estimate but form the basis for my second paper: https://researchportal.bath.ac.uk/en/publications/willingness-to-pay-for-precautionary-control-of-microplastics-a-c
+  - These take longer to estimate but form the basis for my second paper: [Link](https://researchportal.bath.ac.uk/en/publications/willingness-to-pay-for-precautionary-control-of-microplastics-a-c)
 
-- `Thesis_ApolloLCM.R`:  
-  - Specification search for the Latent Class Models.
+- Finally, `FullAnalysis.R` is the compilation of all these but may be outdated and unreadable.   
+  
+  
+----
+#### TThese are sufficient to enable replication as of 19/10/2021. Any issues or comments let me know at: p.m.king@kent.ac.uk
 
-- Finally, `FullAnalysis.R` is the compilation of all these but may be outdated and unreadable. 
-
-These may be updated/appended later but for now that should enable replication. Any issues or comments let me know at: p.m.king@kent.ac.uk
-
-
-03/10 To-Do:
-- Bivariate probit ICLV
-- Finish Stata and Python replication attempts
-- Publish papers.
