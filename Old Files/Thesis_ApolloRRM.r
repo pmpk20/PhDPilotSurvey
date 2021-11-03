@@ -1,6 +1,8 @@
 #### Survey data analysis script: All in one  ###############
 # Project author: Peter King (p.m.king@bath.ac.uk)
 # Project title: Is Precaution Motivated More By Regret-Minimisation or Utility-Maximisation?
+# Note: The hybrid-RRM model can only work with 3 alternatives+ according to SVC.
+
 
 #### Upload Previous Models ####
 
