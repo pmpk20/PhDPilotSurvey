@@ -26,6 +26,8 @@ Tthis should be all the code necessary to replicate my doctoral thesis: *[Estima
     - This is all data I have per respondent per choice.
 - *FullSurvey.csv*:
     - Data from the survey company in one row per respondent. 
+- *FullSurvey2.csv*:
+    - Data from the survey but with fitted-WTP and more added per respondent.  
 - *Test_Apollo.csv*:
     - Data for estimating choice models. Has one row per respondents choice (N = 670 * 4 choices = 5360 rows)
     - Previously I used a truncated version of this but I've dropped this following my Viva.  
