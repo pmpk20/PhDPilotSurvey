@@ -3,13 +3,15 @@
 
 ----
 
-Tthis should be all the code necessary to replicate my doctoral thesis: *[Estimation of the Value of Precautionary Restrictions On Microplastics.](https://researchportal.bath.ac.uk/en/studentTheses/estimation-of-the-value-of-precautionary-restrictions-on-micropla)*
+Tthis should be all the code and data necessary to replicate my doctoral thesis: *[Estimation of the Value of Precautionary Restrictions On Microplastics.](https://researchportal.bath.ac.uk/en/studentTheses/estimation-of-the-value-of-precautionary-restrictions-on-micropla)*
 
-#### Disclaimer: This code has not been updated since 2021 and, looking back, is not the prettiest ever written so code with caution.
+
+#### Disclaimer: This code has not been updated. I have included almost everything I wrote during my PhD so there will be old, unmaintained, and bad practice scripts here but they are provided for any insight. See [here](https://github.com/pmpk20?tab=repositories) for my more recent work.
+
 
 
 ----
-### How to replicate:
+### Replication Code:
   +  *Thesis_SetupCode.R*: 
       +  Transforms raw data *FullSurvey.csv* to *Test_Apollo.csv* which is necessary for estimation with Apollo.
   -  *Thesis_C4CEModels.R*: 
@@ -21,9 +23,9 @@ Tthis should be all the code necessary to replicate my doctoral thesis: *[Estima
 
 
 ----
-### Other Files:
+### Replication Data:
 - *KING_PETER_THESIS_191021.PDF*: The submitted copy of my thesis.
-  - Note: Chapter 5 ICLV Estimated WTP uses incorrect formula so do not use the figures.
+  - Note: Chapter 5 ICLV Estimated WTP used incorrect formula so the reported values for that subsubsection are outdated.
 - *FinalData.csv*: 
     - This is all data I have per respondent per choice.
 - *FullSurvey.csv*:
@@ -37,7 +39,6 @@ Tthis should be all the code necessary to replicate my doctoral thesis: *[Estima
 
 ----
 ### In the **OldScripts** Folder:
-- Disclaimer: These are seriously old, unmaintained, and follow bad practice. They are provided for any insight but not to be relied upon. 
 - *Thesis_Graphing.R*: All the plots in the thesis can be found here - alongside some no longer used.
    - Happy to take suggestions on better visualisation choices!
 
@@ -48,7 +49,7 @@ Tthis should be all the code necessary to replicate my doctoral thesis: *[Estima
 
 - *Replication_PhD_LCM2Class.R*: a trimmed version of **Thesis_ApolloLCM.R** that reports latent class models.
 
-- *Replication_PhD_CBA.py*: enables replicating the CBA tables. 
+- *Replication_PhD_CBA.py*: enables replicating the CBA tables. This is python because I liked the discounting in Numpy.
 
 - *Thesis_Replication.R*: puts these into one file to estimate the key parts of the thesis.  
 
@@ -56,7 +57,7 @@ Tthis should be all the code necessary to replicate my doctoral thesis: *[Estima
  ----
 ### In the **FilesForCVPaper** Folder:
 - Scripts, model outputs, and estimated WTP for the two CV questions.
-- These should be enough to replicate (this)[https://researchportal.bath.ac.uk/en/publications/willingness-to-pay-for-precautionary-control-of-microplastics-a-c] working paper which is R&R at Marine Policy.
+- These should be enough to replicate [this](https://researchportal.bath.ac.uk/en/publications/willingness-to-pay-for-precautionary-control-of-microplastics-a-c) working paper which is R&R at Marine Policy.
   
 ----
 ### These are sufficient to enable replication as of 02/05/2022. Any issues or comments let me know at: [p.m.king@kent.ac.uk](p.m.king@kent.ac.uk)
