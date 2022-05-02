@@ -2,11 +2,10 @@
 
 
 ----
-Hi, this should be all the code necessary to replicate my doctoral thesis ``Estimation of the Value of Precautionary Restrictions On Microplastics``.  
-
+Hi, this should be all the code necessary to replicate my doctoral thesis: *[Estimation of the Value of Precautionary Restrictions On Microplastics.](https://researchportal.bath.ac.uk/en/studentTheses/estimation-of-the-value-of-precautionary-restrictions-on-micropla)*
 
 ----
-#### How to replicate:
+### How to replicate:
   -  `Thesis_SetupCode.R`: transforms raw data *FinalData.csv* to *Test_Apollo.csv* which is necessary for estimation with Apollo.
   -  `Replication_PhD_C4CEModels.R`: estimates just those choice models models in-text. `Thesis_ApolloMXL.R` performs the specification search for the MXL.
   -  `Replication_PhD_LCM2Class.R`: a trimmed version of `Thesis_ApolloLCM.R` that reports latent class models.
@@ -15,7 +14,7 @@ Hi, this should be all the code necessary to replicate my doctoral thesis ``Esti
   -  `Thesis_Replication.R`: puts these into one file to estimate the key parts of the thesis.  
 
 ----
-#### Other files:
+### Other files:
 - `Thesis_Graphing.R`:  
   - All the plots in the thesis can be found here - alongside some no longer used.
   - Happy to take suggestions on better visualisation choices!
@@ -28,5 +27,5 @@ Hi, this should be all the code necessary to replicate my doctoral thesis ``Esti
   
   
 ----
-#### TThese are sufficient to enable replication as of 19/10/2021. Any issues or comments let me know at: p.m.king@kent.ac.uk
+### These are sufficient to enable replication as of 19/10/2021. Any issues or comments let me know at: [p.m.king@kent.ac.uk](p.m.king@kent.ac.uk)
 
