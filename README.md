@@ -2,9 +2,11 @@
 
 
 ----
+
 Tthis should be all the code necessary to replicate my doctoral thesis: *[Estimation of the Value of Precautionary Restrictions On Microplastics.](https://researchportal.bath.ac.uk/en/studentTheses/estimation-of-the-value-of-precautionary-restrictions-on-micropla)*
 
 #### Disclaimer: This code has not been updated since 2021 and, looking back, is not the prettiest ever written so code with caution.
+
 
 ----
 ### How to replicate:
@@ -32,6 +34,7 @@ Tthis should be all the code necessary to replicate my doctoral thesis: *[Estima
     - Data for estimating choice models. Has one row per respondents choice (N = 670 * 4 choices = 5360 rows)
     - Previously I used a truncated version of this but I've dropped this following my Viva.  
 
+
 ----
 ### In the **OldScripts** Folder:
 - Disclaimer: These are seriously old, unmaintained, and follow bad practice. They are provided for any insight but not to be relied upon. 
@@ -49,7 +52,11 @@ Tthis should be all the code necessary to replicate my doctoral thesis: *[Estima
 
 - *Thesis_Replication.R*: puts these into one file to estimate the key parts of the thesis.  
 
-  
+ 
+ ----
+### In the **FilesForCVPaper** Folder:
+- Scripts, model outputs, and estimated WTP for the two CV questions.
+- These should be enough to replicate (this)[https://researchportal.bath.ac.uk/en/publications/willingness-to-pay-for-precautionary-control-of-microplastics-a-c] working paper which is R&R at Marine Policy.
   
 ----
 ### These are sufficient to enable replication as of 02/05/2022. Any issues or comments let me know at: [p.m.king@kent.ac.uk](p.m.king@kent.ac.uk)
