@@ -110,31 +110,31 @@ FullSurvey2$LVQuantilesQ2 <- (ifelse(FullSurvey2$Q2LV < quantile(FullSurvey2$Q2L
 
 Q1Box <- ggplot(FullSurvey2, aes(LVQuantilesQ1, Q1WTP)) +   
   geom_boxplot(coef=5,aes(ymin=min(Q1WTPLower),lower=quantile(Q1WTP,0.25),middle=median(Q1WTP),upper=quantile(Q1WTP,0.75),ymax=max(Q1WTPUpper),group = LVQuantilesQ1),width = 0.1)+
-  scale_y_continuous(name="WTP in annual £GBP per HH.",
+  scale_y_continuous(name="WTP in annual Â£GBP per HH.",
                      breaks=waiver(),limits = c(0,100),
-                     n.breaks = 10, labels = function(x) paste0("£",x))+
+                     n.breaks = 10, labels = function(x) paste0("Â£",x))+
   scale_x_discrete(name="Percentiles of latent variable",labels = c("10%\n (N = 67)","25%\n (N = 101)","50%\n (N = 167)","75%\n (N = 167)","90%\n (N = 168)"), limits=c(1,2,3,4,5))+
   ggtitle("Q1 WTP by percentile of latent variable estimated in Q1 Hybrid Choice Model.")+
-  geom_text(x = 1, y =10+round(mean(FullSurvey2$Q1WTP[FullSurvey2$LVQuantilesQ1==1]),2) , label = paste0("Mean:   £",round(mean(FullSurvey2$Q1WTP[FullSurvey2$LVQuantilesQ1==1]),2)),color="red")+
-  geom_text(x = 2, y =10+round(mean(FullSurvey2$Q1WTP[FullSurvey2$LVQuantilesQ1==2]),2) , label = paste0("Mean:   £",round(mean(FullSurvey2$Q1WTP[FullSurvey2$LVQuantilesQ1==2]),2)),color="red")+
-  geom_text(x = 3, y =10+round(mean(FullSurvey2$Q1WTP[FullSurvey2$LVQuantilesQ1==3]),2) , label = paste0("Mean:   £",round(mean(FullSurvey2$Q1WTP[FullSurvey2$LVQuantilesQ1==3]),2)),color="red")+
-  geom_text(x = 4, y =10+round(mean(FullSurvey2$Q1WTP[FullSurvey2$LVQuantilesQ1==4]),2) , label = paste0("Mean:   £",round(mean(FullSurvey2$Q1WTP[FullSurvey2$LVQuantilesQ1==4]),2)),color="red")+
-  geom_text(x = 5, y =10+round(mean(FullSurvey2$Q1WTP[FullSurvey2$LVQuantilesQ1==5]),2) , label = paste0("Mean:   £",round(mean(FullSurvey2$Q1WTP[FullSurvey2$LVQuantilesQ1==5]),2)),color="red")
+  geom_text(x = 1, y =10+round(mean(FullSurvey2$Q1WTP[FullSurvey2$LVQuantilesQ1==1]),2) , label = paste0("Mean:   Â£",round(mean(FullSurvey2$Q1WTP[FullSurvey2$LVQuantilesQ1==1]),2)),color="red")+
+  geom_text(x = 2, y =10+round(mean(FullSurvey2$Q1WTP[FullSurvey2$LVQuantilesQ1==2]),2) , label = paste0("Mean:   Â£",round(mean(FullSurvey2$Q1WTP[FullSurvey2$LVQuantilesQ1==2]),2)),color="red")+
+  geom_text(x = 3, y =10+round(mean(FullSurvey2$Q1WTP[FullSurvey2$LVQuantilesQ1==3]),2) , label = paste0("Mean:   Â£",round(mean(FullSurvey2$Q1WTP[FullSurvey2$LVQuantilesQ1==3]),2)),color="red")+
+  geom_text(x = 4, y =10+round(mean(FullSurvey2$Q1WTP[FullSurvey2$LVQuantilesQ1==4]),2) , label = paste0("Mean:   Â£",round(mean(FullSurvey2$Q1WTP[FullSurvey2$LVQuantilesQ1==4]),2)),color="red")+
+  geom_text(x = 5, y =10+round(mean(FullSurvey2$Q1WTP[FullSurvey2$LVQuantilesQ1==5]),2) , label = paste0("Mean:   Â£",round(mean(FullSurvey2$Q1WTP[FullSurvey2$LVQuantilesQ1==5]),2)),color="red")
 
 
 
 Q2Box <- ggplot(FullSurvey2, aes(LVQuantilesQ2, Q2WTP)) +   
   geom_boxplot(coef=5,aes(ymin=min(Q2WTPLower),lower=quantile(Q2WTP,0.25),middle=median(Q2WTP),upper=quantile(Q2WTP,0.75),ymax=max(Q2WTPUpper),group = LVQuantilesQ2),width = 0.1)+
-  scale_y_continuous(name="WTP in annual £GBP per HH.",
+  scale_y_continuous(name="WTP in annual Â£GBP per HH.",
                      breaks=waiver(),limits = c(0,100),
-                     n.breaks = 10, labels = function(x) paste0("£",x))+
+                     n.breaks = 10, labels = function(x) paste0("Â£",x))+
   scale_x_discrete(name="Percentiles of latent variable",labels = c("10%\n (N = 67)","25%\n (N = 101)","50%\n (N = 167)","75%\n (N = 167)","90%\n (N = 168)"), limits=c(1,2,3,4,5))+
   ggtitle("Q2 WTP by percentile of latent variable estimated in Q2 Hybrid Choice Model.")+
-  geom_text(x = 1, y =10+round(mean(FullSurvey2$Q2WTP[FullSurvey2$LVQuantilesQ2==1]),2) , label = paste0("Mean:   £",round(mean(FullSurvey2$Q2WTP[FullSurvey2$LVQuantilesQ2==1]),2)),color="blue")+
-  geom_text(x = 2, y =10+round(mean(FullSurvey2$Q2WTP[FullSurvey2$LVQuantilesQ2==2]),2) , label = paste0("Mean:   £",round(mean(FullSurvey2$Q2WTP[FullSurvey2$LVQuantilesQ2==2]),2)),color="blue")+
-  geom_text(x = 3, y =10+round(mean(FullSurvey2$Q2WTP[FullSurvey2$LVQuantilesQ2==3]),2) , label = paste0("Mean:   £",round(mean(FullSurvey2$Q2WTP[FullSurvey2$LVQuantilesQ2==3]),2)),color="blue")+
-  geom_text(x = 4, y =10+round(mean(FullSurvey2$Q2WTP[FullSurvey2$LVQuantilesQ2==4]),2) , label = paste0("Mean:   £",round(mean(FullSurvey2$Q2WTP[FullSurvey2$LVQuantilesQ2==4]),2)),color="blue")+
-  geom_text(x = 5, y =10+round(mean(FullSurvey2$Q2WTP[FullSurvey2$LVQuantilesQ2==5]),2) , label = paste0("Mean:   £",round(mean(FullSurvey2$Q2WTP[FullSurvey2$LVQuantilesQ2==5]),2)),color="blue")
+  geom_text(x = 1, y =10+round(mean(FullSurvey2$Q2WTP[FullSurvey2$LVQuantilesQ2==1]),2) , label = paste0("Mean:   Â£",round(mean(FullSurvey2$Q2WTP[FullSurvey2$LVQuantilesQ2==1]),2)),color="blue")+
+  geom_text(x = 2, y =10+round(mean(FullSurvey2$Q2WTP[FullSurvey2$LVQuantilesQ2==2]),2) , label = paste0("Mean:   Â£",round(mean(FullSurvey2$Q2WTP[FullSurvey2$LVQuantilesQ2==2]),2)),color="blue")+
+  geom_text(x = 3, y =10+round(mean(FullSurvey2$Q2WTP[FullSurvey2$LVQuantilesQ2==3]),2) , label = paste0("Mean:   Â£",round(mean(FullSurvey2$Q2WTP[FullSurvey2$LVQuantilesQ2==3]),2)),color="blue")+
+  geom_text(x = 4, y =10+round(mean(FullSurvey2$Q2WTP[FullSurvey2$LVQuantilesQ2==4]),2) , label = paste0("Mean:   Â£",round(mean(FullSurvey2$Q2WTP[FullSurvey2$LVQuantilesQ2==4]),2)),color="blue")+
+  geom_text(x = 5, y =10+round(mean(FullSurvey2$Q2WTP[FullSurvey2$LVQuantilesQ2==5]),2) , label = paste0("Mean:   Â£",round(mean(FullSurvey2$Q2WTP[FullSurvey2$LVQuantilesQ2==5]),2)),color="blue")
 
 
 
